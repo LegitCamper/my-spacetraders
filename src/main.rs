@@ -1,4 +1,4 @@
-use my_spacetraders::{Credentials, SpaceTraders};
+use my_spacetraders::interface::{Coordinates, Credentials, SpaceTraders};
 
 #[tokio::main]
 async fn main() {
@@ -7,7 +7,14 @@ async fn main() {
     );
 
     let space_traders = SpaceTraders::new(credentials);
-    let current_waypoint = space_traders.agent_details().await;
 
-    println!("{:?}", current_waypoint)
+    let current_waypoint = space_traders.agent_details().await;
+    println!("{:?}", current_waypoint);
+
+    println!(
+        "{:?}",
+        space_traders
+            .contract_terms("clhgikslz0bjxs60dwfqg3zto")
+            .await
+    );
 }
