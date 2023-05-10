@@ -1,4 +1,4 @@
-use  my_spacetraders::{SpaceTraders, Credentials};
+use my_spacetraders::{Credentials, SpaceTraders};
 
 #[tokio::main]
 async fn main() {
@@ -8,6 +8,6 @@ async fn main() {
 
     let space_traders = SpaceTraders::new(credentials);
     let current_waypoint = space_traders.agent_details().await;
-    
+
     println!("{:?}", current_waypoint)
 }

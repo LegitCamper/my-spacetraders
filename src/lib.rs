@@ -1,16 +1,16 @@
 use reqwest::Client;
-use url::Url;
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 #[derive(Debug)]
 pub struct Credentials {
-    pub token: String
+    pub token: String,
 }
 
 impl Credentials {
     pub fn new(token: &str) -> Self {
         Credentials {
-            token: String::from(token)
+            token: String::from(token),
         }
     }
 }
@@ -19,7 +19,7 @@ impl Credentials {
 pub struct SpaceTraders {
     credentials: Credentials,
     pub client: Client,
-    pub url: String
+    pub url: String,
 }
 
 impl SpaceTraders {
@@ -27,37 +27,38 @@ impl SpaceTraders {
         SpaceTraders {
             credentials,
             client: reqwest::Client::new(),
-            url: String::from("https://api.spacetraders.io")
+            url: String::from("https://api.spacetraders.io"),
         }
-        
     }
 
     fn get_header(&self) -> String {
         format!("Bearer {}", self.credentials.token)
     }
 
+    fn get_url(&self, endpoint: &str) -> Url {
+        Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
+    }
+
     pub async fn agent_details(&self) -> AgentInfoL0 {
-        let endpoint = Url::parse(format!("{}{}", self.url, "/v2/my/agent").as_str()).unwrap();
-        match self.client.get(endpoint)
+        match self
+            .client
+            .get(self.get_url("/v2/my/agent"))
             .header("Authorization", self.get_header())
             .send()
             .await
             .unwrap()
-            // .json::<AgentInfoL0>()
-        .text()
+            .json::<AgentInfoL0>()
             .await
-            // .unwrap()
         {
-            // Ok(response) => response,
-            Ok(response) => serde_json::from_str(response.as_str()).unwrap(),
-            Err(error) => panic!("{}", error)
+            Ok(response) => response,
+            Err(error) => panic!("{}", error),
         }
     }
 
     pub async fn ship_waypoint(&self) -> String {
-        let endpoint = Url::parse(format!("{}{}", self.url, "/v2/systems/:systemSymbol/waypoints/:waypointSymbol").as_str()).unwrap();
-        println!("{}", self.get_header());
-        match self.client.get(endpoint)
+        match self
+            .client
+            .get(self.get_url("/v2/systems/:systemSymbol/waypoints/:waypointSymbol"))
             .header("Authorization", self.get_header())
             .send()
             .await
@@ -66,25 +67,55 @@ impl SpaceTraders {
             .await
         {
             Ok(response) => response,
-            Err(error) => panic!("{}", error)
+            Err(error) => panic!("{}", error),
+        }
+    }
+
+    pub async fn contracts(&self, contracts: Contracts) -> String {
+        let url = match contracts {
+            Contracts::Accept => self.get_url("/v2/my/contracts/:contractId/accept"),
+        };
+        match self
+            .client
+            .get(url)
+            .header("Authorization", self.get_header())
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+        {
+            Ok(response) => response,
+            Err(error) => panic!("{}", error),
         }
     }
 }
 
+// Other helpful structs
+
+pub struct Coordinates {
+    x: f64,
+    y: f64,
+}
+
+pub enum Contracts {
+    Accept,
+    // deny
+    // cancel
+}
 
 // Other structs for reponses from spacetrades
 
-#[warn(non_snake_case)]
-// #[serde(rename_all = "snake_case")]
 #[derive(Deserialize, Debug)]
 pub struct AgentInfoL0 {
-    pub data: AgentInfoL1
+    pub data: AgentInfoL1,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct AgentInfoL1 {
-    pub Account_Id: String,
+    #[serde(alias = "accountId")]
+    pub account_id: String,
     pub symbol: String,
     pub headquarters: String,
-    pub credits: u64
+    pub credits: u64,
 }
