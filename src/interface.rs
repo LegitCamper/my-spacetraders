@@ -94,15 +94,6 @@ impl SpaceTraders {
     }
 
     pub async fn waypoint_list(&self, system_symbol: String) -> WaypointsListedL0 {
-        println!(
-            "{}",
-            &self
-                .make_reqwest(
-                    Method::Get,
-                    &format!("/v2/systems/{}/waypoints", system_symbol),
-                )
-                .await
-        );
         serde_json::from_str(
             &self
                 .make_reqwest(
