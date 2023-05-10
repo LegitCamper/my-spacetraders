@@ -1,4 +1,7 @@
-use reqwest::Client;
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    Client,
+};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -31,8 +34,14 @@ impl SpaceTraders {
         }
     }
 
-    fn get_header(&self) -> String {
-        format!("Bearer {}", self.credentials.token)
+    fn get_header(&self) -> HeaderMap {
+        let mut headers = HeaderMap::with_capacity(1);
+        headers.insert(
+            "Authorization",
+            HeaderValue::from_bytes(format!("Bearer {}", self.credentials.token).as_bytes())
+                .unwrap(),
+        );
+        headers
     }
 
     fn get_url(&self, endpoint: &str) -> Url {
@@ -43,7 +52,7 @@ impl SpaceTraders {
         match self
             .client
             .get(self.get_url("/v2/my/agent"))
-            .header("Authorization", self.get_header())
+            .headers(self.get_header())
             .send()
             .await
             .unwrap()
@@ -55,11 +64,14 @@ impl SpaceTraders {
         }
     }
 
-    pub async fn ship_waypoint(&self) -> String {
+    pub async fn ship_waypoint(&self, system_symbol: String, waypoint_symbol: String) -> String {
         match self
             .client
-            .get(self.get_url("/v2/systems/:systemSymbol/waypoints/:waypointSymbol"))
-            .header("Authorization", self.get_header())
+            .get(self.get_url(&format!(
+                "/v2/systems/{}/waypoints/{}",
+                system_symbol, waypoint_symbol
+            )))
+            .headers(self.get_header())
             .send()
             .await
             .unwrap()
@@ -74,8 +86,8 @@ impl SpaceTraders {
     pub async fn contract_accept(&self, contract_id: &str) -> String {
         match self
             .client
-            .post(self.get_url(&format!("/v2/my/contracts/:{}/accept", contract_id)))
-            .header("Authorization", self.get_header())
+            .post(self.get_url(&format!("/v2/my/contracts/{}/accept", contract_id)))
+            .headers(self.get_header())
             .send()
             .await
             .unwrap()
@@ -90,7 +102,7 @@ impl SpaceTraders {
         match self
             .client
             .get(self.get_url(&format!("/v2/my/contracts/{}", contract_id)))
-            .header("Authorization", self.get_header())
+            .headers(self.get_header())
             .send()
             .await
             .unwrap()
