@@ -93,12 +93,25 @@ impl SpaceTraders {
         .await
     }
 
-    pub async fn waypoint_list(&self, system_symbol: String) -> String {
-        self.make_reqwest(
-            Method::Get,
-            &format!("/v2/systems/{}/waypoints", system_symbol),
+    pub async fn waypoint_list(&self, system_symbol: String) -> WaypointsListedL0 {
+        println!(
+            "{}",
+            &self
+                .make_reqwest(
+                    Method::Get,
+                    &format!("/v2/systems/{}/waypoints", system_symbol),
+                )
+                .await
+        );
+        serde_json::from_str(
+            &self
+                .make_reqwest(
+                    Method::Get,
+                    &format!("/v2/systems/{}/waypoints", system_symbol),
+                )
+                .await,
         )
-        .await
+        .unwrap()
     }
 
     pub async fn contract_accept(&self, contract_id: &str) -> String {
@@ -132,12 +145,83 @@ pub enum Item {
 pub enum WaypointTrait {
     #[serde(alias = "SHIPYARD")]
     Shipyard,
+    #[serde(alias = "PLANET")]
+    Planet,
+    #[serde(alias = "MOON")]
+    Moon,
+    #[serde(alias = "ASTEROID_FIELD")]
+    AsteroidField,
+    #[serde(alias = "GAS_GIANT")]
+    GasGiant,
+    #[serde(alias = "ORBITAL_STATION")]
+    OrbitalStation,
+    #[serde(alias = "OVERCROWDED")]
+    Overcrowded,
+    #[serde(alias = "BUREAUCRATIC")]
+    Buereaucratic,
+    #[serde(alias = "MARKETPLACE")]
+    Marketplace,
+    #[serde(alias = "HIGH_TECH")]
+    HighTech,
+    #[serde(alias = "TEMPERATE")]
+    Termerate,
+    #[serde(alias = "BARREN")]
+    Barren,
+    #[serde(alias = "TRADING_HUB")]
+    TradingHub,
+    #[serde(alias = "VOLCANIC")]
+    Volcanic,
+    #[serde(alias = "FROZEN")]
+    Frozen,
+    #[serde(alias = "TOXIC_ATMOSPHERE")]
+    ToxicAtmoshere,
+    #[serde(alias = "WEAK_GRAVITY")]
+    WeakGravity,
+    #[serde(alias = "MINERAL_DEPOSITS")]
+    MineralDeposits,
+    #[serde(alias = "COMMON_METAL_DEPOSITS")]
+    CommonMetalDeposits,
+    #[serde(alias = "PRECIOUS_METAL_DEPOSITS")]
+    PrecuousMetalDeposits,
+    #[serde(alias = "STRIPPED")]
+    Striped,
+    #[serde(alias = "VIBRANT_AURORAS")]
+    VibrantAuroras,
+    #[serde(alias = "STRONG_MAGNETOSPHERE")]
+    StrongMagnetosphere,
+    #[serde(alias = "MILITARY_BASE")]
+    MilitaryBase,
+    #[serde(alias = "DRY_SEABEDS")]
+    DrySeabeds,
+    #[serde(alias = "JUMP_GATE")]
+    JumpGate,
+}
+
+#[derive(Deserialize, Debug)]
+pub enum faction {
+    #[serde(alias = "COSMIC")]
+    Cosmic,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Coordinates {
     x: f64,
     y: f64,
+}
+
+pub fn parse_waypoint(waypoint: String) -> Waypoint {
+    let waypoint_split: Vec<&str> = waypoint.split('-').collect();
+    Waypoint {
+        sector: waypoint_split[0].to_string(),
+        system: format!("{}-{}", waypoint_split[0], waypoint_split[1]),
+        waypoint,
+    }
+}
+#[derive(Debug)]
+pub struct Waypoint {
+    pub sector: String,
+    pub system: String,
+    pub waypoint: String,
 }
 
 pub enum Method {
@@ -210,4 +294,46 @@ pub struct ContractTermsL4 {
     accepted: bool,
     fulfilled: bool,
     experation: String,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct WaypointsListedL0 {
+    data: Vec<WaypointsListedL1>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct WaypointsListedL1 {
+    #[serde(alias = "systemSymbol")]
+    system_symbol: String,
+    symbol: String,
+    r#type: WaypointTrait,
+    x: i64,
+    y: i64,
+    orbitals: Vec<WaypointsListedOrbitals>,
+    traits: Vec<WaypointsListedTraits>,
+    chart: WaypointsListedCharts,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct WaypointsListedOrbitals {
+    symbol: String,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct WaypointsListedTraits {
+    symbol: WaypointTrait,
+    name: String,
+    #[serde(default)]
+    desciption: String,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct WaypointsListedCharts {
+    #[serde(alias = "submittedBy")]
+    submitted_by: faction,
+    #[serde(alias = "submittedOn")]
+    submitted_on: String,
+    // desciption: String,
+    // faction: Vec<faction>,
 }

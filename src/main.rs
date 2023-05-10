@@ -1,4 +1,4 @@
-use my_spacetraders::interface::{Coordinates, Credentials, SpaceTraders};
+use my_spacetraders::interface::{parse_waypoint, Coordinates, Credentials, SpaceTraders};
 
 #[tokio::main]
 async fn main() {
@@ -17,7 +17,7 @@ async fn main() {
     println!(
         "{:?}",
         space_traders
-            .waypoint_list(agent_info.data.headquarters)
+            .waypoint_list(parse_waypoint(agent_info.data.headquarters).system)
             .await
     );
 
