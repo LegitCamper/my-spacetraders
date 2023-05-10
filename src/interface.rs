@@ -44,78 +44,82 @@ impl SpaceTraders {
         headers
     }
 
+    pub async fn make_reqwest(&self, method: Method, url: &str) -> String {
+        let response = match method {
+            Method::Get => {
+                self.client
+                    .get(self.get_url(url))
+                    .headers(self.get_header())
+                    .send()
+                    .await
+                    .unwrap()
+                    .text()
+                    .await
+            }
+
+            Method::Post => {
+                self.client
+                    .post(self.get_url(url))
+                    .headers(self.get_header())
+                    .send()
+                    .await
+                    .unwrap()
+                    .text()
+                    .await
+            }
+        };
+
+        match response {
+            Ok(response) => response,
+            Err(error) => panic!("{}", error),
+        }
+    }
     fn get_url(&self, endpoint: &str) -> Url {
         Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
 
     pub async fn agent_details(&self) -> AgentInfoL0 {
-        match self
-            .client
-            .get(self.get_url("/v2/my/agent"))
-            .headers(self.get_header())
-            .send()
-            .await
-            .unwrap()
-            .json::<AgentInfoL0>()
-            .await
-        {
-            Ok(response) => response,
-            Err(error) => panic!("{}", error),
-        }
+        serde_json::from_str(&self.make_reqwest(Method::Get, "/v2/my/agent").await).unwrap()
     }
 
-    pub async fn ship_waypoint(&self, system_symbol: String, waypoint_symbol: String) -> String {
-        match self
-            .client
-            .get(self.get_url(&format!(
+    pub async fn waypoint_details(&self, system_symbol: String, waypoint_symbol: String) -> String {
+        self.make_reqwest(
+            Method::Get,
+            &format!(
                 "/v2/systems/{}/waypoints/{}",
                 system_symbol, waypoint_symbol
-            )))
-            .headers(self.get_header())
-            .send()
-            .await
-            .unwrap()
-            .text()
-            .await
-        {
-            Ok(response) => response,
-            Err(error) => panic!("{}", error),
-        }
+            ),
+        )
+        .await
+    }
+
+    pub async fn waypoint_list(&self, system_symbol: String) -> String {
+        self.make_reqwest(
+            Method::Get,
+            &format!("/v2/systems/{}/waypoints", system_symbol),
+        )
+        .await
     }
 
     pub async fn contract_accept(&self, contract_id: &str) -> String {
-        match self
-            .client
-            .post(self.get_url(&format!("/v2/my/contracts/{}/accept", contract_id)))
-            .headers(self.get_header())
-            .send()
-            .await
-            .unwrap()
-            .text()
-            .await
-        {
-            Ok(response) => response,
-            Err(error) => panic!("{}", error),
-        }
+        self.make_reqwest(
+            Method::Post,
+            &format!("/v2/my/contracts/{}/accept", contract_id),
+        )
+        .await
     }
+
     pub async fn contract_terms(&self, contract_id: &str) -> ContractTermsL0 {
-        match self
-            .client
-            .get(self.get_url(&format!("/v2/my/contracts/{}", contract_id)))
-            .headers(self.get_header())
-            .send()
-            .await
-            .unwrap()
-            .json::<ContractTermsL0>()
-            .await
-        {
-            Ok(response) => response,
-            Err(error) => panic!("{}", error),
-        }
+        serde_json::from_str(
+            &self
+                .make_reqwest(Method::Get, &format!("/v2/my/contracts/{}", contract_id))
+                .await,
+        )
+        .unwrap()
     }
 }
 
-// Items :(
+// Other helpful structs and enums
 
 #[derive(Deserialize, Debug)]
 pub enum Item {
@@ -124,11 +128,22 @@ pub enum Item {
     AluminumOre,
 }
 
-// Other helpful structs and enums
+#[derive(Deserialize, Debug)]
+pub enum WaypointTrait {
+    #[serde(alias = "SHIPYARD")]
+    Shipyard,
+}
 
+#[derive(Deserialize, Debug)]
 pub struct Coordinates {
     x: f64,
     y: f64,
+}
+
+pub enum Method {
+    Post,
+    Get,
+    // Delete,
 }
 
 // Other structs for reponses from spacetrades
@@ -151,10 +166,12 @@ pub enum ContractTermType {
     #[serde(alias = "PROCUREMENT")]
     Procurement,
 }
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ContractTermsL0 {
     data: ContractTermsL1,
 }
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ContractTermsL1 {
     id: String,
@@ -163,11 +180,13 @@ pub struct ContractTermsL1 {
     r#type: ContractTermType,
     terms: ContractTermsL2,
 }
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ContractTermsL2 {
     deadline: String, // maybe parse this to timestamp
     payment: ContractTermsL3,
 }
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ContractTermsL3 {
     #[serde(alias = "onAccepted")]
@@ -177,6 +196,7 @@ pub struct ContractTermsL3 {
     #[serde(default)]
     deliver: Vec<ContractTermsL4>,
 }
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ContractTermsL4 {
     #[serde(alias = "tradeSymbol")]

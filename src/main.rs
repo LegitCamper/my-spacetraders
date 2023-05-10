@@ -8,13 +8,23 @@ async fn main() {
 
     let space_traders = SpaceTraders::new(credentials);
 
-    // let current_waypoint = space_traders.agent_details().await;
-    // println!("{:?}", current_waypoint);
+    // prints agent info
+    let agent_info = space_traders.agent_details().await;
+    println!("{:?}", agent_info);
+
+    // println!("{:?}", );
 
     println!(
         "{:?}",
         space_traders
-            .contract_accept("clhgikslz0bjxs60dwfqg3zto")
+            .waypoint_list(agent_info.data.headquarters)
             .await
     );
+
+    // println!(
+    //     "{:?}",
+    //     space_traders
+    //         .contract_accept("clhgikslz0bjxs60dwfqg3zto")
+    //         .await
+    // );
 }
