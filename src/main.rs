@@ -43,10 +43,10 @@ async fn main() {
             .make_reqwest(
                 Method::Post,
                 "/my/ships",
-                Some(BuyShip {
+                Some(space_traders.make_json(BuyShip {
                     shipType: "SHIP_MINING_DRONE".to_string(),
                     waypointSymbol: "X1-DF55-69207D".to_string()
-                })
+                }))
             )
             .await
     );

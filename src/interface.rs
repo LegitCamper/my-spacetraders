@@ -45,7 +45,12 @@ impl SpaceTraders {
         headers
     }
 
-    pub async fn make_reqwest(&self, method: Method, url: &str, data: Option<BuyShip>) -> String {
+    pub fn make_json<T: Serialize>(&self, data: T) -> String{
+        serde_json::to_string(&data).unwrap()
+        
+    }
+
+    pub async fn make_reqwest(&self, method: Method, url: &str, data: Option<String>) -> String {
         let response = match method {
             Method::Get => match data {
                 Some(json) => {
@@ -75,6 +80,29 @@ impl SpaceTraders {
                 Some(json) => {
                     self.client
                         .get(self.get_url(url))
+                        .json(&json)
+                        .headers(self.get_header())
+                        .send()
+                        .await
+                        .unwrap()
+                        .text()
+                        .await
+                }
+                None => {
+                    self.client
+                        .post(self.get_url(url))
+                        .headers(self.get_header())
+                        .send()
+                        .await
+                        .unwrap()
+                        .text()
+                        .await
+                }
+            },
+            Method::Patch => match data {
+                Some(json) => {
+                    self.client
+                        .patch(self.get_url(url))
                         .json(&json)
                         .headers(self.get_header())
                         .send()
@@ -172,6 +200,19 @@ impl SpaceTraders {
         )
         .unwrap()
     }
+
+    pub async fn flight_mode_change(&self, ship_symbol: &str, data: ChangeFlightMode) {
+        serde_json::from_str(
+            &self
+                .make_reqwest(
+                    Method::Patch,
+                    &format!("/v2/my/ships/{}/nav", ship_symbol),
+                    Some(self.make_json(data)),
+                )
+                .await,
+        )
+        .unwrap()
+    }
 }
 
 // Other helpful structs and enums
@@ -181,6 +222,18 @@ pub enum Item {
     // not sure this is a good idea
     #[serde(alias = "ALUMINUM_ORE")]
     AluminumOre,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum FlightMode {
+    #[serde(alias = "CRUISE")]
+    Cruise,
+    #[serde(alias = "BURN")]
+    Burn,
+    #[serde(alias = "DRIFT")]
+    Drift,
+    #[serde(alias = "STEALTH")]
+    Stealth
 }
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
@@ -281,6 +334,7 @@ pub struct Waypoint {
 pub enum Method {
     Post,
     Get,
+    Patch,
     // Delete,
 }
 
@@ -399,4 +453,10 @@ pub struct WaypointsListedCharts {
 pub struct BuyShip {
     pub shipType: String,
     pub waypointSymbol: String,
+}
+
+#[allow(non_snake_case)]
+#[derive(Serialize, Debug)]
+pub struct ChangeFlightMode {
+    pub flightMode: FlightMode,
 }
