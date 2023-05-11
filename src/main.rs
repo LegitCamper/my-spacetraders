@@ -1,4 +1,6 @@
-use my_spacetraders::interface::{parse_waypoint, Coordinates, Credentials, SpaceTraders};
+use my_spacetraders::interface::{
+    parse_waypoint, BuyShip, Coordinates, Credentials, Method, SpaceTraders,
+};
 
 #[tokio::main]
 async fn main() {
@@ -10,14 +12,42 @@ async fn main() {
 
     // prints agent info
     let agent_info = space_traders.agent_details().await;
-    println!("{:?}", agent_info);
+    // println!("{:?}", agent_info);
 
     // println!("{:?}", );
 
+    // gets all waypoints in a system
+    // let waypoints = space_traders
+    //     .waypoint_list(parse_waypoint(agent_info.data.headquarters).system)
+    //     .await;
+
+    // lists all ships to buy in a junkyard
+    // for i in waypoints.data.iter() {
+    //     for o in i.traits.iter() {
+    //         if o.symbol == my_spacetraders::interface::WaypointTrait::Shipyard {
+    //             println!("{:?}", i);
+
+    //             println!(
+    //                 "{}",
+    //                 space_traders
+    //                     .waypoint_custom(i.system_symbol.clone(), i.symbol.clone(), "shipyard")
+    //                     .await
+    //             );
+    //         }
+    //     }
+    // }
+
     println!(
-        "{:?}",
+        "{}",
         space_traders
-            .waypoint_list(parse_waypoint(agent_info.data.headquarters).system)
+            .make_reqwest(
+                Method::Post,
+                "/my/ships",
+                Some(BuyShip {
+                    shipType: "SHIP_MINING_DRONE".to_string(),
+                    waypointSymbol: "X1-DF55-69207D".to_string()
+                })
+            )
             .await
     );
 

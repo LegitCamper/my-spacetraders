@@ -1,5 +1,5 @@
 use reqwest::{
-    header::{HeaderMap, HeaderValue},
+    header::{HeaderMap, HeaderValue, CONTENT_TYPE},
     Client,
 };
 use serde::{Deserialize, Serialize};
@@ -41,32 +41,59 @@ impl SpaceTraders {
             HeaderValue::from_bytes(format!("Bearer {}", self.credentials.token).as_bytes())
                 .unwrap(),
         );
+        headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
         headers
     }
 
-    pub async fn make_reqwest(&self, method: Method, url: &str) -> String {
+    pub async fn make_reqwest(&self, method: Method, url: &str, data: Option<BuyShip>) -> String {
         let response = match method {
-            Method::Get => {
-                self.client
-                    .get(self.get_url(url))
-                    .headers(self.get_header())
-                    .send()
-                    .await
-                    .unwrap()
-                    .text()
-                    .await
-            }
+            Method::Get => match data {
+                Some(json) => {
+                    self.client
+                        .get(self.get_url(url))
+                        .json(&json)
+                        .headers(self.get_header())
+                        .send()
+                        .await
+                        .unwrap()
+                        .text()
+                        .await
+                }
+                None => {
+                    self.client
+                        .get(self.get_url(url))
+                        .headers(self.get_header())
+                        .send()
+                        .await
+                        .unwrap()
+                        .text()
+                        .await
+                }
+            },
 
-            Method::Post => {
-                self.client
-                    .post(self.get_url(url))
-                    .headers(self.get_header())
-                    .send()
-                    .await
-                    .unwrap()
-                    .text()
-                    .await
-            }
+            Method::Post => match data {
+                Some(json) => {
+                    self.client
+                        .get(self.get_url(url))
+                        .json(&json)
+                        .headers(self.get_header())
+                        .send()
+                        .await
+                        .unwrap()
+                        .text()
+                        .await
+                }
+                None => {
+                    self.client
+                        .post(self.get_url(url))
+                        .headers(self.get_header())
+                        .send()
+                        .await
+                        .unwrap()
+                        .text()
+                        .await
+                }
+            },
         };
 
         match response {
@@ -79,7 +106,7 @@ impl SpaceTraders {
     }
 
     pub async fn agent_details(&self) -> AgentInfoL0 {
-        serde_json::from_str(&self.make_reqwest(Method::Get, "/v2/my/agent").await).unwrap()
+        serde_json::from_str(&self.make_reqwest(Method::Get, "/v2/my/agent", None).await).unwrap()
     }
 
     pub async fn waypoint_details(&self, system_symbol: String, waypoint_symbol: String) -> String {
@@ -89,6 +116,24 @@ impl SpaceTraders {
                 "/v2/systems/{}/waypoints/{}",
                 system_symbol, waypoint_symbol
             ),
+            None,
+        )
+        .await
+    }
+
+    pub async fn waypoint_custom(
+        &self,
+        system_symbol: String,
+        waypoint_symbol: String,
+        endpoint: &str,
+    ) -> String {
+        self.make_reqwest(
+            Method::Get,
+            &format!(
+                "/v2/systems/{}/waypoints/{}/{}",
+                system_symbol, waypoint_symbol, endpoint
+            ),
+            None,
         )
         .await
     }
@@ -99,6 +144,7 @@ impl SpaceTraders {
                 .make_reqwest(
                     Method::Get,
                     &format!("/v2/systems/{}/waypoints", system_symbol),
+                    None,
                 )
                 .await,
         )
@@ -109,6 +155,7 @@ impl SpaceTraders {
         self.make_reqwest(
             Method::Post,
             &format!("/v2/my/contracts/{}/accept", contract_id),
+            None,
         )
         .await
     }
@@ -116,7 +163,11 @@ impl SpaceTraders {
     pub async fn contract_terms(&self, contract_id: &str) -> ContractTermsL0 {
         serde_json::from_str(
             &self
-                .make_reqwest(Method::Get, &format!("/v2/my/contracts/{}", contract_id))
+                .make_reqwest(
+                    Method::Get,
+                    &format!("/v2/my/contracts/{}", contract_id),
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -132,7 +183,7 @@ pub enum Item {
     AluminumOre,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, PartialEq, Eq, Debug)]
 pub enum WaypointTrait {
     #[serde(alias = "SHIPYARD")]
     Shipyard,
@@ -195,6 +246,18 @@ pub enum faction {
 }
 
 #[derive(Deserialize, Debug)]
+pub enum Ships {
+    #[serde(alias = "SHIP_PROBE")]
+    ShipProbe,
+    #[serde(alias = "SHIP_MINING_DRONE")]
+    ShipMiningDrone,
+    #[serde(alias = "SHIP_ORE_HOUND")]
+    ShipOreHound,
+    #[serde(alias = "SHIP_REFINING_FREIGHTER")]
+    ShipRefiningFreighter,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Coordinates {
     x: f64,
     y: f64,
@@ -244,7 +307,7 @@ pub enum ContractTermType {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ContractTermsL0 {
-    data: ContractTermsL1,
+    pub data: ContractTermsL1,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -290,20 +353,20 @@ pub struct ContractTermsL4 {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct WaypointsListedL0 {
-    data: Vec<WaypointsListedL1>,
+    pub data: Vec<WaypointsListedL1>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct WaypointsListedL1 {
     #[serde(alias = "systemSymbol")]
-    system_symbol: String,
-    symbol: String,
-    r#type: WaypointTrait,
-    x: i64,
-    y: i64,
-    orbitals: Vec<WaypointsListedOrbitals>,
-    traits: Vec<WaypointsListedTraits>,
-    chart: WaypointsListedCharts,
+    pub system_symbol: String,
+    pub symbol: String,
+    pub r#type: WaypointTrait,
+    pub x: i64,
+    pub y: i64,
+    pub orbitals: Vec<WaypointsListedOrbitals>,
+    pub traits: Vec<WaypointsListedTraits>,
+    pub chart: WaypointsListedCharts,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -313,10 +376,10 @@ pub struct WaypointsListedOrbitals {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct WaypointsListedTraits {
-    symbol: WaypointTrait,
-    name: String,
+    pub symbol: WaypointTrait,
+    pub name: String,
     #[serde(default)]
-    desciption: String,
+    pub desciption: String,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -327,4 +390,13 @@ pub struct WaypointsListedCharts {
     submitted_on: String,
     // desciption: String,
     // faction: Vec<faction>,
+}
+
+// Other structs for requests from spacetrades
+
+#[allow(non_snake_case)]
+#[derive(Serialize, Debug)]
+pub struct BuyShip {
+    pub shipType: String,
+    pub waypointSymbol: String,
 }
