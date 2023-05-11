@@ -293,7 +293,7 @@ pub enum WaypointTrait {
 }
 
 #[derive(Deserialize, Debug)]
-pub enum faction {
+pub enum Faction {
     #[serde(alias = "COSMIC")]
     Cosmic,
 }
@@ -439,7 +439,7 @@ pub struct WaypointsListedTraits {
 #[derive(Deserialize, Debug)]
 pub struct WaypointsListedCharts {
     #[serde(alias = "submittedBy")]
-    submitted_by: faction,
+    submitted_by: Faction,
     #[serde(alias = "submittedOn")]
     submitted_on: String,
     // desciption: String,
