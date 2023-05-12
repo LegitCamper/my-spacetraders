@@ -8,9 +8,6 @@ pub use interface::{Credentials, SpaceTraders};
 pub struct InterfaceHandler {
     pub sender: broadcast::Sender<Arc<Broadcast>>,
     pub credentials: Credentials,
-    // receiver: broadcast::Receiver,
-    // interface: interface::SpaceTraders,
-    // thread: task,
 }
 
 impl InterfaceHandler {
@@ -23,29 +20,18 @@ impl InterfaceHandler {
         }
     }
 
-    pub async fn spawn(&self, sender: broadcast::Sender<Arc<Broadcast>>) {
-        let mut receiver = sender.subscribe();
-        loop {
-            let i = receiver.recv().await.unwrap();
-            println!("{:?}", i);
-            if i.receiver == BroadcastReceiver::Interface {
-                println!("{:?}", i.message);
+    pub async fn spawn(&self) {
+        let mut receiver = self.sender.subscribe();
+        task::spawn(async move {
+            loop {
+                let i = receiver.recv().await.unwrap();
+                if i.receiver == BroadcastReceiver::Interface {
+                    println!("{:?}", i.message);
+                }
             }
-        }
+        });
     }
 }
-
-// fn spawn_interface_handler(credentials: Credentials, receiver: broadcast::Receiver, sender: broadcast::Sender) {
-//     let space_traders = SpaceTraders::new(credentials);
-
-//     loop {
-//         for i in receiver {
-//             if i.receiver == Broadcast::Interface {
-//                 println!("{:?}", i.message);
-//             }
-//         }
-//     }
-// }
 
 // struct to handle the dataflow through broadcast
 #[derive(Debug)]

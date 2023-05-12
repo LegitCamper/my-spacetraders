@@ -13,13 +13,14 @@ async fn main() {
     );
 
     let interface_handler = InterfaceHandler::new(credentials);
+    interface_handler.spawn().await;
 
     let message = Broadcast {
         receiver: BroadcastReceiver::Interface,
         message: Some("hello from main!".to_string()),
     };
 
-    let interface_handler_sender = interface_handler.sender.send(message.into());
+    interface_handler.sender.send(message.into()).unwrap();
 
     // let space_traders = SpaceTraders::new(credentials);
 
