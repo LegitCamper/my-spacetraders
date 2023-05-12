@@ -1,3 +1,5 @@
+use std::thread::JoinHandle;
+
 use reqwest::{
     header::{HeaderMap, HeaderValue, CONTENT_TYPE},
     Client,
@@ -10,7 +12,7 @@ use tokio::{
 };
 use url::Url;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Credentials {
     pub token: String,
 }
@@ -23,48 +25,19 @@ impl Credentials {
     }
 }
 
-#[derive(Debug)]
-pub struct Reqwest {
+#[derive(Debug, Clone)]
+struct SpaceTraders {
+    credentials: Credentials,
     client: Client,
     url: String,
 }
 
-#[derive(Debug)]
-pub struct SpaceTraders {
-    credentials: Credentials,
-    info: Reqwest,
-    thread: task::JoinHandle<()>,
-    channel: broadcast::Sender<Broadcast>,
-}
-
 impl SpaceTraders {
-    pub async fn new(self, credentials: Credentials) -> Self {
-        let (channel, _receiver) = broadcast::channel(100);
-
-        let mut reciver_channel = channel.subscribe();
-
+    pub fn new(credentials: Credentials) -> Self {
         SpaceTraders {
             credentials,
-            info: Reqwest {
-                client: reqwest::Client::new(),
-                url: String::from("https://api.spacetraders.io"),
-            },
-            channel,
-            thread: task::spawn(async move {
-                loop {
-                    sleep(Duration::from_millis(500)).await; // only 2 requests per second
-                    let msg = reciver_channel.recv().await.unwrap();
-                    if msg.receiver == BroadcastReceiver::Interface {
-                        self.make_reqwest(
-                            msg.message.method,
-                            msg.message.url.as_str(),
-                            msg.message.data,
-                        )
-                        .await;
-                    }
-                }
-            }), // .await
-                // .unwrap(),
+            client: reqwest::Client::new(),
+            url: String::from("https://api.spacetraders.io"),
         }
     }
 
@@ -84,15 +57,14 @@ impl SpaceTraders {
     }
 
     fn get_url(&self, endpoint: &str) -> Url {
-        Url::parse(format!("{}{}", self.info.url, endpoint).as_str()).unwrap()
+        Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
 
     pub async fn make_reqwest(&self, method: Method, url: &str, data: Option<String>) -> String {
         let response = match method {
             Method::Get => match data {
                 Some(json) => {
-                    self.info
-                        .client
+                    self.client
                         .get(self.get_url(url))
                         .json(&json)
                         .headers(self.get_header())
@@ -103,8 +75,7 @@ impl SpaceTraders {
                         .await
                 }
                 None => {
-                    self.info
-                        .client
+                    self.client
                         .get(self.get_url(url))
                         .headers(self.get_header())
                         .send()
@@ -117,8 +88,7 @@ impl SpaceTraders {
 
             Method::Post => match data {
                 Some(json) => {
-                    self.info
-                        .client
+                    self.client
                         .get(self.get_url(url))
                         .json(&json)
                         .headers(self.get_header())
@@ -129,8 +99,7 @@ impl SpaceTraders {
                         .await
                 }
                 None => {
-                    self.info
-                        .client
+                    self.client
                         .post(self.get_url(url))
                         .headers(self.get_header())
                         .send()
@@ -142,8 +111,7 @@ impl SpaceTraders {
             },
             Method::Patch => match data {
                 Some(json) => {
-                    self.info
-                        .client
+                    self.client
                         .patch(self.get_url(url))
                         .json(&json)
                         .headers(self.get_header())
@@ -154,8 +122,7 @@ impl SpaceTraders {
                         .await
                 }
                 None => {
-                    self.info
-                        .client
+                    self.client
                         .post(self.get_url(url))
                         .headers(self.get_header())
                         .send()
@@ -172,102 +139,155 @@ impl SpaceTraders {
             Err(error) => panic!("{}", error),
         }
     }
+}
 
-    pub async fn agent_details(&self) -> AgentInfoL0 {
-        serde_json::from_str(&self.make_reqwest(Method::Get, "/v2/my/agent", None).await).unwrap()
+#[derive(Debug)]
+pub struct SpaceTradersHandler {
+    info: SpaceTraders,
+    channel: broadcast::Sender<Broadcaster>,
+    task: task::JoinHandle<()>,
+}
+
+impl SpaceTradersHandler {
+    pub async fn new(credentials: Credentials) -> Self {
+        let space_trader = SpaceTraders::new(credentials);
+
+        let (channel, _receiver) = broadcast::channel(100);
+
+        let mut reciver_channel = channel.subscribe();
+
+        let task_sender = channel.clone();
+        let task_space_trader = space_trader.clone();
+
+        SpaceTradersHandler {
+            info: space_trader,
+            channel,
+            task: task::spawn(async move {
+                loop {
+                    sleep(Duration::from_millis(500)).await; // only 2 requests per second
+                    let response = reciver_channel.recv().await.unwrap();
+                    if let Broadcaster::Interface(msg) = response {
+                        task_sender
+                            .send(Broadcaster::Caller(
+                                task_space_trader
+                                    .make_reqwest(msg.method, msg.url.as_str(), msg.data)
+                                    .await,
+                            ))
+                            .unwrap();
+                    }
+                }
+            }),
+        }
     }
 
-    pub async fn waypoint_details(&self, system_symbol: String, waypoint_symbol: String) -> String {
-        self.make_reqwest(
-            Method::Get,
-            &format!(
-                "/v2/systems/{}/waypoints/{}",
-                system_symbol, waypoint_symbol
-            ),
-            None,
-        )
-        .await
+    // pub async make_request() // this will replace the trash below
+
+    pub async fn agent_details(&self) -> Option<AgentInfoL0> {
+        // set up listener for response
+        if let Broadcaster::Caller(msg) = self.channel.subscribe().recv().await.unwrap() {
+            let response = serde_json::from_str(&msg).unwrap();
+
+            // make request
+            self.channel
+                .send(Broadcaster::Interface(BroadcasterMessage {
+                    method: Method::Get,
+                    url: "/v2/my/agent".to_string(),
+                    data: None,
+                }));
+
+            Some(response)
+        } else {
+            None
+        }
     }
 
-    pub async fn waypoint_custom(
-        &self,
-        system_symbol: String,
-        waypoint_symbol: String,
-        endpoint: &str,
-    ) -> String {
-        self.make_reqwest(
-            Method::Get,
-            &format!(
-                "/v2/systems/{}/waypoints/{}/{}",
-                system_symbol, waypoint_symbol, endpoint
-            ),
-            None,
-        )
-        .await
-    }
+    // pub async fn waypoint_details(&self, system_symbol: String, waypoint_symbol: String) -> String {
+    //     self.info
+    //         .make_reqwest(
+    //             Method::Get,
+    //             &format!(
+    //                 "/v2/systems/{}/waypoints/{}",
+    //                 system_symbol, waypoint_symbol
+    //             ),
+    //             None,
+    //         )
+    //         .await
+    // }
 
-    pub async fn waypoint_list(&self, system_symbol: String) -> WaypointsListedL0 {
-        serde_json::from_str(
-            &self
-                .make_reqwest(
-                    Method::Get,
-                    &format!("/v2/systems/{}/waypoints", system_symbol),
-                    None,
-                )
-                .await,
-        )
-        .unwrap()
-    }
+    // pub async fn waypoint_custom(
+    //     &self,
+    //     system_symbol: String,
+    //     waypoint_symbol: String,
+    //     endpoint: &str,
+    // ) -> String {
+    //     self.make_reqwest(
+    //         Method::Get,
+    //         &format!(
+    //             "/v2/systems/{}/waypoints/{}/{}",
+    //             system_symbol, waypoint_symbol, endpoint
+    //         ),
+    //         None,
+    //     )
+    //     .await
+    // }
 
-    pub async fn contract_accept(&self, contract_id: &str) -> String {
-        self.make_reqwest(
-            Method::Post,
-            &format!("/v2/my/contracts/{}/accept", contract_id),
-            None,
-        )
-        .await
-    }
+    // pub async fn waypoint_list(&self, system_symbol: String) -> WaypointsListedL0 {
+    //     serde_json::from_str(
+    //         &self.info
+    //             .make_reqwest(
+    //                 Method::Get,
+    //                 &format!("/v2/systems/{}/waypoints", system_symbol),
+    //                 None,
+    //             )
+    //             .await,
+    //     )
+    //     .unwrap()
+    // }
 
-    pub async fn contract_terms(&self, contract_id: &str) -> ContractTermsL0 {
-        serde_json::from_str(
-            &self
-                .make_reqwest(
-                    Method::Get,
-                    &format!("/v2/my/contracts/{}", contract_id),
-                    None,
-                )
-                .await,
-        )
-        .unwrap()
-    }
+    // pub async fn contract_accept(&self, contract_id: &str) -> String {
+    //     self.make_reqwest(
+    //         Method::Post,
+    //         &format!("/v2/my/contracts/{}/accept", contract_id),
+    //         None,
+    //     )
+    //     .await
+    // }
 
-    pub async fn flight_mode_change(&self, ship_symbol: &str, data: ChangeFlightMode) {
-        serde_json::from_str(
-            &self
-                .make_reqwest(
-                    Method::Patch,
-                    &format!("/v2/my/ships/{}/nav", ship_symbol),
-                    Some(self.make_json(data)),
-                )
-                .await,
-        )
-        .unwrap()
-    }
+    // pub async fn contract_terms(&self, contract_id: &str) -> ContractTermsL0 {
+    //     serde_json::from_str(
+    //         &self
+    //             .make_reqwest(
+    //                 Method::Get,
+    //                 &format!("/v2/my/contracts/{}", contract_id),
+    //                 None,
+    //             )
+    //             .await,
+    //     )
+    //     .unwrap()
+    // }
+
+    // pub async fn flight_mode_change(&self, ship_symbol: &str, data: ChangeFlightMode) {
+    //     serde_json::from_str(
+    //         &self
+    //             .make_reqwest(
+    //                 Method::Patch,
+    //                 &format!("/v2/my/ships/{}/nav", ship_symbol),
+    //                 Some(self.make_json(data)),
+    //             )
+    //             .await,
+    //     )
+    //     .unwrap()
+    // }
 }
 
 // struct to handle the dataflow through broadcast
-#[derive(Debug, Clone)]
-pub struct Broadcast {
-    pub receiver: BroadcastReceiver,
-    pub message: BroadcastMessage,
-}
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub enum BroadcastReceiver {
-    Caller,
-    Interface,
+pub enum Broadcaster {
+    Caller(String),
+    Interface(BroadcasterMessage),
 }
-#[derive(Debug, Clone)]
-pub struct BroadcastMessage {
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct BroadcasterMessage {
     pub method: Method,
     pub url: String,
     pub data: Option<String>,
@@ -389,7 +409,7 @@ pub struct Waypoint {
     pub waypoint: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Method {
     Post,
     Get,
