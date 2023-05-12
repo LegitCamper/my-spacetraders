@@ -1,12 +1,13 @@
-use tokio::{task, sync::broadcast};
+use std::sync::Arc;
+use tokio::{sync::broadcast, task};
 
 mod interface;
-pub use interface::{SpaceTraders, Credentials};
+pub use interface::{Credentials, SpaceTraders};
 
 // Creates instance of iterface
 pub struct InterfaceHandler {
-    sender: broadcast::Sender,
-    credentials: Credentials,
+    pub sender: broadcast::Sender<Arc<Broadcast>>,
+    pub credentials: Credentials,
     // receiver: broadcast::Receiver,
     // interface: interface::SpaceTraders,
     // thread: task,
@@ -15,10 +16,6 @@ pub struct InterfaceHandler {
 impl InterfaceHandler {
     pub fn new(credentials: Credentials) -> Self {
         let (sender, _receiver) = broadcast::channel(100);
-        
-        // let thread = task::spawn(async {
-        //     self.spawn_interface_handler()
-        // })
 
         InterfaceHandler {
             sender,
@@ -26,14 +23,14 @@ impl InterfaceHandler {
         }
     }
 
-    pub fn spawn(&self, sender: broadcast::Sender) {
+    pub async fn spawn(&self, sender: broadcast::Sender<Arc<Broadcast>>) {
+        let mut receiver = sender.subscribe();
         loop {
-            for i in sender.subscribr.rec() {
-                if i.receiver == Broadcast::Interface {
-                    println!("{:?}", i.message);
-                }
+            let i = receiver.recv().await.unwrap();
+            println!("{:?}", i);
+            if i.receiver == BroadcastReceiver::Interface {
+                println!("{:?}", i.message);
             }
-        
         }
     }
 }
@@ -51,10 +48,12 @@ impl InterfaceHandler {
 // }
 
 // struct to handle the dataflow through broadcast
+#[derive(Debug)]
 pub struct Broadcast {
     pub receiver: BroadcastReceiver,
     pub message: Option<String>,
 }
+#[derive(Debug, Eq, PartialEq)]
 pub enum BroadcastReceiver {
     Caller,
     Interface,
