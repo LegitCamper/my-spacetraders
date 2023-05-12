@@ -3,6 +3,11 @@ use reqwest::{
     Client,
 };
 use serde::{Deserialize, Serialize};
+use tokio::{
+    sync::broadcast,
+    task,
+    time::{sleep, Duration},
+};
 use url::Url;
 
 #[derive(Debug)]
@@ -19,18 +24,47 @@ impl Credentials {
 }
 
 #[derive(Debug)]
+pub struct Reqwest {
+    client: Client,
+    url: String,
+}
+
+#[derive(Debug)]
 pub struct SpaceTraders {
     credentials: Credentials,
-    pub client: Client,
-    pub url: String,
+    info: Reqwest,
+    thread: task::JoinHandle<()>,
+    channel: broadcast::Sender<Broadcast>,
 }
 
 impl SpaceTraders {
-    pub fn new(credentials: Credentials) -> Self {
+    pub async fn new(self, credentials: Credentials) -> Self {
+        let (channel, _receiver) = broadcast::channel(100);
+
+        let mut reciver_channel = channel.subscribe();
+
         SpaceTraders {
             credentials,
-            client: reqwest::Client::new(),
-            url: String::from("https://api.spacetraders.io"),
+            info: Reqwest {
+                client: reqwest::Client::new(),
+                url: String::from("https://api.spacetraders.io"),
+            },
+            channel,
+            thread: task::spawn(async move {
+                loop {
+                    sleep(Duration::from_millis(500)).await; // only 2 requests per second
+                    let msg = reciver_channel.recv().await.unwrap();
+                    if msg.receiver == BroadcastReceiver::Interface {
+                        self.make_reqwest(
+                            msg.message.method,
+                            msg.message.url.as_str(),
+                            msg.message.data,
+                        )
+                        .await;
+                    }
+                }
+            }), // .await
+                // .unwrap(),
         }
     }
 
@@ -45,16 +79,20 @@ impl SpaceTraders {
         headers
     }
 
-    pub fn make_json<T: Serialize>(&self, data: T) -> String{
+    pub fn make_json<T: Serialize>(&self, data: T) -> String {
         serde_json::to_string(&data).unwrap()
-        
+    }
+
+    fn get_url(&self, endpoint: &str) -> Url {
+        Url::parse(format!("{}{}", self.info.url, endpoint).as_str()).unwrap()
     }
 
     pub async fn make_reqwest(&self, method: Method, url: &str, data: Option<String>) -> String {
         let response = match method {
             Method::Get => match data {
                 Some(json) => {
-                    self.client
+                    self.info
+                        .client
                         .get(self.get_url(url))
                         .json(&json)
                         .headers(self.get_header())
@@ -65,7 +103,8 @@ impl SpaceTraders {
                         .await
                 }
                 None => {
-                    self.client
+                    self.info
+                        .client
                         .get(self.get_url(url))
                         .headers(self.get_header())
                         .send()
@@ -78,7 +117,8 @@ impl SpaceTraders {
 
             Method::Post => match data {
                 Some(json) => {
-                    self.client
+                    self.info
+                        .client
                         .get(self.get_url(url))
                         .json(&json)
                         .headers(self.get_header())
@@ -89,7 +129,8 @@ impl SpaceTraders {
                         .await
                 }
                 None => {
-                    self.client
+                    self.info
+                        .client
                         .post(self.get_url(url))
                         .headers(self.get_header())
                         .send()
@@ -101,7 +142,8 @@ impl SpaceTraders {
             },
             Method::Patch => match data {
                 Some(json) => {
-                    self.client
+                    self.info
+                        .client
                         .patch(self.get_url(url))
                         .json(&json)
                         .headers(self.get_header())
@@ -112,7 +154,8 @@ impl SpaceTraders {
                         .await
                 }
                 None => {
-                    self.client
+                    self.info
+                        .client
                         .post(self.get_url(url))
                         .headers(self.get_header())
                         .send()
@@ -128,9 +171,6 @@ impl SpaceTraders {
             Ok(response) => response,
             Err(error) => panic!("{}", error),
         }
-    }
-    fn get_url(&self, endpoint: &str) -> Url {
-        Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
 
     pub async fn agent_details(&self) -> AgentInfoL0 {
@@ -215,6 +255,24 @@ impl SpaceTraders {
     }
 }
 
+// struct to handle the dataflow through broadcast
+#[derive(Debug, Clone)]
+pub struct Broadcast {
+    pub receiver: BroadcastReceiver,
+    pub message: BroadcastMessage,
+}
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub enum BroadcastReceiver {
+    Caller,
+    Interface,
+}
+#[derive(Debug, Clone)]
+pub struct BroadcastMessage {
+    pub method: Method,
+    pub url: String,
+    pub data: Option<String>,
+}
+
 // Other helpful structs and enums
 
 #[derive(Deserialize, Debug)]
@@ -233,7 +291,7 @@ pub enum FlightMode {
     #[serde(alias = "DRIFT")]
     Drift,
     #[serde(alias = "STEALTH")]
-    Stealth
+    Stealth,
 }
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
@@ -331,6 +389,7 @@ pub struct Waypoint {
     pub waypoint: String,
 }
 
+#[derive(Debug, Clone)]
 pub enum Method {
     Post,
     Get,
