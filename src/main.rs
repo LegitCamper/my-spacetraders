@@ -33,8 +33,8 @@ async fn main() {
     // interface_sender.send(message.into()).unwrap();
 
     // prints agent info
-    // let agent_info = space_traders.agent_details().await;
-    // println!("{:?}", agent_info);
+    let agent_info = interface_sender.agent_details().await;
+    println!("{:?}", agent_info);
 
     // println!("{:?}", );
 

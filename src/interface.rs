@@ -180,22 +180,32 @@ impl SpaceTradersHandler {
         }
     }
 
-    // pub async make_request() // this will replace the trash below
-
-    pub async fn agent_details(&self) -> Option<AgentInfoL0> {
+    pub async fn make_request(&self, message: Broadcaster) -> Option<String> {
         // set up listener for response
-        if let Broadcaster::Caller(msg) = self.channel.subscribe().recv().await.unwrap() {
+        let mut channel = self.channel.subscribe();
+
+        // make request
+        self.channel.send(message).unwrap();
+
+        if let Broadcaster::Caller(msg) = channel.recv().await.unwrap() {
             let response = serde_json::from_str(&msg).unwrap();
 
-            // make request
-            self.channel
-                .send(Broadcaster::Interface(BroadcasterMessage {
-                    method: Method::Get,
-                    url: "/v2/my/agent".to_string(),
-                    data: None,
-                }));
-
             Some(response)
+        } else {
+            None
+        }
+    }
+
+    pub async fn agent_details(&self) -> Option<AgentInfoL0> {
+        if let Some(response) = &self
+            .make_request(Broadcaster::Interface(BroadcasterMessage {
+                method: Method::Get,
+                url: "/v2/my/agent".to_string(),
+                data: None,
+            }))
+            .await
+        {
+            Some(serde_json::from_str(response).unwrap())
         } else {
             None
         }
