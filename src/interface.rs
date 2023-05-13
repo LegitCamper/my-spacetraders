@@ -134,7 +134,7 @@ impl SpaceTraders {
 
         match response {
             Ok(response) => {
-                println!("{:?}", response);
+                println!("{}", response); // TODO: Remove this
                 response
             }
 
@@ -246,6 +246,19 @@ impl SpaceTradersHandler {
                 .make_request(Broadcaster::Interface(
                     Method::Get,
                     format!("/v2/systems/{}/waypoints", system_symbol),
+                    None,
+                ))
+                .await,
+        )
+        .unwrap()
+    }
+
+    pub async fn contract_list(&self) -> Option<ContractsL0> {
+        serde_json::from_str(
+            &self
+                .make_request(Broadcaster::Interface(
+                    Method::Get,
+                    String::from("/v2/my/contracts"),
                     None,
                 ))
                 .await,
@@ -490,6 +503,12 @@ pub struct ContractTermsL4 {
     accepted: bool,
     fulfilled: bool,
     experation: String,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ContractsL0 {
+    pub data: Vec<ContractTermsL1>,
 }
 
 #[allow(dead_code)]
