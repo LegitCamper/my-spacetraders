@@ -9,30 +9,16 @@ use tokio::sync::broadcast;
 
 async fn create_interface() -> SpaceTradersHandler {
     let credentials = Credentials::new(
-        "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjoiTEVHSVRDQU1QRVIiLCJpYXQiOjE2ODM2NTE0MDcsInN1YiI6ImFnZW50LXRva2VuIn0.fB1FkKfy57TZZCy9DNBm24aIRrYwxM1JbuHWd7sA6qdDYVbkCVwVliEP27nzkU3fcY2XbL0InUxsx-biV9Ux9fJcPUzyOEj92X_I8ZzxNTIrj4J7g7Zyp1Hbpr9056BmrshkrzeX65PspVZvSPmXLsntFiZsF1ncmlgnjePElfUcUdY2wY12xgMjne6sJXueDGNzEXSrkARDexCeogfwYXo3RxfVtwtx6mxI3z7hPaa80c8cHhvTteKLJ3eioIWhs8Yv4xnaQIwakLQcvyrVNmFPYl5mjOMt9rBzTP5cGpcko7AXlzNfpXdFK6O_3fU1PgwhutuFTZPKFCMDLetK2aEwp9f5Rg_KHaCglUMkkjsvJw1AGYcSKVP1eLB5KTxRw9UnNwAwi4ocGKNm9AlaJionFUIZXpRCOs9T6pnntV5IdGuNlZ5JR40buaBA6I3g5Lqa_Sg7g1NVF9Wt3ZgrgpKed4l7frd6mupq1JE2sm0-XVYH7f6H4Cx3Em2uzNxe"
+        "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjoiTEVHSVRDQU1QRVIiLCJpYXQiOjE2ODQwMDI0NjksInN1YiI6ImFnZW50LXRva2VuIn0.MoA89hJwCWYTRpJNvh7GXCF5zRpW26yvZH2EWoAbqsO-zNOjVCmlLw2OLUllh4IWrAmZ6gI4F95I-JspDj_ustl6d6FltXJGcA28KHf-ieU3sl3FUqC7QxLCCtTUioAVZDIqQGDg1gFyAFiykHMWNR2f60ip-aj3sZ178a5N5f5ETXNP2il-pHaujE5ZZyvT_WHNbeGcAO-Wq2qjOhSKgOpMEYfYnL2TqqZu2Km3tRPoik6JiunCMfsjvfnNmc2T0SCreoTKUaM7OASpOhJyrnRCqLDVafHXbVtEZTjjhAXpp62w7bYzPyzdQ0olGDEpMCRFwM7Q3qGLNjmUthrrEw"
     );
 
     SpaceTradersHandler::new(credentials).await
 }
 
-fn main_algo() {
-    complete_contracts();
-}
-
-fn complete_contracts() {}
-
 #[tokio::main]
 async fn main() {
     let interface_sender = create_interface().await;
 
-    // let message = Broadcast {
-    //     receiver: BroadcastReceiver::Interface,
-    //     message: Some("hello from main!".to_string()),
-    // };
-
-    // interface_sender.send(message.into()).unwrap();
-
-    // prints agent info
     let agent_info = interface_sender.agent_details().await;
     println!("{:?}", agent_info);
 

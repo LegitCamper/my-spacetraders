@@ -1,7 +1,5 @@
-use std::thread::JoinHandle;
-
 use reqwest::{
-    header::{HeaderMap, HeaderValue, CONTENT_TYPE},
+    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client,
 };
 use serde::{Deserialize, Serialize};
@@ -44,7 +42,7 @@ impl SpaceTraders {
     fn get_header(&self) -> HeaderMap {
         let mut headers = HeaderMap::with_capacity(1);
         headers.insert(
-            "Authorization",
+            AUTHORIZATION,
             HeaderValue::from_bytes(format!("Bearer {}", self.credentials.token).as_bytes())
                 .unwrap(),
         );
@@ -135,13 +133,18 @@ impl SpaceTraders {
         };
 
         match response {
-            Ok(response) => response,
+            Ok(response) => {
+                println!("{:?}", response);
+                response
+            }
+
             Err(error) => panic!("{}", error),
         }
     }
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct SpaceTradersHandler {
     info: SpaceTraders,
     channel: broadcast::Sender<Broadcaster>,
@@ -166,11 +169,11 @@ impl SpaceTradersHandler {
                 loop {
                     sleep(Duration::from_millis(500)).await; // only 2 requests per second
                     let response = reciver_channel.recv().await.unwrap();
-                    if let Broadcaster::Interface(msg) = response {
+                    if let Broadcaster::Interface(method, url, data) = response {
                         task_sender
                             .send(Broadcaster::Caller(
                                 task_space_trader
-                                    .make_reqwest(msg.method, msg.url.as_str(), msg.data)
+                                    .make_reqwest(method, url.as_str(), data)
                                     .await,
                             ))
                             .unwrap();
@@ -180,121 +183,117 @@ impl SpaceTradersHandler {
         }
     }
 
-    pub async fn make_request(&self, message: Broadcaster) -> Option<String> {
+    pub async fn make_request(&self, message: Broadcaster) -> String {
         // set up listener for response
         let mut channel = self.channel.subscribe();
 
         // make request
         self.channel.send(message).unwrap();
 
-        if let Broadcaster::Caller(msg) = channel.recv().await.unwrap() {
-            let response = serde_json::from_str(&msg).unwrap();
-
-            Some(response)
-        } else {
-            None
+        loop {
+            if let Broadcaster::Caller(msg) = channel.recv().await.unwrap() {
+                return msg;
+            }
         }
     }
 
     pub async fn agent_details(&self) -> Option<AgentInfoL0> {
-        if let Some(response) = &self
-            .make_request(Broadcaster::Interface(BroadcasterMessage {
-                method: Method::Get,
-                url: "/v2/my/agent".to_string(),
-                data: None,
-            }))
-            .await
-        {
-            Some(serde_json::from_str(response).unwrap())
-        } else {
-            None
-        }
+        serde_json::from_str(
+            &self
+                .make_request(Broadcaster::Interface(
+                    Method::Get,
+                    "/v2/my/agent".to_string(),
+                    None,
+                ))
+                .await,
+        )
+        .unwrap()
     }
 
-    // pub async fn waypoint_details(&self, system_symbol: String, waypoint_symbol: String) -> String {
-    //     self.info
-    //         .make_reqwest(
-    //             Method::Get,
-    //             &format!(
-    //                 "/v2/systems/{}/waypoints/{}",
-    //                 system_symbol, waypoint_symbol
-    //             ),
-    //             None,
-    //         )
-    //         .await
-    // }
+    pub async fn waypoint_details(&self, system_symbol: String, waypoint_symbol: String) -> String {
+        self.info
+            .make_reqwest(
+                Method::Get,
+                &format!(
+                    "/v2/systems/{}/waypoints/{}",
+                    system_symbol, waypoint_symbol
+                ),
+                None,
+            )
+            .await
+    }
 
-    // pub async fn waypoint_custom(
-    //     &self,
-    //     system_symbol: String,
-    //     waypoint_symbol: String,
-    //     endpoint: &str,
-    // ) -> String {
-    //     self.make_reqwest(
-    //         Method::Get,
-    //         &format!(
-    //             "/v2/systems/{}/waypoints/{}/{}",
-    //             system_symbol, waypoint_symbol, endpoint
-    //         ),
-    //         None,
-    //     )
-    //     .await
-    // }
+    pub async fn waypoint_custom(
+        &self,
+        system_symbol: String,
+        waypoint_symbol: String,
+        endpoint: &str,
+    ) -> String {
+        self.make_request(Broadcaster::Interface(
+            Method::Get,
+            format!(
+                "/v2/systems/{}/waypoints/{}/{}",
+                system_symbol, waypoint_symbol, endpoint
+            ),
+            None,
+        ))
+        .await
+    }
 
-    // pub async fn waypoint_list(&self, system_symbol: String) -> WaypointsListedL0 {
-    //     serde_json::from_str(
-    //         &self.info
-    //             .make_reqwest(
-    //                 Method::Get,
-    //                 &format!("/v2/systems/{}/waypoints", system_symbol),
-    //                 None,
-    //             )
-    //             .await,
-    //     )
-    //     .unwrap()
-    // }
+    pub async fn waypoint_list(&self, system_symbol: String) -> WaypointsListedL0 {
+        serde_json::from_str(
+            &self
+                .make_request(Broadcaster::Interface(
+                    Method::Get,
+                    format!("/v2/systems/{}/waypoints", system_symbol),
+                    None,
+                ))
+                .await,
+        )
+        .unwrap()
+    }
 
-    // pub async fn contract_accept(&self, contract_id: &str) -> String {
-    //     self.make_reqwest(
-    //         Method::Post,
-    //         &format!("/v2/my/contracts/{}/accept", contract_id),
-    //         None,
-    //     )
-    //     .await
-    // }
+    pub async fn contract_accept(&self, contract_id: &str) -> String {
+        self.make_request(Broadcaster::Interface(
+            Method::Post,
+            format!("/v2/my/contracts/{}/accept", contract_id),
+            None,
+        ))
+        .await
+    }
 
-    // pub async fn contract_terms(&self, contract_id: &str) -> ContractTermsL0 {
-    //     serde_json::from_str(
-    //         &self
-    //             .make_reqwest(
-    //                 Method::Get,
-    //                 &format!("/v2/my/contracts/{}", contract_id),
-    //                 None,
-    //             )
-    //             .await,
-    //     )
-    //     .unwrap()
-    // }
+    pub async fn contract_terms(&self, contract_id: &str) -> ContractTermsL0 {
+        serde_json::from_str(
+            &self
+                .make_request(Broadcaster::Interface(
+                    Method::Get,
+                    format!("/v2/my/contracts/{}", contract_id),
+                    None,
+                ))
+                .await,
+        )
+        .unwrap()
+    }
 
-    // pub async fn flight_mode_change(&self, ship_symbol: &str, data: ChangeFlightMode) {
-    //     serde_json::from_str(
-    //         &self
-    //             .make_reqwest(
-    //                 Method::Patch,
-    //                 &format!("/v2/my/ships/{}/nav", ship_symbol),
-    //                 Some(self.make_json(data)),
-    //             )
-    //             .await,
-    //     )
-    //     .unwrap()
-    // }
+    pub async fn flight_mode_change(&self, ship_symbol: &str, data: ChangeFlightMode) {
+        serde_json::from_str(
+            &self
+                .make_request(Broadcaster::Interface(
+                    Method::Patch,
+                    format!("/v2/my/ships/{}/nav", ship_symbol),
+                    Some(self.info.make_json(data)),
+                ))
+                .await,
+        )
+        .unwrap()
+    }
 }
 
 // struct to handle the dataflow through broadcast
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Broadcaster {
     Caller(String),
-    Interface(BroadcasterMessage),
+    Interface(Method, String, Option<String>),
 }
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BroadcasterMessage {
