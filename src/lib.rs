@@ -20,8 +20,16 @@ pub async fn main_algo() {
 }
 
 async fn complete_contracts(interface: SpaceTradersHandler) {
-    println!("{:?}", interface.agent_details().await);
-    println!("{:?}", interface.contract_list().await);
+    // println!("{:?}", interface.agent().await);
+    // println!("{:?}", interface.contract_list().await);
+    if let Some(system) = interface.agent().await {
+        println!(
+            "{:?}",
+            interface
+                .list_waypoints(&parse_waypoint(system.data.headquarters).system)
+                .await
+        )
+    }
 }
 
 // println!("{:?}", );

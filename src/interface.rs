@@ -133,10 +133,7 @@ impl SpaceTraders {
         };
 
         match response {
-            Ok(response) => {
-                println!("{}", response); // TODO: Remove this
-                response
-            }
+            Ok(response) => response,
 
             Err(error) => panic!("{}", error),
         }
@@ -183,6 +180,10 @@ impl SpaceTradersHandler {
         }
     }
 
+    pub fn make_json<T: Serialize>(&self, data: T) -> String {
+        serde_json::to_string(&data).unwrap()
+    }
+
     pub async fn make_request(&self, message: Broadcaster) -> String {
         // set up listener for response
         let mut channel = self.channel.subscribe();
@@ -197,7 +198,7 @@ impl SpaceTradersHandler {
         }
     }
 
-    pub async fn agent_details(&self) -> Option<AgentInfoL0> {
+    pub async fn agent(&self) -> Option<AgentInfoL0> {
         serde_json::from_str(
             &self
                 .make_request(Broadcaster::Interface(
@@ -210,49 +211,103 @@ impl SpaceTradersHandler {
         .unwrap()
     }
 
-    pub async fn waypoint_details(&self, system_symbol: String, waypoint_symbol: String) -> String {
-        self.info
-            .make_reqwest(
-                Method::Get,
-                &format!(
-                    "/v2/systems/{}/waypoints/{}",
-                    system_symbol, waypoint_symbol
-                ),
-                None,
-            )
-            .await
-    }
-
-    pub async fn waypoint_custom(
-        &self,
-        system_symbol: String,
-        waypoint_symbol: String,
-        endpoint: &str,
-    ) -> String {
-        self.make_request(Broadcaster::Interface(
-            Method::Get,
-            format!(
-                "/v2/systems/{}/waypoints/{}/{}",
-                system_symbol, waypoint_symbol, endpoint
-            ),
-            None,
-        ))
-        .await
-    }
-
-    pub async fn waypoint_list(&self, system_symbol: String) -> WaypointsListedL0 {
+    pub async fn list_systems(&self) {
         serde_json::from_str(
             &self
-                .make_request(Broadcaster::Interface(
-                    Method::Get,
-                    format!("/v2/systems/{}/waypoints", system_symbol),
-                    None,
-                ))
+                .info
+                .make_reqwest(Method::Get, "/v2/systems", None)
                 .await,
         )
         .unwrap()
     }
 
+    pub async fn get_system(&self, system_symbol: &str) {
+        serde_json::from_str(
+            &self
+                .info
+                .make_reqwest(Method::Get, &format!("/v2/systems/{}", system_symbol), None)
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn list_waypoints(&self, system_symbol: &str) -> WaypointsListedL0 {
+        serde_json::from_str(
+            &self
+                .info
+                .make_reqwest(
+                    Method::Get,
+                    &format!("/v2/systems/{}/waypoints", system_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn get_waypoint(&self, system_symbol: &str, waypoint_symbol: &str) {
+        serde_json::from_str(
+            &self
+                .info
+                .make_reqwest(
+                    Method::Get,
+                    &format!(
+                        "/v2/systems/{}/waypoints/{}",
+                        system_symbol, waypoint_symbol
+                    ),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn get_market(&self, system_symbol: &str, waypoint_symbol: &str) {
+        serde_json::from_str(
+            &self
+                .info
+                .make_reqwest(
+                    Method::Get,
+                    &format!(
+                        "/v2/systems/{}/waypoints/{}/market",
+                        system_symbol, waypoint_symbol
+                    ),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn get_shipyard(&self, system_symbol: &str, waypoint_symbol: &str) {
+        serde_json::from_str(
+            &self
+                .info
+                .make_reqwest(
+                    Method::Get,
+                    &format!(
+                        "/v2/systems/{}/waypoints/{}/shipyard",
+                        system_symbol, waypoint_symbol
+                    ),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn jump_gate(&self, system_symbol: &str, waypoint_symbol: &str) {
+        serde_json::from_str(
+            &self
+                .info
+                .make_reqwest(
+                    Method::Get,
+                    &format!(
+                        "/v2/systems/{}/waypoints/{}/jump-gate",
+                        system_symbol, waypoint_symbol
+                    ),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    // this is trash below
     pub async fn contract_list(&self) -> Option<ContractsL0> {
         serde_json::from_str(
             &self
@@ -266,15 +321,6 @@ impl SpaceTradersHandler {
         .unwrap()
     }
 
-    pub async fn contract_accept(&self, contract_id: &str) -> String {
-        self.make_request(Broadcaster::Interface(
-            Method::Post,
-            format!("/v2/my/contracts/{}/accept", contract_id),
-            None,
-        ))
-        .await
-    }
-
     pub async fn contract_terms(&self, contract_id: &str) -> ContractTermsL0 {
         serde_json::from_str(
             &self
@@ -282,19 +328,6 @@ impl SpaceTradersHandler {
                     Method::Get,
                     format!("/v2/my/contracts/{}", contract_id),
                     None,
-                ))
-                .await,
-        )
-        .unwrap()
-    }
-
-    pub async fn flight_mode_change(&self, ship_symbol: &str, data: ChangeFlightMode) {
-        serde_json::from_str(
-            &self
-                .make_request(Broadcaster::Interface(
-                    Method::Patch,
-                    format!("/v2/my/ships/{}/nav", ship_symbol),
-                    Some(self.info.make_json(data)),
                 ))
                 .await,
         )
