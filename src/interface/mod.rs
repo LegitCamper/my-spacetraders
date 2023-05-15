@@ -1,3 +1,7 @@
+pub mod lib;
+
+use lib::*;
+
 use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client,
@@ -308,7 +312,7 @@ impl SpaceTradersHandler {
         .unwrap()
     }
     // this is trash below
-    pub async fn contract_list(&self) -> Option<ContractsL0> {
+    pub async fn contract_list(&self) -> Option<ContractTermsL0> {
         serde_json::from_str(
             &self
                 .make_request(Broadcaster::Interface(

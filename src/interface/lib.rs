@@ -1,13 +1,106 @@
+use std::string;
+
 use serde::{Deserialize, Serialize};
 
-// Other structs for reponses from spacetrades
+// Enums
+
+#[derive(Deserialize, PartialEq, Eq, Debug)]
+pub enum WaypointTrait {
+    UNCHARTED,
+    MARKETPLACE,
+    SHIPYARD,
+    OUTPOST,
+    SCATTERED_SETTLEMENTS,
+    SPRAWLING_CITIES,
+    MEGA_STRUCTURES,
+    OVERCROWDED,
+    HIGH_TECH,
+    CORRUPT,
+    BUREAUCRATIC,
+    TRADING_HUB,
+    INDUSTRIAL,
+    BLACK_MARKET,
+    RESEARCH_FACILITY,
+    MILITARY_BASE,
+    SURVEILLANCE_OUTPOST,
+    EXPLORATION_OUTPOST,
+    MINERAL_DEPOSITS,
+    COMMON_METAL_DEPOSITS,
+    PRECIOUS_METAL_DEPOSITS,
+    RARE_METAL_DEPOSITS,
+    METHANE_POOLS,
+    ICE_CRYSTALS,
+    EXPLOSIVE_GASES,
+    STRONG_MAGNETOSPHERE,
+    VIBRANT_AURORAS,
+    SALT_FLATS,
+    CANYONS,
+    PERPETUAL_DAYLIGHT,
+    PERPETUAL_OVERCAST,
+    DRY_SEABEDS,
+    MAGMA_SEAS,
+    SUPERVOLCANOES,
+    ASH_CLOUDS,
+    VAST_RUINS,
+    MUTATED_FLORA,
+    TERRAFORMED,
+    EXTREME_TEMPERATURES,
+    EXTREME_PRESSURE,
+    DIVERSE_LIFE,
+    SCARCE_LIFE,
+    FOSSILS,
+    WEAK_GRAVITY,
+    STRONG_GRAVITY,
+    CRUSHING_GRAVITY,
+    TOXIC_ATMOSPHERE,
+    CORROSIVE_ATMOSPHERE,
+    BREATHABLE_ATMOSPHERE,
+    JOVIAN,
+    ROCKY,
+    VOLCANIC,
+    FROZEN,
+    SWAMP,
+    BARREN,
+    TEMPERATE,
+    JUNGLE,
+    OCEAN,
+    STRIPPED,
+}
+
+// impl ToString for WaypointTrait {
+//     fn to_string(&self) -> String {
+//         match self {
+//             Self::Shipyard => String::from("SHIPYARD"),
+//         }
+//     }
+// }
+
+#[derive(Deserialize, Debug)]
+pub enum Faction {
+    #[serde(alias = "COSMIC")]
+    Cosmic,
+}
+
+#[derive(Deserialize, Debug)]
+pub enum Ships {
+    #[serde(alias = "SHIP_PROBE")]
+    ShipProbe,
+    #[serde(alias = "SHIP_MINING_DRONE")]
+    ShipMiningDrone,
+    #[serde(alias = "SHIP_ORE_HOUND")]
+    ShipOreHound,
+    #[serde(alias = "SHIP_REFINING_FREIGHTER")]
+    ShipRefiningFreighter,
+}
+
+// Structs for reponses from spacetrades
 
 #[derive(Deserialize, Debug)]
 pub struct AgentL0 {
-    pub data: AgentInfoL1,
+    pub data: AgentL1,
 }
 #[derive(Deserialize, Debug)]
-pub struct AgenL1 {
+pub struct AgentL1 {
     #[serde(alias = "accountId")]
     pub account_id: String,
     pub symbol: String,
@@ -23,7 +116,8 @@ pub enum ContractTermType {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ContractTermsL0 {
-    pub data: ContractTermsL1,
+    // pub data: ContractTermsL1,
+    pub data: Vec<ContractTermsL1>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -108,7 +202,7 @@ pub struct WaypointsListedCharts {
     // faction: Vec<faction>,
 }
 
-// Other structs for requests from spacetrades
+// Structs for requests from spacetrades
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Debug)]
@@ -140,78 +234,4 @@ pub enum FlightMode {
     Drift,
     #[serde(alias = "STEALTH")]
     Stealth,
-}
-
-#[derive(Deserialize, PartialEq, Eq, Debug)]
-pub enum WaypointTrait {
-    #[serde(alias = "SHIPYARD")]
-    Shipyard,
-    #[serde(alias = "PLANET")]
-    Planet,
-    #[serde(alias = "MOON")]
-    Moon,
-    #[serde(alias = "ASTEROID_FIELD")]
-    AsteroidField,
-    #[serde(alias = "GAS_GIANT")]
-    GasGiant,
-    #[serde(alias = "ORBITAL_STATION")]
-    OrbitalStation,
-    #[serde(alias = "OVERCROWDED")]
-    Overcrowded,
-    #[serde(alias = "BUREAUCRATIC")]
-    Buereaucratic,
-    #[serde(alias = "MARKETPLACE")]
-    Marketplace,
-    #[serde(alias = "HIGH_TECH")]
-    HighTech,
-    #[serde(alias = "TEMPERATE")]
-    Termerate,
-    #[serde(alias = "BARREN")]
-    Barren,
-    #[serde(alias = "TRADING_HUB")]
-    TradingHub,
-    #[serde(alias = "VOLCANIC")]
-    Volcanic,
-    #[serde(alias = "FROZEN")]
-    Frozen,
-    #[serde(alias = "TOXIC_ATMOSPHERE")]
-    ToxicAtmoshere,
-    #[serde(alias = "WEAK_GRAVITY")]
-    WeakGravity,
-    #[serde(alias = "MINERAL_DEPOSITS")]
-    MineralDeposits,
-    #[serde(alias = "COMMON_METAL_DEPOSITS")]
-    CommonMetalDeposits,
-    #[serde(alias = "PRECIOUS_METAL_DEPOSITS")]
-    PrecuousMetalDeposits,
-    #[serde(alias = "STRIPPED")]
-    Striped,
-    #[serde(alias = "VIBRANT_AURORAS")]
-    VibrantAuroras,
-    #[serde(alias = "STRONG_MAGNETOSPHERE")]
-    StrongMagnetosphere,
-    #[serde(alias = "MILITARY_BASE")]
-    MilitaryBase,
-    #[serde(alias = "DRY_SEABEDS")]
-    DrySeabeds,
-    #[serde(alias = "JUMP_GATE")]
-    JumpGate,
-}
-
-#[derive(Deserialize, Debug)]
-pub enum Faction {
-    #[serde(alias = "COSMIC")]
-    Cosmic,
-}
-
-#[derive(Deserialize, Debug)]
-pub enum Ships {
-    #[serde(alias = "SHIP_PROBE")]
-    ShipProbe,
-    #[serde(alias = "SHIP_MINING_DRONE")]
-    ShipMiningDrone,
-    #[serde(alias = "SHIP_ORE_HOUND")]
-    ShipOreHound,
-    #[serde(alias = "SHIP_REFINING_FREIGHTER")]
-    ShipRefiningFreighter,
 }

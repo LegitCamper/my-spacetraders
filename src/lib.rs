@@ -2,8 +2,8 @@ pub mod interface;
 
 use interface::{parse_waypoint, Coordinates, Credentials, Method, SpaceTradersHandler};
 
-use std::sync::Arc;
-use tokio::sync::broadcast;
+// use std::sync::Arc;
+// use tokio::sync::broadcast;
 
 async fn create_interface() -> SpaceTradersHandler {
     let credentials = Credentials::new(
@@ -20,8 +20,8 @@ pub async fn main_algo() {
 }
 
 async fn complete_contracts(interface: SpaceTradersHandler) {
-    // println!("{:?}", interface.agent().await);
-    // println!("{:?}", interface.contract_list().await);
+    println!("{:?}", interface.agent().await);
+    println!("{:?}", interface.contract_list().await);
     if let Some(system) = interface.agent().await {
         println!(
             "{:?}",
