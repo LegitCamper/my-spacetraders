@@ -1,6 +1,6 @@
 pub mod interface;
 
-use interface::{parse_waypoint, Coordinates, Credentials, Method, SpaceTradersHandler};
+use interface::{parse_waypoint, Credentials, SpaceTradersHandler};
 
 // use std::sync::Arc;
 // use tokio::sync::broadcast;

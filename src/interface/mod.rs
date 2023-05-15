@@ -215,7 +215,7 @@ impl SpaceTradersHandler {
         .unwrap()
     }
 
-    pub async fn list_systems(&self) {
+    pub async fn list_systems(&self) -> ListSystemsL0 {
         serde_json::from_str(
             &self
                 .info
@@ -224,8 +224,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-
-    pub async fn get_system(&self, system_symbol: &str) {
+    pub async fn get_system(&self, system_symbol: &str) -> GetSystemL0 {
         serde_json::from_str(
             &self
                 .info
@@ -234,7 +233,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn list_waypoints(&self, system_symbol: &str) -> WaypointsListedL0 {
+    pub async fn list_waypoints(&self, system_symbol: &str) -> ListWaypointsL0 {
         serde_json::from_str(
             &self
                 .info
@@ -247,7 +246,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_waypoint(&self, system_symbol: &str, waypoint_symbol: &str) {
+    pub async fn get_waypoint(&self, system_symbol: &str, waypoint_symbol: &str) -> GetWaypointL0 {
         serde_json::from_str(
             &self
                 .info
@@ -263,7 +262,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_market(&self, system_symbol: &str, waypoint_symbol: &str) {
+    pub async fn get_market(&self, system_symbol: &str, waypoint_symbol: &str) -> GetMarketL0 {
         serde_json::from_str(
             &self
                 .info

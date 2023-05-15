@@ -1,99 +1,476 @@
-use std::string;
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
 // Enums
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum WaypointTrait {
-    UNCHARTED,
-    MARKETPLACE,
-    SHIPYARD,
-    OUTPOST,
-    SCATTERED_SETTLEMENTS,
-    SPRAWLING_CITIES,
-    MEGA_STRUCTURES,
-    OVERCROWDED,
-    HIGH_TECH,
-    CORRUPT,
-    BUREAUCRATIC,
-    TRADING_HUB,
-    INDUSTRIAL,
-    BLACK_MARKET,
-    RESEARCH_FACILITY,
-    MILITARY_BASE,
-    SURVEILLANCE_OUTPOST,
-    EXPLORATION_OUTPOST,
-    MINERAL_DEPOSITS,
-    COMMON_METAL_DEPOSITS,
-    PRECIOUS_METAL_DEPOSITS,
-    RARE_METAL_DEPOSITS,
-    METHANE_POOLS,
-    ICE_CRYSTALS,
-    EXPLOSIVE_GASES,
-    STRONG_MAGNETOSPHERE,
-    VIBRANT_AURORAS,
-    SALT_FLATS,
-    CANYONS,
-    PERPETUAL_DAYLIGHT,
-    PERPETUAL_OVERCAST,
-    DRY_SEABEDS,
-    MAGMA_SEAS,
-    SUPERVOLCANOES,
-    ASH_CLOUDS,
-    VAST_RUINS,
-    MUTATED_FLORA,
-    TERRAFORMED,
-    EXTREME_TEMPERATURES,
-    EXTREME_PRESSURE,
-    DIVERSE_LIFE,
-    SCARCE_LIFE,
-    FOSSILS,
-    WEAK_GRAVITY,
-    STRONG_GRAVITY,
-    CRUSHING_GRAVITY,
-    TOXIC_ATMOSPHERE,
-    CORROSIVE_ATMOSPHERE,
-    BREATHABLE_ATMOSPHERE,
-    JOVIAN,
-    ROCKY,
-    VOLCANIC,
-    FROZEN,
-    SWAMP,
-    BARREN,
-    TEMPERATE,
-    JUNGLE,
-    OCEAN,
-    STRIPPED,
+    Uncharted,
+    Marketplace,
+    Shipyard,
+    Outpost,
+    Scatteredsettlements,
+    Sprawlingcities,
+    Megastructures,
+    Overcrowded,
+    Hightech,
+    Corrupt,
+    Bureaucratic,
+    Tradinghub,
+    Industrial,
+    Blackmarket,
+    Researchfacility,
+    Militarybase,
+    Surveillanceoutpost,
+    Explorationoutpost,
+    Mineraldeposits,
+    Commonmetaldeposits,
+    Preciousmetaldeposits,
+    Raremetaldeposits,
+    Methanepools,
+    Icecrystals,
+    Explosivegases,
+    Strongmagnetosphere,
+    Vibrantauroras,
+    Saltflats,
+    Canyons,
+    Perpetualdaylight,
+    Perpetualovercast,
+    Dryseabeds,
+    Magmaseas,
+    Supervolcanoes,
+    Ashclouds,
+    Vastruins,
+    Mutatedflora,
+    Terraformed,
+    Extremetemperatures,
+    Extremepressure,
+    Diverselife,
+    Scarcelife,
+    Fossils,
+    Weakgravity,
+    Stronggravity,
+    Crushinggravity,
+    Toxicatmosphere,
+    Corrosiveatmosphere,
+    Breathableatmosphere,
+    Jovian,
+    Rocky,
+    Volcanic,
+    Frozen,
+    Swamp,
+    Barren,
+    Temperate,
+    Jungle,
+    Ocean,
+    Stripped,
 }
 
-// impl ToString for WaypointTrait {
-//     fn to_string(&self) -> String {
-//         match self {
-//             Self::Shipyard => String::from("SHIPYARD"),
-//         }
-//     }
-// }
+#[derive(Deserialize, PartialEq, Eq, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum WaypointType {
+    Planet,
+    Gasgiant,
+    Moon,
+    Orbitalstation,
+    Jumpgate,
+    Asteroidfield,
+    Nebula,
+    Debrisfield,
+    Gravitywell,
+}
 
-#[derive(Deserialize, Debug)]
-pub enum Faction {
-    #[serde(alias = "COSMIC")]
-    Cosmic,
+#[derive(Deserialize, PartialEq, Eq, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SystemType {
+    Neutronstar,
+    Redstar,
+    Orangestar,
+    Bluestar,
+    Youngstar,
+    Whitedwarf,
+    Blackhole,
+    Hypergiant,
+    Nebula,
+    Unstable,
 }
 
 #[derive(Deserialize, Debug)]
-pub enum Ships {
-    #[serde(alias = "SHIP_PROBE")]
-    ShipProbe,
-    #[serde(alias = "SHIP_MINING_DRONE")]
-    ShipMiningDrone,
-    #[serde(alias = "SHIP_ORE_HOUND")]
-    ShipOreHound,
-    #[serde(alias = "SHIP_REFINING_FREIGHTER")]
-    ShipRefiningFreighter,
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ShipType {
+    Shipprobe,
+    Shipminingdrone,
+    Shipinterceptor,
+    Shiplighthauler,
+    Shipcommandfrigate,
+    Shipexplorer,
+    Shipheavyfreighter,
+    Shiplightshuttle,
+    Shiporehound,
+    Shiprefiningfreighter,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ShipRole {
+    Fabricator,
+    Harvester,
+    Hauler,
+    Interceptor,
+    Excavator,
+    Transport,
+    Repair,
+    Surveyor,
+    Command,
+    Carrier,
+    Patrol,
+    Satellite,
+    Explorer,
+    Refinery,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ShipReactorType {
+    Reactorsolari,
+    Reactorfusioni,
+    Reactorfissioni,
+    Reactorchemicali,
+    Reactorantimatteri,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ShipNavStatus {
+    Intransit,
+    Inorbit,
+    Docked,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ShipMount {
+    Mountgassiphoni,
+    Mountgassiphonii,
+    Mountgassiphoniii,
+    Mountsurveyori,
+    Mountsurveyorii,
+    Mountsurveyoriii,
+    Mountsensorarrayi,
+    Mountsensorarrayii,
+    Mountsensorarrayiii,
+    Mountmininglaseri,
+    Mountmininglaserii,
+    Mountmininglaseriii,
+    Mountlasercannoni,
+    Mountmissilelauncheri,
+    Mountturreti,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TradeSymbol {
+    Preciousstones,
+    Quartzsand,
+    Siliconcrystals,
+    Ammoniaice,
+    Liquidhydrogen,
+    Liquidnitrogen,
+    Icewater,
+    Exoticmatter,
+    Advancedcircuitry,
+    Gravitonemitters,
+    Iron,
+    Ironore,
+    Copper,
+    Copperore,
+    Aluminum,
+    Aluminumore,
+    Silver,
+    Silverore,
+    Gold,
+    Goldore,
+    Platinum,
+    Platinumore,
+    Diamonds,
+    Uranite,
+    Uraniteore,
+    Meritium,
+    Meritiumore,
+    Hydrocarbon,
+    Antimatter,
+    Fertilizers,
+    Fabrics,
+    Food,
+    Jewelry,
+    Machinery,
+    Firearms,
+    Assaultrifles,
+    Militaryequipment,
+    Explosives,
+    Labinstruments,
+    Ammunition,
+    Electronics,
+    Shipplating,
+    Equipment,
+    Fuel,
+    Medicine,
+    Drugs,
+    Clothing,
+    Microprocessors,
+    Plastics,
+    Polynucleotides,
+    Biocomposites,
+    Nanobots,
+    Aimainframes,
+    Quantumdrives,
+    Roboticdrones,
+    Cyberimplants,
+    Genetherapeutics,
+    Neuralchips,
+    Moodregulators,
+    Viralagents,
+    Microfusiongenerators,
+    Supergrains,
+    Laserrifles,
+    Holographics,
+    Shipsalvage,
+    Relictech,
+    Novellifeforms,
+    Botanicalspecimens,
+    Culturalartifacts,
+    Reactorsolari,
+    Reactorfusioni,
+    Reactorfissioni,
+    Reactorchemicali,
+    Reactorantimatteri,
+    Engineimpulsedrivei,
+    Engineiondrivei,
+    Engineiondriveii,
+    Enginehyperdrivei,
+    Modulemineralprocessori,
+    Modulecargoholdi,
+    Modulecrewquartersi,
+    Moduleenvoyquartersi,
+    Modulepassengercabini,
+    Modulemicrorefineryi,
+    Moduleorerefineryi,
+    Modulefuelrefineryi,
+    Modulesciencelabi,
+    Modulejumpdrivei,
+    Modulejumpdriveii,
+    Modulejumpdriveiii,
+    Modulewarpdrivei,
+    Modulewarpdriveii,
+    Modulewarpdriveiii,
+    Moduleshieldgeneratori,
+    Moduleshieldgeneratorii,
+    Mountgassiphoni,
+    Mountgassiphonii,
+    Mountgassiphoniii,
+    Mountsurveyori,
+    Mountsurveyorii,
+    Mountsurveyoriii,
+    Mountsensorarrayi,
+    Mountsensorarrayii,
+    Mountsensorarrayiii,
+    Mountmininglaseri,
+    Mountmininglaserii,
+    Mountmininglaseriii,
+    Mountlasercannoni,
+    Mountmissilelauncheri,
+    Mountturreti,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ShipModule {
+    Modulemineralprocessori,
+    Modulecargoholdi,
+    Modulecrewquartersi,
+    Moduleenvoyquartersi,
+    Modulepassengercabini,
+    Modulemicrorefineryi,
+    Moduleorerefineryi,
+    Modulefuelrefineryi,
+    Modulesciencelabi,
+    Modulejumpdrivei,
+    Modulejumpdriveii,
+    Modulejumpdriveiii,
+    Modulewarpdrivei,
+    Modulewarpdriveii,
+    Modulewarpdriveiii,
+    Moduleshieldgeneratori,
+    Moduleshieldgeneratorii,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ShipFram {
+    Frameprobe,
+    Framedrone,
+    Frameinterceptor,
+    Frameracer,
+    Framefighter,
+    Framefrigate,
+    Frameshuttle,
+    Frameexplorer,
+    Frameminer,
+    Framelightfreighter,
+    Frameheavyfreighter,
+    Frametransport,
+    Framedestroyer,
+    Framecruiser,
+    Framecarrier,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ShipEngine {
+    Engineimpulsedrivei,
+    Engineiondrivei,
+    Engineiondriveii,
+    Enginehyperdrivei,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TradeGood {
+    Preciousstones,
+    Quartzsand,
+    Siliconcrystals,
+    Ammoniaice,
+    Liquidhydrogen,
+    Liquidnitrogen,
+    Icewater,
+    Exoticmatter,
+    Advancedcircuitry,
+    Gravitonemitters,
+    Iron,
+    Ironore,
+    Copper,
+    Copperore,
+    Aluminum,
+    Aluminumore,
+    Silver,
+    Silverore,
+    Gold,
+    Goldore,
+    Platinum,
+    Platinumore,
+    Diamonds,
+    Uranite,
+    Uraniteore,
+    Meritium,
+    Meritiumore,
+    Hydrocarbon,
+    Antimatter,
+    Fertilizers,
+    Fabrics,
+    Food,
+    Jewelry,
+    Machinery,
+    Firearms,
+    Assaultrifles,
+    Militaryequipment,
+    Explosives,
+    Labinstruments,
+    Ammunition,
+    Electronics,
+    Shipplating,
+    Equipment,
+    Fuel,
+    Medicine,
+    Drugs,
+    Clothing,
+    Microprocessors,
+    Plastics,
+    Polynucleotides,
+    Biocomposites,
+    Nanobots,
+    Aimainframes,
+    Quantumdrives,
+    Roboticdrones,
+    Cyberimplants,
+    Genetherapeutics,
+    Neuralchips,
+    Moodregulators,
+    Viralagents,
+    Microfusiongenerators,
+    Supergrains,
+    Laserrifles,
+    Holographics,
+    Shipsalvage,
+    Relictech,
+    Novellifeforms,
+    Botanicalspecimens,
+    Culturalartifacts,
+    Reactorsolari,
+    Reactorfusioni,
+    Reactorfissioni,
+    Reactorchemicali,
+    Reactorantimatteri,
+    Engineimpulsedrivei,
+    Engineiondrivei,
+    Engineiondriveii,
+    Enginehyperdrivei,
+    Modulemineralprocessori,
+    Modulecargoholdi,
+    Modulecrewquartersi,
+    Moduleenvoyquartersi,
+    Modulepassengercabini,
+    Modulemicrorefineryi,
+    Moduleorerefineryi,
+    Modulefuelrefineryi,
+    Modulesciencelabi,
+    Modulejumpdrivei,
+    Modulejumpdriveii,
+    Modulejumpdriveiii,
+    Modulewarpdrivei,
+    Modulewarpdriveii,
+    Modulewarpdriveiii,
+    Moduleshieldgeneratori,
+    Moduleshieldgeneratorii,
+    Mountgassiphoni,
+    Mountgassiphonii,
+    Mountgassiphoniii,
+    Mountsurveyori,
+    Mountsurveyorii,
+    Mountsurveyoriii,
+    Mountsensorarrayi,
+    Mountsensorarrayii,
+    Mountsensorarrayiii,
+    Mountmininglaseri,
+    Mountmininglaserii,
+    Mountmininglaseriii,
+    Mountlasercannoni,
+    Mountmissilelauncheri,
+    Mountturreti,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum FlightMode {
+    #[serde(alias = "CRUISE")]
+    Cruise,
+    #[serde(alias = "BURN")]
+    Burn,
+    #[serde(alias = "DRIFT")]
+    Drift,
+    #[serde(alias = "STEALTH")]
+    Stealth,
 }
 
 // Structs for reponses from spacetrades
+
+#[derive(Deserialize, Debug)]
+pub struct Meta {
+    // metadata for responses
+    total: u32,
+    page: u32,
+    limit: u32,
+}
 
 #[derive(Deserialize, Debug)]
 pub struct AgentL0 {
@@ -148,7 +525,7 @@ pub struct ContractTermsL3 {
 #[derive(Deserialize, Debug)]
 pub struct ContractTermsL4 {
     #[serde(alias = "tradeSymbol")]
-    trade_symbol: Item,
+    trade_symbol: TradeSymbol,
     #[serde(alias = "destinationSymbol")]
     destination_symbol: String,
     #[serde(alias = "unitesRequired")]
@@ -162,44 +539,138 @@ pub struct ContractTermsL4 {
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct WaypointsListedL0 {
-    pub data: Vec<WaypointsListedL1>,
+pub struct ListSystemsL0 {
+    data: Vec<ListSystemsL1>,
+    meta: Meta,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct WaypointsListedL1 {
+pub struct ListSystemsL1 {
+    symbol: String,
+    #[serde(alias = "sectorSymbol")]
+    sector_symbol: String,
+    r#type: SystemType,
+    x: u32,
+    y: u32,
+    waypoints: Vec<ListSystemsWaypoints>,
+    factions: Vec<String>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ListSystemsWaypoints {
+    symbol: String,
+    r#type: WaypointType,
+    x: u32,
+    y: u32,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetSystemL0 {
+    data: ListSystemsL1,
+    meta: Meta,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ListWaypointsL0 {
+    pub data: Vec<ListWaypointsL1>,
+    pub meta: Meta,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ListWaypointsL1 {
     #[serde(alias = "systemSymbol")]
     pub system_symbol: String,
     pub symbol: String,
-    pub r#type: WaypointTrait,
-    pub x: i64,
-    pub y: i64,
-    pub orbitals: Vec<WaypointsListedOrbitals>,
-    pub traits: Vec<WaypointsListedTraits>,
-    pub chart: WaypointsListedCharts,
+    pub r#type: WaypointType,
+    pub x: u32,
+    pub y: u32,
+    pub orbitals: Vec<String>,
+    pub traits: Vec<ListWaypointsTraits>,
+    pub chart: HashMap<String, String>,
+    pub faction: HashMap<String, String>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct WaypointsListedOrbitals {
-    symbol: String,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct WaypointsListedTraits {
-    pub symbol: WaypointTrait,
+pub struct ListWaypointsTraits {
+    pub symbol: WaypointType,
     pub name: String,
-    #[serde(default)]
-    pub desciption: String,
+    // #[serde(default)] // removing description
+    // pub desciption: String,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetWaypointL0 {
+    data: ListSystemsL1,
+    meta: Meta,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum GetMarketType {
+    Purchase,
+    Sell,
+}
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum GetMarketSupplyType {
+    Scarce,
+    Limited,
+    Moderate,
+    Abundant,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct WaypointsListedCharts {
-    #[serde(alias = "submittedBy")]
-    submitted_by: Faction,
-    #[serde(alias = "submittedOn")]
-    submitted_on: String,
-    // desciption: String,
-    // faction: Vec<faction>,
+pub struct GetMarketL0 {
+    data: GetMarketL1,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetMarketL1 {
+    symbol: String,
+    exports: Vec<GetMarketDetails>,
+    imports: Vec<GetMarketDetails>,
+    exchange: Vec<GetMarketDetails>,
+    transactions: Vec<GetMarketTransactions>,
+    #[serde(alias = "tradeGoods")]
+    trade_goods: Vec<GetMarketTradeGoods>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetMarketDetails {
+    symbol: TradeGood,
+    name: String,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetMarketTransactions {
+    #[serde(alias = "waypointSymbol")]
+    waypoint_symbol: String,
+    #[serde(alias = "shipSymbol")]
+    ship_symbol: ShipType,
+    #[serde(alias = "tradeSymbol")]
+    trade_symbol: TradeGood,
+    r#type: GetMarketType,
+    units: u32,
+    #[serde(alias = "pricePerUnit")]
+    price_per_unit: u32,
+    #[serde(alias = "totalPrice")]
+    total_price: u32,
+    timestamp: String,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetMarketTradeGoods {
+    symbol: String,
+    #[serde(alias = "tradeVolume")]
+    trade_volume: u32,
+    supply: GetMarketSupplyType,
+    #[serde(alias = "purchasePrice")]
+    purchase_price: u32,
+    #[serde(alias = "sellPrice")]
+    sell_price: u32,
 }
 
 // Structs for requests from spacetrades
@@ -215,23 +686,4 @@ pub struct BuyShip {
 #[derive(Serialize, Debug)]
 pub struct ChangeFlightMode {
     pub flightMode: FlightMode,
-}
-
-#[derive(Deserialize, Debug)]
-pub enum Item {
-    // not sure this is a good idea
-    #[serde(alias = "ALUMINUM_ORE")]
-    AluminumOre,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum FlightMode {
-    #[serde(alias = "CRUISE")]
-    Cruise,
-    #[serde(alias = "BURN")]
-    Burn,
-    #[serde(alias = "DRIFT")]
-    Drift,
-    #[serde(alias = "STEALTH")]
-    Stealth,
 }
