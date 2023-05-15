@@ -1,6 +1,6 @@
 pub mod interface;
 
-use interface::{parse_waypoint, BuyShip, Coordinates, Credentials, Method, SpaceTradersHandler};
+use interface::{parse_waypoint, Coordinates, Credentials, Method, SpaceTradersHandler};
 
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -31,47 +31,3 @@ async fn complete_contracts(interface: SpaceTradersHandler) {
         )
     }
 }
-
-// println!("{:?}", );
-
-// gets all waypoints in a system
-// let waypoints = space_traders
-//     .waypoint_list(parse_waypoint(agent_info.data.headquarters).system)
-//     .await;
-
-// lists all ships to buy in a junkyard
-// for i in waypoints.data.iter() {
-//     for o in i.traits.iter() {
-//         if o.symbol == my_spacetraders::interface::WaypointTrait::Shipyard {
-//             println!("{:?}", i);
-
-//             println!(
-//                 "{}",
-//                 space_traders
-//                     .waypoint_custom(i.system_symbol.clone(), i.symbol.clone(), "shipyard")
-//                     .await
-//             );
-//         }
-//     }
-// }
-
-// println!(
-//     "{}",
-//     space_traders
-//         .make_reqwest(
-//             Method::Post,
-//             "/my/ships",
-//             Some(space_traders.make_json(BuyShip {
-//                 shipType: "SHIP_MINING_DRONE".to_string(),
-//                 waypointSymbol: "X1-DF55-69207D".to_string()
-//             }))
-//         )
-//         .await
-// );
-
-// println!(
-//     "{:?}",
-//     space_traders
-//         .contract_accept("clhgikslz0bjxs60dwfqg3zto")
-//         .await
-// );
