@@ -8,7 +8,7 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::{
-    sync::broadcast,
+    sync::{mpsc, oneshot},
     task,
     time::{sleep, Duration},
 };
@@ -148,7 +148,7 @@ impl SpaceTraders {
 #[allow(dead_code)]
 pub struct SpaceTradersHandler {
     info: SpaceTraders,
-    channel: broadcast::Sender<Broadcaster>,
+    channel: mpsc::Sender<ChannelMessage>,
     task: task::JoinHandle<()>,
 }
 
@@ -156,29 +156,26 @@ impl SpaceTradersHandler {
     pub async fn new(credentials: Credentials) -> Self {
         let space_trader = SpaceTraders::new(credentials);
 
-        let (channel, _receiver) = broadcast::channel(100);
-
-        let mut reciver_channel = channel.subscribe();
-
-        let task_sender = channel.clone();
-        let task_space_trader = space_trader.clone();
+        let (channel_sender, mut channel_receiver) = mpsc::channel(500);
 
         SpaceTradersHandler {
-            info: space_trader,
-            channel,
+            info: space_trader.clone(),
+            channel: channel_sender,
             task: task::spawn(async move {
                 loop {
                     sleep(Duration::from_millis(500)).await; // only 2 requests per second
-                    let response = reciver_channel.recv().await.unwrap();
-                    if let Broadcaster::Interface(method, url, data) = response {
-                        task_sender
-                            .send(Broadcaster::Caller(
-                                task_space_trader
-                                    .make_reqwest(method, url.as_str(), data)
-                                    .await,
-                            ))
-                            .unwrap();
-                    }
+                    let msg = channel_receiver.recv().await.unwrap();
+                    msg.oneshot
+                        .send(
+                            space_trader
+                                .make_reqwest(
+                                    msg.message.method,
+                                    msg.message.url.as_str(),
+                                    msg.message.data,
+                                )
+                                .await,
+                        )
+                        .unwrap();
                 }
             }),
         }
@@ -188,28 +185,33 @@ impl SpaceTradersHandler {
         serde_json::to_string(&data).unwrap()
     }
 
-    pub async fn make_request(&self, message: Broadcaster) -> String {
-        // set up listener for response
-        let mut channel = self.channel.subscribe();
+    pub async fn make_request(&self, message: RequestMessage) -> String {
+        // make oneshot channel
+        let (oneshot_sender, oneshot_receiver) = oneshot::channel();
 
         // make request
-        self.channel.send(message).unwrap();
+        self.channel
+            .send(ChannelMessage {
+                message,
+                oneshot: oneshot_sender,
+            })
+            .await
+            .unwrap(); //.await.unwrap();
 
-        loop {
-            if let Broadcaster::Caller(msg) = channel.recv().await.unwrap() {
-                return msg;
-            }
-        }
+        // listen to oneshot for response
+        let Ok(res) = oneshot_receiver.await else { panic!("Reponse was bad!")
+        };
+        res
     }
 
     pub async fn agent(&self) -> Option<AgentL0> {
         serde_json::from_str(
             &self
-                .make_request(Broadcaster::Interface(
-                    Method::Get,
-                    "/v2/my/agent".to_string(),
-                    None,
-                ))
+                .make_request(RequestMessage {
+                    method: Method::Get,
+                    url: "/v2/my/agent".to_string(),
+                    data: None,
+                })
                 .await,
         )
         .unwrap()
@@ -218,8 +220,11 @@ impl SpaceTradersHandler {
     pub async fn list_systems(&self) -> ListSystemsL0 {
         serde_json::from_str(
             &self
-                .info
-                .make_reqwest(Method::Get, "/v2/systems", None)
+                .make_request(RequestMessage {
+                    method: Method::Get,
+                    url: "/v2/systems".to_string(),
+                    data: None,
+                })
                 .await,
         )
         .unwrap()
@@ -227,8 +232,11 @@ impl SpaceTradersHandler {
     pub async fn get_system(&self, system_symbol: &str) -> GetSystemL0 {
         serde_json::from_str(
             &self
-                .info
-                .make_reqwest(Method::Get, &format!("/v2/systems/{}", system_symbol), None)
+                .make_request(RequestMessage {
+                    method: Method::Get,
+                    url: format!("/v2/systems/{}", system_symbol),
+                    data: None,
+                })
                 .await,
         )
         .unwrap()
@@ -236,12 +244,11 @@ impl SpaceTradersHandler {
     pub async fn list_waypoints(&self, system_symbol: &str) -> ListWaypointsL0 {
         serde_json::from_str(
             &self
-                .info
-                .make_reqwest(
-                    Method::Get,
-                    &format!("/v2/systems/{}/waypoints", system_symbol),
-                    None,
-                )
+                .make_reqwest(RequestMessage {
+                    method: Method::Get,
+                    url: format!("/v2/systems/{}/waypoints", system_symbol),
+                    data: None,
+                })
                 .await,
         )
         .unwrap()
@@ -249,15 +256,14 @@ impl SpaceTradersHandler {
     pub async fn get_waypoint(&self, system_symbol: &str, waypoint_symbol: &str) -> GetWaypointL0 {
         serde_json::from_str(
             &self
-                .info
-                .make_reqwest(
-                    Method::Get,
-                    &format!(
+                .make_reqwest(RequestMessage {
+                    method: Method::Get,
+                    url: format!(
                         "/v2/systems/{}/waypoints/{}",
                         system_symbol, waypoint_symbol
                     ),
-                    None,
-                )
+                    data: None,
+                })
                 .await,
         )
         .unwrap()
@@ -265,15 +271,14 @@ impl SpaceTradersHandler {
     pub async fn get_market(&self, system_symbol: &str, waypoint_symbol: &str) -> GetMarketL0 {
         serde_json::from_str(
             &self
-                .info
-                .make_reqwest(
-                    Method::Get,
-                    &format!(
+                .make_reqwest(RequestMessage {
+                    method: Method::Get,
+                    url: format!(
                         "/v2/systems/{}/waypoints/{}/market",
                         system_symbol, waypoint_symbol
                     ),
-                    None,
-                )
+                    data: None,
+                })
                 .await,
         )
         .unwrap()
@@ -281,15 +286,14 @@ impl SpaceTradersHandler {
     pub async fn get_shipyard(&self, system_symbol: &str, waypoint_symbol: &str) {
         serde_json::from_str(
             &self
-                .info
-                .make_reqwest(
-                    Method::Get,
-                    &format!(
+                .make_reqwest(RequestMessage {
+                    method: Method::Get,
+                    url: format!(
                         "/v2/systems/{}/waypoints/{}/shipyard",
                         system_symbol, waypoint_symbol
                     ),
-                    None,
-                )
+                    data: None,
+                })
                 .await,
         )
         .unwrap()
@@ -297,15 +301,14 @@ impl SpaceTradersHandler {
     pub async fn jump_gate(&self, system_symbol: &str, waypoint_symbol: &str) {
         serde_json::from_str(
             &self
-                .info
-                .make_reqwest(
-                    Method::Get,
-                    &format!(
+                .make_reqwest(RequestMessage {
+                    method: Method::Get,
+                    url: format!(
                         "/v2/systems/{}/waypoints/{}/jump-gate",
                         system_symbol, waypoint_symbol
                     ),
-                    None,
-                )
+                    data: None,
+                })
                 .await,
         )
         .unwrap()
@@ -314,11 +317,11 @@ impl SpaceTradersHandler {
     pub async fn contract_list(&self) -> Option<ContractTermsL0> {
         serde_json::from_str(
             &self
-                .make_request(Broadcaster::Interface(
-                    Method::Get,
-                    String::from("/v2/my/contracts"),
-                    None,
-                ))
+                .make_request(RequestMessage {
+                    method: Method::Get,
+                    url: String::from("/v2/my/contracts"),
+                    data: None,
+                })
                 .await,
         )
         .unwrap()
@@ -326,29 +329,29 @@ impl SpaceTradersHandler {
 
     pub async fn contract_terms(&self, contract_id: &str) -> ContractTermsL0 {
         serde_json::from_str(
-            &self
-                .make_request(Broadcaster::Interface(
-                    Method::Get,
-                    format!("/v2/my/contracts/{}", contract_id),
-                    None,
-                ))
+            &&self
+                .make_request(RequestMessage {
+                    method: Method::Get,
+                    url: format!("/v2/my/contracts/{}", contract_id),
+                    data: None,
+                })
                 .await,
         )
         .unwrap()
     }
 }
 
-// struct to handle the dataflow through broadcast
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub enum Broadcaster {
-    Caller(String),
-    Interface(Method, String, Option<String>),
-}
+// struct to handle the dataflow through channel
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct BroadcasterMessage {
+pub struct RequestMessage {
     pub method: Method,
     pub url: String,
     pub data: Option<String>,
+}
+#[derive(Debug)]
+pub struct ChannelMessage {
+    message: RequestMessage,
+    oneshot: oneshot::Sender<String>,
 }
 
 // Other helpful structs and enums
