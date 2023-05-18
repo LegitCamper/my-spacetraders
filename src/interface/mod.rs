@@ -1,6 +1,9 @@
-pub mod lib;
-
-use lib::*;
+pub mod requests;
+use requests::*;
+pub mod responses;
+use responses::*;
+pub mod enums;
+use enums::*;
 
 use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
@@ -137,7 +140,10 @@ impl SpaceTraders {
         };
 
         match response {
-            Ok(response) => response,
+            Ok(response) => {
+                println!("{}", response);
+                response
+            }
 
             Err(error) => panic!("{}", error),
         }
@@ -204,6 +210,7 @@ impl SpaceTradersHandler {
         res
     }
 
+    // Agents
     pub async fn agent(&self) -> Option<AgentL0> {
         serde_json::from_str(
             &self
@@ -217,6 +224,7 @@ impl SpaceTradersHandler {
         .unwrap()
     }
 
+    // Waypoints
     pub async fn list_systems(&self) -> ListSystemsL0 {
         serde_json::from_str(
             &self
@@ -244,7 +252,7 @@ impl SpaceTradersHandler {
     pub async fn list_waypoints(&self, system_symbol: &str) -> ListWaypointsL0 {
         serde_json::from_str(
             &self
-                .make_reqwest(RequestMessage {
+                .make_request(RequestMessage {
                     method: Method::Get,
                     url: format!("/v2/systems/{}/waypoints", system_symbol),
                     data: None,
@@ -256,7 +264,7 @@ impl SpaceTradersHandler {
     pub async fn get_waypoint(&self, system_symbol: &str, waypoint_symbol: &str) -> GetWaypointL0 {
         serde_json::from_str(
             &self
-                .make_reqwest(RequestMessage {
+                .make_request(RequestMessage {
                     method: Method::Get,
                     url: format!(
                         "/v2/systems/{}/waypoints/{}",
@@ -271,7 +279,7 @@ impl SpaceTradersHandler {
     pub async fn get_market(&self, system_symbol: &str, waypoint_symbol: &str) -> GetMarketL0 {
         serde_json::from_str(
             &self
-                .make_reqwest(RequestMessage {
+                .make_request(RequestMessage {
                     method: Method::Get,
                     url: format!(
                         "/v2/systems/{}/waypoints/{}/market",
@@ -286,7 +294,7 @@ impl SpaceTradersHandler {
     pub async fn get_shipyard(&self, system_symbol: &str, waypoint_symbol: &str) {
         serde_json::from_str(
             &self
-                .make_reqwest(RequestMessage {
+                .make_request(RequestMessage {
                     method: Method::Get,
                     url: format!(
                         "/v2/systems/{}/waypoints/{}/shipyard",
@@ -301,7 +309,7 @@ impl SpaceTradersHandler {
     pub async fn jump_gate(&self, system_symbol: &str, waypoint_symbol: &str) {
         serde_json::from_str(
             &self
-                .make_reqwest(RequestMessage {
+                .make_request(RequestMessage {
                     method: Method::Get,
                     url: format!(
                         "/v2/systems/{}/waypoints/{}/jump-gate",
@@ -313,8 +321,9 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    // this is trash below
-    pub async fn contract_list(&self) -> Option<ContractTermsL0> {
+
+    // Contracts
+    pub async fn list_contracts(&self) -> ContractTermsL0 {
         serde_json::from_str(
             &self
                 .make_request(RequestMessage {
@@ -327,12 +336,80 @@ impl SpaceTradersHandler {
         .unwrap()
     }
 
-    pub async fn contract_terms(&self, contract_id: &str) -> ContractTermsL0 {
+    pub async fn get_contract(&self, contract_id: &str) -> ContractTermsL0 {
         serde_json::from_str(
-            &&self
+            &self
                 .make_request(RequestMessage {
                     method: Method::Get,
                     url: format!("/v2/my/contracts/{}", contract_id),
+                    data: None,
+                })
+                .await,
+        )
+        .unwrap()
+    }
+
+    pub async fn accept_contract(&self, contract_id: &str) {
+        serde_json::from_str(
+            &self
+                .make_request(RequestMessage {
+                    method: Method::Post,
+                    url: format!("/v2/my/contracts/{}/accept", contract_id),
+                    data: None,
+                })
+                .await,
+        )
+        .unwrap()
+    }
+
+    pub async fn deliver_contract(&self, contract_id: &str) {
+        serde_json::from_str(
+            &self
+                .make_request(RequestMessage {
+                    method: Method::Post,
+                    url: format!("/v2/my/contracts/{}/deliver", contract_id),
+                    data: None,
+                })
+                .await,
+        )
+        .unwrap()
+    }
+
+    pub async fn fulfill_contract(&self, contract_id: &str) {
+        serde_json::from_str(
+            &self
+                .make_request(RequestMessage {
+                    method: Method::Post,
+                    url: format!("/v2/my/contracts/{}/fulfill", contract_id),
+                    data: None,
+                })
+                .await,
+        )
+        .unwrap()
+    }
+
+    // Fleet
+
+    // Factions
+    pub async fn list_factions(&self) {
+        serde_json::from_str(
+            &self
+                .make_request(RequestMessage {
+                    method: Method::Get,
+                    url: String::from("/v2/factions"),
+                    data: None,
+                })
+                .await,
+        )
+        .unwrap()
+    }
+
+    pub async fn get_faction(&self, faction_symbol: &str) {
+        serde_json::from_str(
+            &self
+                .make_request(RequestMessage {
+                    method: Method::Get,
+                    url: format!("/v2/factions/{}", faction_symbol),
                     data: None,
                 })
                 .await,
