@@ -212,3 +212,104 @@ pub struct GetMarketTradeGoods {
     #[serde(alias = "sellPrice")]
     sell_price: u32,
 }
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipyardL0 {
+    data: GetShipyardL1,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipyardL1 {
+    symbol: String,
+    #[serde(alias = "shipTypes")]
+    ship_types: GetShipyardTypes,
+    transactions: GetShipyardTransactions,
+    ships: Vec<GetShipyardShips>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipyardTypes {
+    r#type: ShipType,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipyardTransactions {
+    #[serde(alias = "waypointSymbol")]
+    waypoint_symbol: String,
+    #[serde(alias = "shipSymbol")]
+    ship_symbol: String,
+    #[serde(alias = "agentSymbol")]
+    agent_symbol: String,
+    timestamp: String,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipyardShips {
+    r#type: ShipType,
+    name: String,
+    // description: String,
+    #[serde(alias = "purchasePrice")]
+    purchase_price: u32,
+    frame: GetShipyardFrame,
+    reactor: GetShipyardReactor,
+    engine: GetShipyardEngine,
+    modules: GetShipyardModules,
+    mounts: Vec<GetShipyardMounts>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipyardFrame {
+    symbol: ShipType,
+    name: String,
+    // description: String,
+    condition: u32,
+    #[serde(alias = "moduleSlots")]
+    module_slots: u32,
+    #[serde(alias = "mountingPoints")]
+    mounting_points: u32,
+    #[serde(alias = "fuelCapacity")]
+    fuel_capacity: u32,
+    requirements: HashMap<String, u32>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipyardReactor {
+    symbol: ShipReactorType,
+    name: String,
+    // description: String,
+    condition: u32,
+    #[serde(alias = "powerOutput")]
+    power_output: u32,
+    requirements: HashMap<String, u32>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipyardEngine {
+    symbol: ShipEngine,
+    name: String,
+    // description: String,
+    condition: u32,
+    speed: u32,
+    requirements: HashMap<String, u32>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipyardModules {
+    symbol: ShipModule,
+    name: String,
+    // description: String,
+    capacity: u32,
+    range: u32,
+    requirements: HashMap<String, u32>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipyardMounts {
+    symbol: ShipMount,
+    name: String,
+    // description: String,
+    strength: u32,
+    deposits: TradeGood, // this is not right //TODO
+    requirements: HashMap<String, u32>,
+}

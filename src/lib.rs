@@ -22,12 +22,10 @@ pub async fn main_algo() {
 async fn complete_contracts(interface: SpaceTradersHandler) {
     // println!("{:?}", interface.agent().await);
     // println!("{:?}", interface.list_contracts().await);
-    if let Some(system) = interface.agent().await {
-        println!(
-            "{:?}",
-            interface
-                .list_waypoints(&parse_waypoint(system.data.headquarters).system)
-                .await
-        )
-    }
+    println!(
+        "{:?}",
+        interface
+            .list_waypoints(&parse_waypoint(interface.agent().await.data.headquarters).system)
+            .await
+    )
 }

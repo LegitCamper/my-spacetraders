@@ -67,10 +67,6 @@ impl SpaceTraders {
         headers
     }
 
-    pub fn make_json<T: Serialize>(&self, data: T) -> String {
-        serde_json::to_string(&data).unwrap()
-    }
-
     fn get_url(&self, endpoint: &str) -> Url {
         Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
@@ -221,7 +217,7 @@ impl SpaceTradersHandler {
     }
 
     // Agents
-    pub async fn agent(&self) -> Option<AgentL0> {
+    pub async fn agent(&self) -> AgentL0 {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, "/v2/my/agent".to_string(), None)
@@ -289,7 +285,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_shipyard(&self, system_symbol: &str, waypoint_symbol: &str) {
+    pub async fn get_shipyard(&self, system_symbol: &str, waypoint_symbol: &str) -> GetShipyardL0 {
         serde_json::from_str(
             &self
                 .make_request(
