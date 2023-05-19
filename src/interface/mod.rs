@@ -1,4 +1,6 @@
 pub mod requests;
+use std::fmt::format;
+
 use requests::*;
 pub mod responses;
 use responses::*;
@@ -16,6 +18,14 @@ use tokio::{
     time::{sleep, Duration},
 };
 use url::Url;
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Method {
+    Post,
+    Get,
+    Patch,
+    // Delete,
+}
 
 #[derive(Debug, Clone)]
 pub struct Credentials {
@@ -191,14 +201,14 @@ impl SpaceTradersHandler {
         serde_json::to_string(&data).unwrap()
     }
 
-    pub async fn make_request(&self, message: RequestMessage) -> String {
+    pub async fn make_request(&self, method: Method, url: String, data: Option<String>) -> String {
         // make oneshot channel
         let (oneshot_sender, oneshot_receiver) = oneshot::channel();
 
         // make request
         self.channel
             .send(ChannelMessage {
-                message,
+                message: RequestMessage { method, url, data },
                 oneshot: oneshot_sender,
             })
             .await
@@ -214,11 +224,7 @@ impl SpaceTradersHandler {
     pub async fn agent(&self) -> Option<AgentL0> {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: "/v2/my/agent".to_string(),
-                    data: None,
-                })
+                .make_request(Method::Get, "/v2/my/agent".to_string(), None)
                 .await,
         )
         .unwrap()
@@ -228,11 +234,7 @@ impl SpaceTradersHandler {
     pub async fn list_systems(&self) -> ListSystemsL0 {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: "/v2/systems".to_string(),
-                    data: None,
-                })
+                .make_request(Method::Get, "/v2/systems".to_string(), None)
                 .await,
         )
         .unwrap()
@@ -240,11 +242,7 @@ impl SpaceTradersHandler {
     pub async fn get_system(&self, system_symbol: &str) -> GetSystemL0 {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: format!("/v2/systems/{}", system_symbol),
-                    data: None,
-                })
+                .make_request(Method::Get, format!("/v2/systems/{}", system_symbol), None)
                 .await,
         )
         .unwrap()
@@ -252,11 +250,11 @@ impl SpaceTradersHandler {
     pub async fn list_waypoints(&self, system_symbol: &str) -> ListWaypointsL0 {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: format!("/v2/systems/{}/waypoints", system_symbol),
-                    data: None,
-                })
+                .make_request(
+                    Method::Get,
+                    format!("/v2/systems/{}/waypoints", system_symbol),
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -264,14 +262,14 @@ impl SpaceTradersHandler {
     pub async fn get_waypoint(&self, system_symbol: &str, waypoint_symbol: &str) -> GetWaypointL0 {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: format!(
+                .make_request(
+                    Method::Get,
+                    format!(
                         "/v2/systems/{}/waypoints/{}",
                         system_symbol, waypoint_symbol
                     ),
-                    data: None,
-                })
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -279,14 +277,14 @@ impl SpaceTradersHandler {
     pub async fn get_market(&self, system_symbol: &str, waypoint_symbol: &str) -> GetMarketL0 {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: format!(
+                .make_request(
+                    Method::Get,
+                    format!(
                         "/v2/systems/{}/waypoints/{}/market",
                         system_symbol, waypoint_symbol
                     ),
-                    data: None,
-                })
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -294,14 +292,14 @@ impl SpaceTradersHandler {
     pub async fn get_shipyard(&self, system_symbol: &str, waypoint_symbol: &str) {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: format!(
+                .make_request(
+                    Method::Get,
+                    format!(
                         "/v2/systems/{}/waypoints/{}/shipyard",
                         system_symbol, waypoint_symbol
                     ),
-                    data: None,
-                })
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -309,14 +307,14 @@ impl SpaceTradersHandler {
     pub async fn jump_gate(&self, system_symbol: &str, waypoint_symbol: &str) {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: format!(
+                .make_request(
+                    Method::Get,
+                    format!(
                         "/v2/systems/{}/waypoints/{}/jump-gate",
                         system_symbol, waypoint_symbol
                     ),
-                    data: None,
-                })
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -326,11 +324,7 @@ impl SpaceTradersHandler {
     pub async fn list_contracts(&self) -> ContractTermsL0 {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: String::from("/v2/my/contracts"),
-                    data: None,
-                })
+                .make_request(Method::Get, String::from("/v2/my/contracts"), None)
                 .await,
         )
         .unwrap()
@@ -339,11 +333,11 @@ impl SpaceTradersHandler {
     pub async fn get_contract(&self, contract_id: &str) -> ContractTermsL0 {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: format!("/v2/my/contracts/{}", contract_id),
-                    data: None,
-                })
+                .make_request(
+                    Method::Get,
+                    format!("/v2/my/contracts/{}", contract_id),
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -352,11 +346,11 @@ impl SpaceTradersHandler {
     pub async fn accept_contract(&self, contract_id: &str) {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Post,
-                    url: format!("/v2/my/contracts/{}/accept", contract_id),
-                    data: None,
-                })
+                .make_request(
+                    Method::Post,
+                    format!("/v2/my/contracts/{}/accept", contract_id),
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -365,11 +359,11 @@ impl SpaceTradersHandler {
     pub async fn deliver_contract(&self, contract_id: &str) {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Post,
-                    url: format!("/v2/my/contracts/{}/deliver", contract_id),
-                    data: None,
-                })
+                .make_request(
+                    Method::Post,
+                    format!("/v2/my/contracts/{}/deliver", contract_id),
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -378,40 +372,108 @@ impl SpaceTradersHandler {
     pub async fn fulfill_contract(&self, contract_id: &str) {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Post,
-                    url: format!("/v2/my/contracts/{}/fulfill", contract_id),
-                    data: None,
-                })
+                .make_request(
+                    Method::Post,
+                    format!("/v2/my/contracts/{}/fulfill", contract_id),
+                    None,
+                )
                 .await,
         )
         .unwrap()
     }
 
     // Fleet
-
-    // Factions
-    pub async fn list_factions(&self) {
+    pub async fn list_ships(&self) {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: String::from("/v2/factions"),
-                    data: None,
-                })
+                .make_request(Method::Get, String::from("/v2/ships"), None)
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn purchase_ship(&self, data: ShipType) {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    String::from("/v2/ships"),
+                    Some(self.make_json(data)),
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn get_ship(&self, ship_symbol: String) {
+        // the ship symbol might be an enum I already have
+        serde_json::from_str(
+            &self
+                .make_request(Method::Get, format!("/v2/ships/{}", ship_symbol), None)
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn get_ship_cargo(&self, ship_symbol: String) {
+        serde_json::from_str(
+            &self
+                .make_request(Method::Get, format!("/v2/ships{}/cargo", ship_symbol), None)
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn orbit_ship(&self, ship_symbol: String) {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/v2/ship/{}/orbit", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn ship_refine(&self, ship_symbol: String, data: ShipRefine) {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/v2/ship/{}/refine", ship_symbol),
+                    Some(self.make_json(data)),
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn create_chart(&self, ship_symbol: String) {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/v2/ship/{}/chart", ship_symbol),
+                    None,
+                )
                 .await,
         )
         .unwrap()
     }
 
+    // Factions
+    pub async fn list_factions(&self) {
+        serde_json::from_str(
+            &self
+                .make_request(Method::Get, String::from("/v2/factions"), None)
+                .await,
+        )
+        .unwrap()
+    }
     pub async fn get_faction(&self, faction_symbol: &str) {
         serde_json::from_str(
             &self
-                .make_request(RequestMessage {
-                    method: Method::Get,
-                    url: format!("/v2/factions/{}", faction_symbol),
-                    data: None,
-                })
+                .make_request(
+                    Method::Get,
+                    format!("/v2/factions/{}", faction_symbol),
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -452,12 +514,4 @@ pub struct Waypoint {
     pub sector: String,
     pub system: String,
     pub waypoint: String,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Method {
-    Post,
-    Get,
-    Patch,
-    // Delete,
 }

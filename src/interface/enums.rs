@@ -93,7 +93,7 @@ pub enum SystemType {
     Unstable,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipType {
     Shipprobe,
@@ -331,7 +331,7 @@ pub enum ShipEngine {
     Enginehyperdrivei,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TradeGood {
     Preciousstones,
