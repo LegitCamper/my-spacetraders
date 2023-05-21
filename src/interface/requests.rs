@@ -12,7 +12,7 @@ pub struct BuyShip {
 #[allow(non_snake_case)]
 #[derive(Serialize, Debug)]
 pub struct ShipRefine {
-    pub produce: TradeGood,
+    pub produce: TradeSymbol,
 }
 
 #[allow(non_snake_case)]

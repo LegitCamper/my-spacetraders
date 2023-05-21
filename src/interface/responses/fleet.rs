@@ -69,7 +69,7 @@ pub struct ListShipsCrew {
     pub required: u32,
     pub capacity: u32,
     pub rotation: ShipCrewRotation,
-    pub moral: u32,
+    pub morale: u32,
     pub wages: u32,
 }
 #[allow(dead_code)]
@@ -89,8 +89,11 @@ pub struct ListShipsFrame {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ListShipsFrameRequirements {
+    #[serde(default)]
     power: u32,
+    #[serde(default)]
     crew: u32,
+    #[serde(default)]
     slots: u32,
 }
 #[allow(dead_code)]
@@ -119,7 +122,9 @@ pub struct ListShipsEngine {
 pub struct ListShipsModules {
     symbol: ShipModule,
     // description: String,
+    #[serde(default)]
     capacity: u32,
+    #[serde(default)]
     range: u32,
     name: String,
     requirements: ListShipsFrameRequirements,
@@ -130,8 +135,10 @@ pub struct ListShipsMounts {
     symbol: ShipMount,
     name: String,
     // description: String,
+    #[serde(default)]
     strength: u32,
-    deposits: TradeGood,
+    #[serde(default)]
+    deposits: TradeSymbol,
     requirements: ListShipsFrameRequirements,
 }
 #[allow(dead_code)]
@@ -154,6 +161,7 @@ pub struct ListShipsCargoInventory {
 pub struct ListShipsFuel {
     current: u32,
     capacity: u32,
+    // #[serde(default)]
     consumed: ListShipsFuelConsumed,
 }
 #[allow(dead_code)]

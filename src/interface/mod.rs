@@ -6,7 +6,7 @@ pub mod enums;
 use enums::*;
 
 use reqwest::{
-    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
+    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
     Client,
 };
 use serde::{Deserialize, Serialize};
@@ -54,7 +54,7 @@ impl SpaceTraders {
         }
     }
 
-    fn get_header(&self) -> HeaderMap {
+    fn get_header(&self, json: Option<String>) -> HeaderMap {
         let mut headers = HeaderMap::with_capacity(1);
         headers.insert(
             AUTHORIZATION,
@@ -62,6 +62,10 @@ impl SpaceTraders {
                 .unwrap(),
         );
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
+        if let Some(data) = json {
+            print!("{}", data.len());
+            headers.insert(CONTENT_LENGTH, data.len().to_string().parse().unwrap());
+        }
         headers
     }
 
@@ -76,7 +80,7 @@ impl SpaceTraders {
                     self.client
                         .get(self.get_url(url))
                         .json(&json)
-                        .headers(self.get_header())
+                        .headers(self.get_header(Some(json)))
                         .send()
                         .await
                         .unwrap()
@@ -86,7 +90,7 @@ impl SpaceTraders {
                 None => {
                     self.client
                         .get(self.get_url(url))
-                        .headers(self.get_header())
+                        .headers(self.get_header(None))
                         .send()
                         .await
                         .unwrap()
@@ -100,7 +104,7 @@ impl SpaceTraders {
                     self.client
                         .get(self.get_url(url))
                         .json(&json)
-                        .headers(self.get_header())
+                        .headers(self.get_header(Some(json)))
                         .send()
                         .await
                         .unwrap()
@@ -110,7 +114,7 @@ impl SpaceTraders {
                 None => {
                     self.client
                         .post(self.get_url(url))
-                        .headers(self.get_header())
+                        .headers(self.get_header(None))
                         .send()
                         .await
                         .unwrap()
@@ -123,7 +127,7 @@ impl SpaceTraders {
                     self.client
                         .patch(self.get_url(url))
                         .json(&json)
-                        .headers(self.get_header())
+                        .headers(self.get_header(Some(json)))
                         .send()
                         .await
                         .unwrap()
@@ -133,7 +137,7 @@ impl SpaceTraders {
                 None => {
                     self.client
                         .post(self.get_url(url))
-                        .headers(self.get_header())
+                        .headers(self.get_header(None))
                         .send()
                         .await
                         .unwrap()
@@ -380,7 +384,7 @@ impl SpaceTradersHandler {
     pub async fn list_ships(&self) -> ListShipsL0 {
         serde_json::from_str(
             &self
-                .make_request(Method::Get, String::from("/v2/ships"), None)
+                .make_request(Method::Get, String::from("/v2/my/ships"), None)
                 .await,
         )
         .unwrap()
@@ -390,7 +394,7 @@ impl SpaceTradersHandler {
             &self
                 .make_request(
                     Method::Post,
-                    String::from("/v2/ships"),
+                    String::from("/v2/my/ships"),
                     Some(self.make_json(data)),
                 )
                 .await,
@@ -401,7 +405,7 @@ impl SpaceTradersHandler {
         // the ship symbol might be an enum I already have
         serde_json::from_str(
             &self
-                .make_request(Method::Get, format!("/v2/ships/{}", ship_symbol), None)
+                .make_request(Method::Get, format!("/v2/my/ships/{}", ship_symbol), None)
                 .await,
         )
         .unwrap()
@@ -409,7 +413,11 @@ impl SpaceTradersHandler {
     pub async fn get_ship_cargo(&self, ship_symbol: String) {
         serde_json::from_str(
             &self
-                .make_request(Method::Get, format!("/v2/ships{}/cargo", ship_symbol), None)
+                .make_request(
+                    Method::Get,
+                    format!("/v2/my/ships{}/cargo", ship_symbol),
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -419,7 +427,7 @@ impl SpaceTradersHandler {
             &self
                 .make_request(
                     Method::Post,
-                    format!("/v2/ship/{}/orbit", ship_symbol),
+                    format!("/v2/my/ships/{}/orbit", ship_symbol),
                     None,
                 )
                 .await,
@@ -431,7 +439,7 @@ impl SpaceTradersHandler {
             &self
                 .make_request(
                     Method::Post,
-                    format!("/v2/ship/{}/refine", ship_symbol),
+                    format!("/v2/my/ships/{}/refine", ship_symbol),
                     Some(self.make_json(data)),
                 )
                 .await,
@@ -443,7 +451,7 @@ impl SpaceTradersHandler {
             &self
                 .make_request(
                     Method::Post,
-                    format!("/v2/ship/{}/chart", ship_symbol),
+                    format!("/v2/my/ships/{}/chart", ship_symbol),
                     None,
                 )
                 .await,

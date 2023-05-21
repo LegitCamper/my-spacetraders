@@ -49,6 +49,8 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
     }
 
     for current_contract in accepted.iter() {
+        let ships = interface.list_ships().await;
+        println!("{:?}", ships);
         // 2 check if ship can complete contracts
         match current_contract.r#type {
             ContractTermType::Procurement => {

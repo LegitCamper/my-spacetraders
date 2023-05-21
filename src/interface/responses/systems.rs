@@ -107,7 +107,7 @@ pub struct GetMarketL1 {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetMarketDetails {
-    symbol: TradeGood,
+    symbol: TradeSymbol,
     name: String,
 }
 #[allow(dead_code)]
@@ -118,7 +118,7 @@ pub struct GetMarketTransactions {
     #[serde(alias = "shipSymbol")]
     ship_symbol: ShipType,
     #[serde(alias = "tradeSymbol")]
-    trade_symbol: TradeGood,
+    trade_symbol: TradeSymbol,
     r#type: GetMarketType,
     units: u32,
     #[serde(alias = "pricePerUnit")]
@@ -237,6 +237,6 @@ pub struct GetShipyardMounts {
     name: String,
     // description: String,
     strength: u32,
-    deposits: TradeGood, // this is not right //TODO
+    deposits: TradeSymbol, // this is not right //TODO
     requirements: HashMap<String, u32>,
 }
