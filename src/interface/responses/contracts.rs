@@ -1,0 +1,73 @@
+use crate::interface::enums::*;
+use crate::interface::responses::agents::AgentL1;
+use serde::{Deserialize, Serialize};
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+// Change these name to match their functions // TODO
+pub struct ContractTermsL0 {
+    // pub data: ContractTermsL1,
+    pub data: Vec<ContractTermsL1>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ContractTermsL1 {
+    pub id: String,
+    #[serde(alias = "factionSymbol")]
+    pub faction_symbol: String,
+    pub r#type: ContractTermType,
+    pub terms: ContractTermsL2,
+    pub accepted: bool,
+    pub fulfilled: bool,
+    pub expiration: String,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ContractTermsL2 {
+    pub deadline: String, // maybe parse this to timestamp
+    pub payment: ContractTermsL3,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ContractTermsL3 {
+    #[serde(alias = "onAccepted")]
+    pub on_accepted: u64,
+    #[serde(alias = "onFulfilled")]
+    pub on_fulfilled: u64,
+    #[serde(default)]
+    pub deliver: Vec<ContractTermsL4>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ContractTermsL4 {
+    #[serde(alias = "tradeSymbol")]
+    trade_symbol: TradeSymbol,
+    #[serde(alias = "destinationSymbol")]
+    destination_symbol: String,
+    #[serde(alias = "unitesRequired")]
+    units_required: u64,
+    #[serde(alias = "unitsFulfilled")]
+    units_fulfilled: u64,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct AcceptContractL0 {
+    data: AcceptContractL1,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct AcceptContractL1 {
+    agent: AgentL1,
+    terms: AcceptContractTerms,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct AcceptContractTerms {
+    accepted: bool,
+    fulfilled: bool,
+    #[serde(default)] // experation is depricated
+    experation: String,
+    #[serde(alias = "deadlineToAccept")]
+    deadline_to_accept: String, // timestamp
+}

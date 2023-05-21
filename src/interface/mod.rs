@@ -1,9 +1,7 @@
-pub mod requests;
-use std::fmt::format;
-
-use requests::*;
 pub mod responses;
-use responses::*;
+use responses::{agents::*, contracts::*, fleet::*, systems::*}; //factions::*
+pub mod requests;
+use requests::*;
 pub mod enums;
 use enums::*;
 
@@ -226,7 +224,7 @@ impl SpaceTradersHandler {
         .unwrap()
     }
 
-    // Waypoints
+    // Systems
     pub async fn list_systems(&self) -> ListSystemsL0 {
         serde_json::from_str(
             &self
@@ -339,7 +337,7 @@ impl SpaceTradersHandler {
         .unwrap()
     }
 
-    pub async fn accept_contract(&self, contract_id: &str) {
+    pub async fn accept_contract(&self, contract_id: &str) -> AcceptContractL0 {
         serde_json::from_str(
             &self
                 .make_request(
@@ -379,7 +377,7 @@ impl SpaceTradersHandler {
     }
 
     // Fleet
-    pub async fn list_ships(&self) {
+    pub async fn list_ships(&self) -> ListShipsL0 {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, String::from("/v2/ships"), None)

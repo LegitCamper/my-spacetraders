@@ -1,86 +1,13 @@
-use std::collections::HashMap;
+use crate::interface::enums::*;
+use crate::interface::responses::Meta;
 
 use serde::{Deserialize, Serialize};
-
-use super::enums::*;
-
-#[derive(Deserialize, Debug)]
-pub struct Meta {
-    // metadata for responses
-    total: u32,
-    page: u32,
-    limit: u32,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct AgentL0 {
-    pub data: AgentL1,
-}
-#[derive(Deserialize, Debug)]
-pub struct AgentL1 {
-    #[serde(alias = "accountId")]
-    pub account_id: String,
-    pub symbol: String,
-    pub headquarters: String,
-    pub credits: u64,
-}
-
-#[derive(Deserialize, Debug)]
-pub enum ContractTermType {
-    #[serde(alias = "PROCUREMENT")]
-    Procurement,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct ContractTermsL0 {
-    // pub data: ContractTermsL1,
-    pub data: Vec<ContractTermsL1>,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct ContractTermsL1 {
-    id: String,
-    #[serde(alias = "factionSymbol")]
-    faction_symbol: String,
-    r#type: ContractTermType,
-    terms: ContractTermsL2,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct ContractTermsL2 {
-    deadline: String, // maybe parse this to timestamp
-    payment: ContractTermsL3,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct ContractTermsL3 {
-    #[serde(alias = "onAccepted")]
-    on_accepted: u64,
-    #[serde(alias = "onFulfilled")]
-    on_fulfilled: u64,
-    #[serde(default)]
-    deliver: Vec<ContractTermsL4>,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct ContractTermsL4 {
-    #[serde(alias = "tradeSymbol")]
-    trade_symbol: TradeSymbol,
-    #[serde(alias = "destinationSymbol")]
-    destination_symbol: String,
-    #[serde(alias = "unitesRequired")]
-    units_required: u64,
-    #[serde(alias = "unitsFulfilled")]
-    units_fulfilled: u64,
-    accepted: bool,
-    fulfilled: bool,
-    experation: String,
-}
+use std::collections::HashMap;
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ListSystemsL0 {
-    data: Vec<ListSystemsL1>,
+    // data: Vec<ListSystemsL1>,
     meta: Meta,
 }
 #[allow(dead_code)]
@@ -90,25 +17,25 @@ pub struct ListSystemsL1 {
     #[serde(alias = "sectorSymbol")]
     sector_symbol: String,
     r#type: SystemType,
-    x: u32,
-    y: u32,
+    x: i32,
+    y: i32,
     waypoints: Vec<ListSystemsWaypoints>,
-    factions: Vec<String>,
+    factions: HashMap<String, String>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ListSystemsWaypoints {
     symbol: String,
     r#type: WaypointType,
-    x: u32,
-    y: u32,
+    x: i32,
+    y: i32,
 }
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetSystemL0 {
     data: ListSystemsL1,
-    meta: Meta,
+    // meta: Meta,
 }
 
 #[allow(dead_code)]
@@ -124,8 +51,8 @@ pub struct ListWaypointsL1 {
     pub system_symbol: String,
     pub symbol: String,
     pub r#type: WaypointType,
-    pub x: u32,
-    pub y: u32,
+    pub x: i32,
+    pub y: i32,
     pub orbitals: Vec<String>,
     pub traits: Vec<ListWaypointsTraits>,
     pub chart: HashMap<String, String>,

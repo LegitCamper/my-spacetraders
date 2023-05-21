@@ -1,5 +1,15 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Deserialize, Debug)]
+pub enum ContractTermType {
+    #[serde(alias = "PROCUREMENT")]
+    Procurement,
+    #[serde(alias = "TRANSPORT")]
+    Transport,
+    #[serde(alias = "SHUTTLE")]
+    Shuttle,
+}
+
 #[derive(Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum WaypointTrait {
@@ -304,7 +314,7 @@ pub enum ShipModule {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ShipFram {
+pub enum ShipFrame {
     Frameprobe,
     Framedrone,
     Frameinterceptor,
@@ -456,4 +466,10 @@ pub enum FlightMode {
     Drift,
     #[serde(alias = "STEALTH")]
     Stealth,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ShipCrewRotation {
+    Strict,
+    Relaxed,
 }
