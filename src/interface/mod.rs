@@ -17,6 +17,8 @@ use tokio::{
 };
 use url::Url;
 
+use crate::interface::responses::GetRegistrationL0;
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Method {
     Post,
@@ -102,7 +104,7 @@ impl SpaceTraders {
             Method::Post => match data {
                 Some(json) => {
                     self.client
-                        .get(self.get_url(url))
+                        .post(self.get_url(url))
                         .json(&json)
                         .headers(self.get_header(Some(json)))
                         .send()
@@ -136,7 +138,7 @@ impl SpaceTraders {
                 }
                 None => {
                     self.client
-                        .post(self.get_url(url))
+                        .patch(self.get_url(url))
                         .headers(self.get_header(None))
                         .send()
                         .await
@@ -167,7 +169,48 @@ pub struct SpaceTradersHandler {
 }
 
 impl SpaceTradersHandler {
-    pub async fn new(credentials: Credentials) -> Self {
+    pub async fn new(token: &str) -> Self {
+        let space_trader = SpaceTraders::new(Credentials::new(token));
+
+        let (channel_sender, mut channel_receiver) = mpsc::channel(500);
+
+        SpaceTradersHandler {
+            info: space_trader.clone(),
+            channel: channel_sender,
+            task: task::spawn(async move {
+                loop {
+                    sleep(Duration::from_millis(500)).await; // only 2 requests per second
+                    let msg = channel_receiver.recv().await.unwrap();
+                    msg.oneshot
+                        .send(
+                            space_trader
+                                .make_reqwest(
+                                    msg.message.method,
+                                    msg.message.url.as_str(),
+                                    msg.message.data,
+                                )
+                                .await,
+                        )
+                        .unwrap();
+                }
+            }),
+        }
+    }
+
+    pub async fn default() -> Self {
+        let client = reqwest::Client::new();
+        let response = client
+            .post("https://api.spacetraders.io/v2/register")
+            .json(r#""#)
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        let token: GetRegistrationL0 = serde_json::from_str(&response).unwrap();
+
+        let credentials = Credentials::new(&token.data.token);
         let space_trader = SpaceTraders::new(credentials);
 
         let (channel_sender, mut channel_receiver) = mpsc::channel(500);

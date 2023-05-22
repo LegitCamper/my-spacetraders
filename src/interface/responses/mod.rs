@@ -9,6 +9,18 @@ pub struct Meta {
     limit: u32,
 }
 
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+pub struct GetRegistrationL0 {
+    pub data: GetRegistrationData,
+}
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+pub struct GetRegistrationData {
+    // there is more data - I only want the token
+    pub token: String,
+}
+
 pub mod agents;
 pub mod contracts;
 pub mod fleet;

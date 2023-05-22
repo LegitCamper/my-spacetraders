@@ -1,19 +1,15 @@
 pub mod interface;
 
 use interface::{
-    enums::ContractTermType, responses::contracts::ContractTermsL1, Credentials,
-    SpaceTradersHandler,
+    enums::ContractTermType, responses::contracts::ContractTermsL1, SpaceTradersHandler,
 };
 
 // use std::sync::Arc;
 // use tokio::sync::broadcast;
 
 async fn create_interface() -> SpaceTradersHandler {
-    let credentials = Credentials::new(
-        "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjoiVEVTVFVTUjEwMDMxMTMiLCJ2ZXJzaW9uIjoidjIiLCJyZXNldF9kYXRlIjoiMjAyMy0wNS0yMCIsImlhdCI6MTY4NDY3ODk1MSwic3ViIjoiYWdlbnQtdG9rZW4ifQ.xAog6ls9jNE8dBWmlS62arWIcSWNDICSA5Y_ZBhppLH8-LNdNDVMdU8DfY4YHoPJ1mGXGTFPAqS7ufstdQqQ8ztNWjIvfQwpiFaA9iz0CEGD-bQPsJKg8S5Xp_BSD8nxn8I6fiAkZrXvPgAhuyd1TjqUVO6-xZ24vvtnMOYtHVMIxZUspi0mMk6BGzCPOb40sYaGTTl4RGNSA6ewUpJybvceq5NnKuTvX5TMiRLSS9vL6G8BOJgIPZX3J6w_eL-Nj56bJi9gXZGOlV4R81C08cBcKXNaRSAfDeBxEHuzRPRSujW727muiIcKLbHNHRtblYdQrDdPWxkC4P-60Fc3Rg"
-    );
-
-    SpaceTradersHandler::new(credentials).await
+    // can manually enter token with SpaceTradersHandler::new otherwise generates random token
+    SpaceTradersHandler::default().await
 }
 
 pub async fn main_algo() {
