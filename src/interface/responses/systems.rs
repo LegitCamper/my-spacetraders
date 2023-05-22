@@ -1,7 +1,7 @@
 use crate::interface::enums::*;
 use crate::interface::responses::Meta;
 
-use serde::{Deserialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 
 #[allow(dead_code)]
@@ -61,7 +61,7 @@ pub struct ListWaypointsL1 {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ListWaypointsTraits {
-    pub symbol: WaypointType,
+    pub symbol: WaypointTrait,
     pub name: String,
     // #[serde(default)] // removing description
     // pub desciption: String,
@@ -70,8 +70,24 @@ pub struct ListWaypointsTraits {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetWaypointL0 {
-    data: ListSystemsL1,
+    data: GetWaypointL1,
     meta: Meta,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetWaypointL1 {
+    symbol: String,
+    #[serde(alias = "sectorSymbol")]
+    sector_symbol: String,
+    r#type: WaypointType,
+    x: i32,
+    y: i32,
+    orbitals: Vec<HashMap<String, String>>,
+    #[serde(default)]
+    faction: HashMap<String, String>,
+    traits: Vec<ListWaypointsTraits>,
+    #[serde(default)]
+    chart: HashMap<String, String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -116,9 +132,9 @@ pub struct GetMarketTransactions {
     #[serde(alias = "waypointSymbol")]
     waypoint_symbol: String,
     #[serde(alias = "shipSymbol")]
-    ship_symbol: ShipType,
+    ship_symbol: String,
     #[serde(alias = "tradeSymbol")]
-    trade_symbol: TradeSymbol,
+    trade_symbol: String, //TradeSymbol,
     r#type: GetMarketType,
     units: u32,
     #[serde(alias = "pricePerUnit")]
@@ -266,5 +282,5 @@ pub struct GetJumpGateConnectedSystems {
     faction_symbol: String,
     x: u32,
     y: u32,
-    distanc: u32,
+    distance: u32,
 }

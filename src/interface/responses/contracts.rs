@@ -1,6 +1,6 @@
 use crate::interface::enums::*;
 use crate::interface::responses::agents::AgentL1;
-use serde::{Deserialize};
+use serde::Deserialize;
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -59,17 +59,7 @@ pub struct AcceptContractL0 {
 #[derive(Deserialize, Debug)]
 pub struct AcceptContractL1 {
     agent: AgentL1,
-    terms: AcceptContractTerms,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct AcceptContractTerms {
-    accepted: bool,
-    fulfilled: bool,
-    #[serde(default)] // experation is depricated
-    experation: String,
-    #[serde(alias = "deadlineToAccept")]
-    deadline_to_accept: String, // timestamp
+    contract: ContractTermsL1,
 }
 
 #[allow(dead_code)]
