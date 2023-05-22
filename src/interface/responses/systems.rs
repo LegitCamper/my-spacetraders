@@ -240,3 +240,31 @@ pub struct GetShipyardMounts {
     deposits: TradeSymbol, // this is not right //TODO
     requirements: HashMap<String, u32>,
 }
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetJumpGateL0 {
+    data: GetJumpGateL1,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetJumpGateL1 {
+    #[serde(alias = "jumpRange")]
+    jump_range: i64,
+    #[serde(alias = "factionSymbol")]
+    faction_symbol: String,
+    #[serde(alias = "connectedSystems")]
+    connected_systems: Vec<GetJumpGateConnectedSystems>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetJumpGateConnectedSystems {
+    symbol: String,
+    #[serde(alias = "sectorSymbol")]
+    sector_symbol: String,
+    r#type: SystemType,
+    #[serde(alias = "factionSymbol")]
+    faction_symbol: String,
+    x: u32,
+    y: u32,
+    distanc: u32,
+}

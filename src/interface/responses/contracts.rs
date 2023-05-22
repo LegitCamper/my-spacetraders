@@ -71,3 +71,53 @@ pub struct AcceptContractTerms {
     #[serde(alias = "deadlineToAccept")]
     deadline_to_accept: String, // timestamp
 }
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct DeliverContractL0 {
+    data: DeliverContractData,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct DeliverContractData {
+    contract: ContractTermsL1,
+    cargo: DeliverContractDataCargo,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct DeliverContractDataCargo {
+    capacity: u32,
+    units: u32,
+    inventory: Vec<DeliverContractDataCargoInventory>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct DeliverContractDataCargoInventory {
+    symbol: String,
+    name: String,
+    // description: String
+    units: u32,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct FulfillContractL0 {
+    data: FulfillContractData,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct FulfillContractData {
+    contract: ContractTermsL1,
+    agent: FulfillContractDataAgent,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct FulfillContractDataAgent {
+    #[serde(alias = "AccountId")]
+    account_id: String,
+    symbol: String,
+    headquarters: String,
+    credits: u32,
+    #[serde(alias = "startingFaction")]
+    starting_faction: String,
+}
