@@ -497,6 +497,7 @@ pub struct ChannelMessage {
 
 // Other helpful structs and enums
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Coordinates {
     x: f64,

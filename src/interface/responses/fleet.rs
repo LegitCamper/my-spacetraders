@@ -1,6 +1,6 @@
 use crate::interface::enums::*;
 use crate::interface::responses::Meta;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]

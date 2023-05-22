@@ -1,7 +1,7 @@
 pub mod interface;
 
 use interface::{
-    enums::ContractTermType, parse_waypoint, responses::contracts::ContractTermsL1, Credentials,
+    enums::ContractTermType, responses::contracts::ContractTermsL1, Credentials,
     SpaceTradersHandler,
 };
 

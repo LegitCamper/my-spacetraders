@@ -1,7 +1,7 @@
 use crate::interface::enums::*;
 use crate::interface::responses::Meta;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use std::collections::HashMap;
 
 #[allow(dead_code)]
