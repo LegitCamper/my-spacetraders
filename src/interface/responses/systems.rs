@@ -34,8 +34,28 @@ pub struct ListSystemsWaypoints {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetSystemL0 {
-    data: ListSystemsL1,
+    data: GetSystemsL1,
     // meta: Meta,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetSystemsL1 {
+    symbol: String,
+    #[serde(alias = "sectorSymbol")]
+    sector_symbol: String,
+    r#type: SystemType,
+    x: i32,
+    y: i32,
+    waypoints: Vec<GetSystemsWaypoints>,
+    factions: Vec<HashMap<String, String>>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetSystemsWaypoints {
+    symbol: String,
+    r#type: WaypointType,
+    x: i32,
+    y: i32,
 }
 
 #[allow(dead_code)]
@@ -53,7 +73,7 @@ pub struct ListWaypointsL1 {
     pub r#type: WaypointType,
     pub x: i32,
     pub y: i32,
-    pub orbitals: Vec<String>,
+    pub orbitals: Vec<HashMap<String, String>>,
     pub traits: Vec<ListWaypointsTraits>,
     pub chart: HashMap<String, String>,
     pub faction: HashMap<String, String>,
@@ -71,14 +91,13 @@ pub struct ListWaypointsTraits {
 #[derive(Deserialize, Debug)]
 pub struct GetWaypointL0 {
     data: GetWaypointL1,
-    meta: Meta,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetWaypointL1 {
     symbol: String,
-    #[serde(alias = "sectorSymbol")]
-    sector_symbol: String,
+    #[serde(alias = "systemSymbol")]
+    system_symbol: String,
     r#type: WaypointType,
     x: i32,
     y: i32,

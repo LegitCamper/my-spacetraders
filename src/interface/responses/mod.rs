@@ -282,7 +282,7 @@ mod system_tests {
         .unwrap();
     }
     #[test]
-    fn get_systems() {
+    fn get_system() {
         let _: GetSystemL0 = serde_json::from_str(
             r#"{
               "data": {

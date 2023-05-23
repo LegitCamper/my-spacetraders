@@ -112,7 +112,7 @@ pub struct FulfillContractData {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct FulfillContractDataAgent {
-    #[serde(alias = "AccountId")]
+    #[serde(alias = "accountId")]
     account_id: String,
     symbol: String,
     headquarters: String,
