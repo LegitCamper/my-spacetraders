@@ -7,11 +7,13 @@ use enums::*;
 
 use crate::interface::responses::GetRegistrationL0;
 
+use random_string::generate;
 use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
     Client,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tokio::{
     sync::{mpsc, oneshot},
     task,
@@ -59,7 +61,7 @@ impl SpaceTraders {
     }
 
     fn get_header(&self, json: Option<String>) -> HeaderMap {
-        let mut headers = HeaderMap::with_capacity(1);
+        let mut headers = HeaderMap::with_capacity(3);
         headers.insert(
             AUTHORIZATION,
             HeaderValue::from_bytes(format!("Bearer {}", self.credentials.token).as_bytes())
@@ -200,16 +202,29 @@ impl SpaceTradersHandler {
     }
 
     pub async fn default() -> Self {
-        let client = reqwest::Client::new();
-        let response = client
+        let post_message = json!({
+            "symbol": generate(19, "abcdefghijklmnopqrstuvwxyz1234567890_"),
+            "faction": "QUANTUM"
+        });
+        let mut headers = HeaderMap::with_capacity(2);
+        headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
+        // headers.insert(
+        //     CONTENT_LENGTH,
+        //     post_message.to_string().len().to_string().parse().unwrap(),
+        // );
+
+        let response = reqwest::Client::new()
             .post("https://api.spacetraders.io/v2/register")
-            .json(r#""#)
+            .headers(headers)
+            .json(&post_message.to_string())
             .send()
             .await
             .unwrap()
             .text()
             .await
             .unwrap();
+        println!("{}", response);
+        println!("{}", post_message);
         let token: GetRegistrationL0 = serde_json::from_str(&response).unwrap();
 
         let credentials = Credentials::new(&token.data.token);
