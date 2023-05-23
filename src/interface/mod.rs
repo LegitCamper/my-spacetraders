@@ -19,6 +19,8 @@ use tokio::{
 };
 use url::Url;
 
+use self::responses::factions::{GetFactionsL0, ListFactionsL0};
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Method {
     Post,
@@ -345,7 +347,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn jump_gate(&self, system_symbol: &str, waypoint_symbol: &str) {
+    pub async fn jump_gate(&self, system_symbol: &str, waypoint_symbol: &str) -> GetJumpGateL0 {
         serde_json::from_str(
             &self
                 .make_request(
@@ -370,7 +372,6 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-
     pub async fn get_contract(&self, contract_id: &str) -> GetContractsL0 {
         serde_json::from_str(
             &self
@@ -383,7 +384,6 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-
     pub async fn accept_contract(&self, contract_id: &str) -> AcceptContractL0 {
         serde_json::from_str(
             &self
@@ -396,8 +396,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-
-    pub async fn deliver_contract(&self, contract_id: &str) {
+    pub async fn deliver_contract(&self, contract_id: &str) -> DeliverContractL0 {
         serde_json::from_str(
             &self
                 .make_request(
@@ -409,8 +408,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-
-    pub async fn fulfill_contract(&self, contract_id: &str) {
+    pub async fn fulfill_contract(&self, contract_id: &str) -> FulfillContractL0 {
         serde_json::from_str(
             &self
                 .make_request(
@@ -503,7 +501,7 @@ impl SpaceTradersHandler {
     }
 
     // Factions
-    pub async fn list_factions(&self) {
+    pub async fn list_factions(&self) -> ListFactionsL0 {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, String::from("/v2/factions"), None)
@@ -511,7 +509,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_faction(&self, faction_symbol: &str) {
+    pub async fn get_faction(&self, faction_symbol: &str) -> GetFactionsL0 {
         serde_json::from_str(
             &self
                 .make_request(

@@ -23,6 +23,7 @@ pub struct GetRegistrationData {
 
 pub mod agents;
 pub mod contracts;
+pub mod factions;
 pub mod fleet;
 pub mod systems;
 
@@ -773,10 +774,363 @@ mod contract_tests {
 }
 
 #[cfg(test)]
-mod fleet_tests {}
+mod faction_tests {
+    use super::factions::{GetFactionsL0, ListFactionsL0};
+
+    #[test]
+    fn list_factions() {
+        let _: ListFactionsL0 = serde_json::from_str(
+            r#"{
+              "data": [
+                {
+                  "symbol": "string",
+                  "name": "string",
+                  "description": "string",
+                  "headquarters": "string",
+                  "traits": [
+                    {
+                      "symbol": "BUREAUCRATIC",
+                      "name": "string",
+                      "description": "string"
+                    }
+                  ],
+                  "isRecruiting": true
+                }
+              ],
+              "meta": {
+                "total": 0,
+                "page": 0,
+                "limit": 0
+              }
+            }"#,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn get_factions() {
+        let _: GetFactionsL0 = serde_json::from_str(
+            r#"{
+              "data": {
+                "symbol": "string",
+                "name": "string",
+                "description": "string",
+                "headquarters": "string",
+                "traits": [
+                  {
+                    "symbol": "BUREAUCRATIC",
+                    "name": "string",
+                    "description": "string"
+                  }
+                ],
+                "isRecruiting": true
+              }
+            }"#,
+        )
+        .unwrap();
+    }
+}
 
 #[cfg(test)]
-mod faction_tests {}
+mod fleet_tests {
+    use super::fleet::{ListShipsL0, PurchaseShipL0};
+
+    #[test]
+    fn list_ships() {
+        let _: ListShipsL0 = serde_json::from_str(
+            r#"{
+              "data": [
+                {
+                  "symbol": "string",
+                  "registration": {
+                    "name": "string",
+                    "factionSymbol": "string",
+                    "role": "FABRICATOR"
+                  },
+                  "nav": {
+                    "systemSymbol": "string",
+                    "waypointSymbol": "string",
+                    "route": {
+                      "destination": {
+                        "symbol": "string",
+                        "type": "PLANET",
+                        "systemSymbol": "string",
+                        "x": 0,
+                        "y": 0
+                      },
+                      "departure": {
+                        "symbol": "string",
+                        "type": "PLANET",
+                        "systemSymbol": "string",
+                        "x": 0,
+                        "y": 0
+                      },
+                      "departureTime": "2019-08-24T14:15:22Z",
+                      "arrival": "2019-08-24T14:15:22Z"
+                    },
+                    "status": "IN_TRANSIT",
+                    "flightMode": "CRUISE"
+                  },
+                  "crew": {
+                    "current": 0,
+                    "required": 0,
+                    "capacity": 0,
+                    "rotation": "STRICT",
+                    "morale": 0,
+                    "wages": 0
+                  },
+                  "frame": {
+                    "symbol": "FRAME_PROBE",
+                    "name": "string",
+                    "description": "string",
+                    "condition": 0,
+                    "moduleSlots": 0,
+                    "mountingPoints": 0,
+                    "fuelCapacity": 0,
+                    "requirements": {
+                      "power": 0,
+                      "crew": 0,
+                      "slots": 0
+                    }
+                  },
+                  "reactor": {
+                    "symbol": "REACTOR_SOLAR_I",
+                    "name": "string",
+                    "description": "string",
+                    "condition": 0,
+                    "powerOutput": 1,
+                    "requirements": {
+                      "power": 0,
+                      "crew": 0,
+                      "slots": 0
+                    }
+                  },
+                  "engine": {
+                    "symbol": "ENGINE_IMPULSE_DRIVE_I",
+                    "name": "string",
+                    "description": "string",
+                    "condition": 0,
+                    "speed": 1,
+                    "requirements": {
+                      "power": 0,
+                      "crew": 0,
+                      "slots": 0
+                    }
+                  },
+                  "modules": [
+                    {
+                      "symbol": "MODULE_MINERAL_PROCESSOR_I",
+                      "capacity": 0,
+                      "range": 0,
+                      "name": "string",
+                      "description": "string",
+                      "requirements": {
+                        "power": 0,
+                        "crew": 0,
+                        "slots": 0
+                      }
+                    }
+                  ],
+                  "mounts": [
+                    {
+                      "symbol": "MOUNT_GAS_SIPHON_I",
+                      "name": "string",
+                      "description": "string",
+                      "strength": 0,
+                      "deposits": [
+                        "QUARTZ_SAND"
+                      ],
+                      "requirements": {
+                        "power": 0,
+                        "crew": 0,
+                        "slots": 0
+                      }
+                    }
+                  ],
+                  "cargo": {
+                    "capacity": 0,
+                    "units": 0,
+                    "inventory": [
+                      {
+                        "symbol": "string",
+                        "name": "string",
+                        "description": "string",
+                        "units": 1
+                      }
+                    ]
+                  },
+                  "fuel": {
+                    "current": 0,
+                    "capacity": 0,
+                    "consumed": {
+                      "amount": 0,
+                      "timestamp": "2019-08-24T14:15:22Z"
+                    }
+                  }
+                }
+              ],
+              "meta": {
+                "total": 0,
+                "page": 0,
+                "limit": 0
+              }
+            }"#,
+        )
+        .unwrap();
+    }
+    #[test]
+    fn purchase_ship() {
+        let _: PurchaseShipL0 = serde_json::from_str(
+            r#"{
+              "data": {
+                "agent": {
+                  "accountId": "string",
+                  "symbol": "string",
+                  "headquarters": "string",
+                  "credits": 0,
+                  "startingFaction": "string"
+                },
+                "ship": {
+                  "symbol": "string",
+                  "registration": {
+                    "name": "string",
+                    "factionSymbol": "string",
+                    "role": "FABRICATOR"
+                  },
+                  "nav": {
+                    "systemSymbol": "string",
+                    "waypointSymbol": "string",
+                    "route": {
+                      "destination": {
+                        "symbol": "string",
+                        "type": "PLANET",
+                        "systemSymbol": "string",
+                        "x": 0,
+                        "y": 0
+                      },
+                      "departure": {
+                        "symbol": "string",
+                        "type": "PLANET",
+                        "systemSymbol": "string",
+                        "x": 0,
+                        "y": 0
+                      },
+                      "departureTime": "2019-08-24T14:15:22Z",
+                      "arrival": "2019-08-24T14:15:22Z"
+                    },
+                    "status": "IN_TRANSIT",
+                    "flightMode": "CRUISE"
+                  },
+                  "crew": {
+                    "current": 0,
+                    "required": 0,
+                    "capacity": 0,
+                    "rotation": "STRICT",
+                    "morale": 0,
+                    "wages": 0
+                  },
+                  "frame": {
+                    "symbol": "FRAME_PROBE",
+                    "name": "string",
+                    "description": "string",
+                    "condition": 0,
+                    "moduleSlots": 0,
+                    "mountingPoints": 0,
+                    "fuelCapacity": 0,
+                    "requirements": {
+                      "power": 0,
+                      "crew": 0,
+                      "slots": 0
+                    }
+                  },
+                  "reactor": {
+                    "symbol": "REACTOR_SOLAR_I",
+                    "name": "string",
+                    "description": "string",
+                    "condition": 0,
+                    "powerOutput": 1,
+                    "requirements": {
+                      "power": 0,
+                      "crew": 0,
+                      "slots": 0
+                    }
+                  },
+                  "engine": {
+                    "symbol": "ENGINE_IMPULSE_DRIVE_I",
+                    "name": "string",
+                    "description": "string",
+                    "condition": 0,
+                    "speed": 1,
+                    "requirements": {
+                      "power": 0,
+                      "crew": 0,
+                      "slots": 0
+                    }
+                  },
+                  "modules": [
+                    {
+                      "symbol": "MODULE_MINERAL_PROCESSOR_I",
+                      "capacity": 0,
+                      "range": 0,
+                      "name": "string",
+                      "description": "string",
+                      "requirements": {
+                        "power": 0,
+                        "crew": 0,
+                        "slots": 0
+                      }
+                    }
+                  ],
+                  "mounts": [
+                    {
+                      "symbol": "MOUNT_GAS_SIPHON_I",
+                      "name": "string",
+                      "description": "string",
+                      "strength": 0,
+                      "deposits": [
+                        "QUARTZ_SAND"
+                      ],
+                      "requirements": {
+                        "power": 0,
+                        "crew": 0,
+                        "slots": 0
+                      }
+                    }
+                  ],
+                  "cargo": {
+                    "capacity": 0,
+                    "units": 0,
+                    "inventory": [
+                      {
+                        "symbol": "string",
+                        "name": "string",
+                        "description": "string",
+                        "units": 1
+                      }
+                    ]
+                  },
+                  "fuel": {
+                    "current": 0,
+                    "capacity": 0,
+                    "consumed": {
+                      "amount": 0,
+                      "timestamp": "2019-08-24T14:15:22Z"
+                    }
+                  }
+                },
+                "transaction": {
+                  "waypointSymbol": "string",
+                  "shipSymbol": "string",
+                  "price": 0,
+                  "agentSymbol": "string",
+                  "timestamp": "2019-08-24T14:15:22Z"
+                }
+              }
+            }"#,
+        )
+        .unwrap();
+    }
+}
 
 // #[test]
 // fn get_systems() {

@@ -138,7 +138,7 @@ pub struct ListShipsMounts {
     #[serde(default)]
     strength: u32,
     #[serde(default)]
-    deposits: TradeSymbol,
+    deposits: Vec<TradeSymbol>,
     requirements: ListShipsFrameRequirements,
 }
 #[allow(dead_code)]
@@ -168,5 +168,41 @@ pub struct ListShipsFuel {
 #[derive(Deserialize, Debug)]
 pub struct ListShipsFuelConsumed {
     amount: u32,
+    timestamp: String, // timestamp
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct PurchaseShipL0 {
+    data: PurchaseShipL1,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct PurchaseShipL1 {
+    agent: PurchaseShipAgent,
+    ship: ListShipsL1,
+    transaction: PurchaseShipTransaction,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct PurchaseShipAgent {
+    #[serde(alias = "accountId")]
+    account_id: String,
+    symbol: String,
+    headquarters: String,
+    credits: u32,
+    #[serde(alias = "startingFaction")]
+    starting_faction: String,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct PurchaseShipTransaction {
+    #[serde(alias = "waypointSymbol")]
+    waypoint_symbol: String,
+    #[serde(alias = "shipSymbol")]
+    ship_symbol: String,
+    price: u32,
+    #[serde(alias = "agentSymbol")]
+    agent_symbol: String,
     timestamp: String, // timestamp
 }
