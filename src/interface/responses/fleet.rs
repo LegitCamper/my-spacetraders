@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use super::systems::ListWaypointsTraits;
+
 use crate::interface::enums::*;
 use crate::interface::responses::Meta;
 use serde::Deserialize;
@@ -205,4 +209,103 @@ pub struct PurchaseShipTransaction {
     #[serde(alias = "agentSymbol")]
     agent_symbol: String,
     timestamp: String, // timestamp
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipL0 {
+    data: ListShipsL1,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipCargoL0 {
+    data: GetShipCargoData,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct GetShipCargoData {
+    capacity: u32,
+    units: u32,
+    inventory: Vec<ListShipsCargoInventory>,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct OrbitShipL0 {
+    data: OrbitShipData,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct OrbitShipData {
+    nav: ListShipsNav,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ShipRefineL0 {
+    data: ShipRefineData,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ShipRefineData {
+    cargo: ListShipsCargo,
+    cooldown: ShipRefineCooldown,
+    produced: Vec<ShipRefineIO>,
+    consumed: Vec<ShipRefineIO>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ShipRefineCooldown {
+    #[serde(alias = "shipSymbol")]
+    ship_symbol: String,
+    #[serde(alias = "totalSeconds")]
+    total_seconds: u32,
+    #[serde(alias = "remainingSeconds")]
+    remaining_seconds: u32,
+    #[serde(default)]
+    expiration: String, // timestamp
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct ShipRefineIO {
+    #[serde(alias = "tradeSymbol")]
+    trade_symbol: String,
+    units: u32,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct CreateChartL0 {
+    data: CreateChartData,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct CreateChartData {
+    chart: CreateChartDataChart,
+    waypoint: CreateChartDataWaypoint,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct CreateChartDataChart {
+    #[serde(alias = "waypointSymbol")]
+    waypoint_symbol: String,
+    #[serde(alias = "submittedBy")]
+    submitted_by: String,
+    #[serde(alias = "submittedOn")]
+    submitted_on: String, // timestamp
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct CreateChartDataWaypoint {
+    #[serde(alias = "systemSymbol")]
+    system_symbol: String,
+    symbol: String,
+    r#type: WaypointType,
+    x: i32,
+    y: i32,
+    orbitals: Vec<HashMap<String, String>>,
+    traits: Vec<ListWaypointsTraits>,
+    chart: HashMap<String, String>,
+    faction: HashMap<String, String>,
 }

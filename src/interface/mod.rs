@@ -442,7 +442,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_ship(&self, ship_symbol: String) {
+    pub async fn get_ship(&self, ship_symbol: String) -> GetShipL0 {
         // the ship symbol might be an enum I already have
         serde_json::from_str(
             &self
@@ -451,7 +451,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_ship_cargo(&self, ship_symbol: String) {
+    pub async fn get_ship_cargo(&self, ship_symbol: String) -> GetShipCargoL0 {
         serde_json::from_str(
             &self
                 .make_request(
@@ -463,7 +463,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn orbit_ship(&self, ship_symbol: String) {
+    pub async fn orbit_ship(&self, ship_symbol: String) -> OrbitShipL0 {
         serde_json::from_str(
             &self
                 .make_request(
@@ -475,7 +475,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn ship_refine(&self, ship_symbol: String, data: ShipRefine) {
+    pub async fn ship_refine(&self, ship_symbol: String, data: ShipRefine) -> ShipRefineL0 {
         serde_json::from_str(
             &self
                 .make_request(
@@ -487,7 +487,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn create_chart(&self, ship_symbol: String) {
+    pub async fn create_chart(&self, ship_symbol: String) -> CreateChartL0 {
         serde_json::from_str(
             &self
                 .make_request(

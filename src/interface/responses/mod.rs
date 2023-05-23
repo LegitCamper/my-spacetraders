@@ -833,7 +833,10 @@ mod faction_tests {
 
 #[cfg(test)]
 mod fleet_tests {
-    use super::fleet::{ListShipsL0, PurchaseShipL0};
+    use super::fleet::{
+        CreateChartL0, GetShipCargoL0, GetShipL0, ListShipsL0, OrbitShipL0, PurchaseShipL0,
+        ShipRefineL0,
+    };
 
     #[test]
     fn list_ships() {
@@ -1124,6 +1127,278 @@ mod fleet_tests {
                   "price": 0,
                   "agentSymbol": "string",
                   "timestamp": "2019-08-24T14:15:22Z"
+                }
+              }
+            }"#,
+        )
+        .unwrap();
+    }
+    #[test]
+    fn get_ship() {
+        let _: GetShipL0 = serde_json::from_str(
+            r#"{
+              "data": {
+                "symbol": "string",
+                "registration": {
+                  "name": "string",
+                  "factionSymbol": "string",
+                  "role": "FABRICATOR"
+                },
+                "nav": {
+                  "systemSymbol": "string",
+                  "waypointSymbol": "string",
+                  "route": {
+                    "destination": {
+                      "symbol": "string",
+                      "type": "PLANET",
+                      "systemSymbol": "string",
+                      "x": 0,
+                      "y": 0
+                    },
+                    "departure": {
+                      "symbol": "string",
+                      "type": "PLANET",
+                      "systemSymbol": "string",
+                      "x": 0,
+                      "y": 0
+                    },
+                    "departureTime": "2019-08-24T14:15:22Z",
+                    "arrival": "2019-08-24T14:15:22Z"
+                  },
+                  "status": "IN_TRANSIT",
+                  "flightMode": "CRUISE"
+                },
+                "crew": {
+                  "current": 0,
+                  "required": 0,
+                  "capacity": 0,
+                  "rotation": "STRICT",
+                  "morale": 0,
+                  "wages": 0
+                },
+                "frame": {
+                  "symbol": "FRAME_PROBE",
+                  "name": "string",
+                  "description": "string",
+                  "condition": 0,
+                  "moduleSlots": 0,
+                  "mountingPoints": 0,
+                  "fuelCapacity": 0,
+                  "requirements": {
+                    "power": 0,
+                    "crew": 0,
+                    "slots": 0
+                  }
+                },
+                "reactor": {
+                  "symbol": "REACTOR_SOLAR_I",
+                  "name": "string",
+                  "description": "string",
+                  "condition": 0,
+                  "powerOutput": 1,
+                  "requirements": {
+                    "power": 0,
+                    "crew": 0,
+                    "slots": 0
+                  }
+                },
+                "engine": {
+                  "symbol": "ENGINE_IMPULSE_DRIVE_I",
+                  "name": "string",
+                  "description": "string",
+                  "condition": 0,
+                  "speed": 1,
+                  "requirements": {
+                    "power": 0,
+                    "crew": 0,
+                    "slots": 0
+                  }
+                },
+                "modules": [
+                  {
+                    "symbol": "MODULE_MINERAL_PROCESSOR_I",
+                    "capacity": 0,
+                    "range": 0,
+                    "name": "string",
+                    "description": "string",
+                    "requirements": {
+                      "power": 0,
+                      "crew": 0,
+                      "slots": 0
+                    }
+                  }
+                ],
+                "mounts": [
+                  {
+                    "symbol": "MOUNT_GAS_SIPHON_I",
+                    "name": "string",
+                    "description": "string",
+                    "strength": 0,
+                    "deposits": [
+                      "QUARTZ_SAND"
+                    ],
+                    "requirements": {
+                      "power": 0,
+                      "crew": 0,
+                      "slots": 0
+                    }
+                  }
+                ],
+                "cargo": {
+                  "capacity": 0,
+                  "units": 0,
+                  "inventory": [
+                    {
+                      "symbol": "string",
+                      "name": "string",
+                      "description": "string",
+                      "units": 1
+                    }
+                  ]
+                },
+                "fuel": {
+                  "current": 0,
+                  "capacity": 0,
+                  "consumed": {
+                    "amount": 0,
+                    "timestamp": "2019-08-24T14:15:22Z"
+                  }
+                }
+              }
+            }"#,
+        )
+        .unwrap();
+    }
+    #[test]
+    fn get_ship_cargo() {
+        let _: GetShipCargoL0 = serde_json::from_str(
+            r#"{
+              "data": {
+                "capacity": 0,
+                "units": 0,
+                "inventory": [
+                  {
+                    "symbol": "string",
+                    "name": "string",
+                    "description": "string",
+                    "units": 1
+                  }
+                ]
+              }
+            }"#,
+        )
+        .unwrap();
+    }
+    #[test]
+    fn orbit_ship() {
+        let _: OrbitShipL0 = serde_json::from_str(
+            r#"{
+              "data": {
+                "nav": {
+                  "systemSymbol": "string",
+                  "waypointSymbol": "string",
+                  "route": {
+                    "destination": {
+                      "symbol": "string",
+                      "type": "PLANET",
+                      "systemSymbol": "string",
+                      "x": 0,
+                      "y": 0
+                    },
+                    "departure": {
+                      "symbol": "string",
+                      "type": "PLANET",
+                      "systemSymbol": "string",
+                      "x": 0,
+                      "y": 0
+                    },
+                    "departureTime": "2019-08-24T14:15:22Z",
+                    "arrival": "2019-08-24T14:15:22Z"
+                  },
+                  "status": "IN_TRANSIT",
+                  "flightMode": "CRUISE"
+                }
+              }
+            }"#,
+        )
+        .unwrap();
+    }
+    #[test]
+    fn ship_refine() {
+        let _: ShipRefineL0 = serde_json::from_str(
+            r#"{
+              "data": {
+                "cargo": {
+                  "capacity": 0,
+                  "units": 0,
+                  "inventory": [
+                    {
+                      "symbol": "string",
+                      "name": "string",
+                      "description": "string",
+                      "units": 1
+                    }
+                  ]
+                },
+                "cooldown": {
+                  "shipSymbol": "string",
+                  "totalSeconds": 0,
+                  "remainingSeconds": 0,
+                  "expiration": "2019-08-24T14:15:22Z"
+                },
+                "produced": [
+                  {
+                    "tradeSymbol": "string",
+                    "units": 0
+                  }
+                ],
+                "consumed": [
+                  {
+                    "tradeSymbol": "string",
+                    "units": 0
+                  }
+                ]
+              }
+            }"#,
+        )
+        .unwrap();
+    }
+    #[test]
+    fn create_chart() {
+        let _: CreateChartL0 = serde_json::from_str(
+            r#"{
+              "data": {
+                "chart": {
+                  "waypointSymbol": "string",
+                  "submittedBy": "string",
+                  "submittedOn": "2019-08-24T14:15:22Z"
+                },
+                "waypoint": {
+                  "symbol": "string",
+                  "type": "PLANET",
+                  "systemSymbol": "string",
+                  "x": 0,
+                  "y": 0,
+                  "orbitals": [
+                    {
+                      "symbol": "string"
+                    }
+                  ],
+                  "faction": {
+                    "symbol": "string"
+                  },
+                  "traits": [
+                    {
+                      "symbol": "UNCHARTED",
+                      "name": "string",
+                      "description": "string"
+                    }
+                  ],
+                  "chart": {
+                    "waypointSymbol": "string",
+                    "submittedBy": "string",
+                    "submittedOn": "2019-08-24T14:15:22Z"
+                  }
                 }
               }
             }"#,
