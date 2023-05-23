@@ -1,7 +1,7 @@
 pub mod interface;
 
 use interface::{
-    enums::ContractTermType, responses::contracts::ContractTermsL1, SpaceTradersHandler,
+    enums::ListContractsType, responses::contracts::ListContractsL1, SpaceTradersHandler,
 };
 
 // use std::sync::Arc;
@@ -25,7 +25,7 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
     // 1) check for accepted contracts
     let contracts = interface.list_contracts().await.data;
 
-    let mut accepted: Vec<&ContractTermsL1> = vec![];
+    let mut accepted: Vec<&ListContractsL1> = vec![];
     for contract in contracts.iter() {
         if contract.accepted {
             accepted.push(contract);
@@ -49,15 +49,15 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
         println!("{:?}", ships);
         // 2 check if ship can complete contracts
         match current_contract.r#type {
-            ContractTermType::Procurement => {
+            ListContractsType::Procurement => {
                 // Need mining ship // probably
                 // list ships and check if mining
             }
-            ContractTermType::Transport => {
+            ListContractsType::Transport => {
                 // probably need figigate or hauler ship
                 // list ships and check if fleet
             }
-            ContractTermType::Shuttle => {
+            ListContractsType::Shuttle => {
                 // probaly need shuttle
                 // list ships and check if shuttle
             }

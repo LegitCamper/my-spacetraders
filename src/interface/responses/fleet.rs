@@ -1,6 +1,6 @@
 use crate::interface::enums::*;
 use crate::interface::responses::Meta;
-use serde::{Deserialize};
+use serde::Deserialize;
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -99,7 +99,7 @@ pub struct ListShipsFrameRequirements {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ListShipsReactor {
-    symbol: ShipReactorType,
+    symbol: ShipReactor,
     name: String,
     // description: String,
     condition: u32,

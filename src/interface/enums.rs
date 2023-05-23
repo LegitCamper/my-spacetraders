@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ContractTermType {
+pub enum ListContractsType {
     Procurement,
     Transport,
     Shuttle,
@@ -137,7 +137,7 @@ pub enum ShipRole {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ShipReactorType {
+pub enum ShipReactor {
     ReactorSolarI,
     ReactorFusionI,
     ReactorFissionI,

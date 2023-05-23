@@ -568,12 +568,12 @@ mod system_tests {
 #[cfg(test)]
 mod contract_tests {
     use super::contracts::{
-        AcceptContractL0, ContractTermsL0, DeliverContractL0, FulfillContractL0,
+        AcceptContractL0, DeliverContractL0, FulfillContractL0, GetContractsL0, ListContractsL0,
     };
 
     #[test]
     fn list_contracts() {
-        let _: ContractTermsL0 = serde_json::from_str(
+        let _: ListContractsL0 = serde_json::from_str(
             r#"{
   "data": [
     {
@@ -612,7 +612,7 @@ mod contract_tests {
     }
     #[test]
     fn get_contracts() {
-        let _: ContractTermsL0 = serde_json::from_str(
+        let _: GetContractsL0 = serde_json::from_str(
             r#"{
   "data": {
     "id": "string",

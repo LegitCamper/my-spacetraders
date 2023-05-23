@@ -166,8 +166,8 @@ pub struct GetShipyardL0 {
 pub struct GetShipyardL1 {
     symbol: String,
     #[serde(alias = "shipTypes")]
-    ship_types: GetShipyardTypes,
-    transactions: GetShipyardTransactions,
+    ship_types: Vec<GetShipyardTypes>,
+    transactions: Vec<GetShipyardTransactions>,
     ships: Vec<GetShipyardShips>,
 }
 #[allow(dead_code)]
@@ -197,13 +197,13 @@ pub struct GetShipyardShips {
     frame: GetShipyardFrame,
     reactor: GetShipyardReactor,
     engine: GetShipyardEngine,
-    modules: GetShipyardModules,
+    modules: Vec<GetShipyardModules>,
     mounts: Vec<GetShipyardMounts>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardFrame {
-    symbol: ShipType,
+    symbol: ShipFrame,
     name: String,
     // description: String,
     condition: u32,
@@ -218,7 +218,7 @@ pub struct GetShipyardFrame {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardReactor {
-    symbol: ShipReactorType,
+    symbol: ShipReactor,
     name: String,
     // description: String,
     condition: u32,
@@ -253,7 +253,7 @@ pub struct GetShipyardMounts {
     name: String,
     // description: String,
     strength: u32,
-    deposits: TradeSymbol, // this is not right //TODO
+    deposits: Vec<TradeSymbol>,
     requirements: HashMap<String, u32>,
 }
 #[allow(dead_code)]

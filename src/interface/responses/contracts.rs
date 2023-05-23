@@ -4,42 +4,45 @@ use serde::Deserialize;
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-// Change these name to match their functions // TODO
-pub struct ContractTermsL0 {
+pub struct ListContractsL0 {
     // pub data: ContractTermsL1,
-    pub data: Vec<ContractTermsL1>,
+    pub data: Vec<ListContractsL1>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct ContractTermsL1 {
+pub struct ListContractsL1 {
     pub id: String,
     #[serde(alias = "factionSymbol")]
     pub faction_symbol: String,
-    pub r#type: ContractTermType,
-    pub terms: ContractTermsL2,
+    pub r#type: ListContractsType,
+    pub terms: ListContractsL2,
     pub accepted: bool,
     pub fulfilled: bool,
+    #[serde(default)]
     pub expiration: String,
+    #[serde(default)]
+    #[serde(alias = "deadlineToAccept")]
+    pub deadline_to_accept: String,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct ContractTermsL2 {
+pub struct ListContractsL2 {
     pub deadline: String, // maybe parse this to timestamp
-    pub payment: ContractTermsL3,
+    pub payment: ListContractsL3,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct ContractTermsL3 {
+pub struct ListContractsL3 {
     #[serde(alias = "onAccepted")]
     pub on_accepted: u64,
     #[serde(alias = "onFulfilled")]
     pub on_fulfilled: u64,
     #[serde(default)]
-    pub deliver: Vec<ContractTermsL4>,
+    pub deliver: Vec<ListContractsL4>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct ContractTermsL4 {
+pub struct ListContractsL4 {
     #[serde(alias = "tradeSymbol")]
     trade_symbol: TradeSymbol,
     #[serde(alias = "destinationSymbol")]
@@ -52,6 +55,12 @@ pub struct ContractTermsL4 {
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
+pub struct GetContractsL0 {
+    pub data: ListContractsL1,
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
 pub struct AcceptContractL0 {
     data: AcceptContractL1,
 }
@@ -59,7 +68,7 @@ pub struct AcceptContractL0 {
 #[derive(Deserialize, Debug)]
 pub struct AcceptContractL1 {
     agent: AgentL1,
-    contract: ContractTermsL1,
+    contract: ListContractsL1,
 }
 
 #[allow(dead_code)]
@@ -70,7 +79,7 @@ pub struct DeliverContractL0 {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct DeliverContractData {
-    contract: ContractTermsL1,
+    contract: ListContractsL1,
     cargo: DeliverContractDataCargo,
 }
 #[allow(dead_code)]
@@ -97,7 +106,7 @@ pub struct FulfillContractL0 {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct FulfillContractData {
-    contract: ContractTermsL1,
+    contract: ListContractsL1,
     agent: FulfillContractDataAgent,
 }
 #[allow(dead_code)]

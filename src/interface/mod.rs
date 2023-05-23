@@ -5,6 +5,8 @@ use requests::*;
 pub mod enums;
 use enums::*;
 
+use crate::interface::responses::GetRegistrationL0;
+
 use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
     Client,
@@ -16,8 +18,6 @@ use tokio::{
     time::{sleep, Duration},
 };
 use url::Url;
-
-use crate::interface::responses::GetRegistrationL0;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Method {
@@ -362,7 +362,7 @@ impl SpaceTradersHandler {
     }
 
     // Contracts
-    pub async fn list_contracts(&self) -> ContractTermsL0 {
+    pub async fn list_contracts(&self) -> ListContractsL0 {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, String::from("/v2/my/contracts"), None)
@@ -371,7 +371,7 @@ impl SpaceTradersHandler {
         .unwrap()
     }
 
-    pub async fn get_contract(&self, contract_id: &str) -> ContractTermsL0 {
+    pub async fn get_contract(&self, contract_id: &str) -> GetContractsL0 {
         serde_json::from_str(
             &self
                 .make_request(
