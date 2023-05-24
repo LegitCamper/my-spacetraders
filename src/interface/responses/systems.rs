@@ -34,28 +34,28 @@ pub struct ListSystemsWaypoints {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetSystemL0 {
-    data: GetSystemsL1,
+    pub data: GetSystemsL1,
     // meta: Meta,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetSystemsL1 {
-    symbol: String,
+    pub symbol: String,
     #[serde(alias = "sectorSymbol")]
-    sector_symbol: String,
-    r#type: SystemType,
-    x: i32,
-    y: i32,
-    waypoints: Vec<GetSystemsWaypoints>,
-    factions: Vec<HashMap<String, String>>,
+    pub sector_symbol: String,
+    pub r#type: SystemType,
+    pub x: i32,
+    pub y: i32,
+    pub waypoints: Vec<GetSystemsWaypoints>,
+    pub factions: Vec<HashMap<String, String>>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetSystemsWaypoints {
-    symbol: String,
-    r#type: WaypointType,
-    x: i32,
-    y: i32,
+    pub symbol: String,
+    pub r#type: WaypointType,
+    pub x: i32,
+    pub y: i32,
 }
 
 #[allow(dead_code)]
@@ -90,23 +90,23 @@ pub struct ListWaypointsTraits {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetWaypointL0 {
-    data: GetWaypointL1,
+    pub data: GetWaypointL1,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetWaypointL1 {
-    symbol: String,
+    pub symbol: String,
     #[serde(alias = "systemSymbol")]
-    system_symbol: String,
-    r#type: WaypointType,
-    x: i32,
-    y: i32,
-    orbitals: Vec<HashMap<String, String>>,
+    pub system_symbol: String,
+    pub r#type: WaypointType,
+    pub x: i32,
+    pub y: i32,
+    pub orbitals: Vec<HashMap<String, String>>,
     #[serde(default)]
-    faction: HashMap<String, String>,
-    traits: Vec<ListWaypointsTraits>,
+    pub faction: HashMap<String, String>,
+    pub traits: Vec<ListWaypointsTraits>,
     #[serde(default)]
-    chart: HashMap<String, String>,
+    pub chart: HashMap<String, String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -126,180 +126,180 @@ pub enum GetMarketSupplyType {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetMarketL0 {
-    data: GetMarketL1,
+    pub data: GetMarketL1,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetMarketL1 {
-    symbol: String,
-    exports: Vec<GetMarketDetails>,
-    imports: Vec<GetMarketDetails>,
-    exchange: Vec<GetMarketDetails>,
-    transactions: Vec<GetMarketTransactions>,
+    pub symbol: String,
+    pub exports: Vec<GetMarketDetails>,
+    pub imports: Vec<GetMarketDetails>,
+    pub exchange: Vec<GetMarketDetails>,
+    pub transactions: Vec<GetMarketTransactions>,
     #[serde(alias = "tradeGoods")]
-    trade_goods: Vec<GetMarketTradeGoods>,
+    pub trade_goods: Vec<GetMarketTradeGoods>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetMarketDetails {
-    symbol: TradeSymbol,
-    name: String,
+    pub symbol: TradeSymbol,
+    pub name: String,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetMarketTransactions {
     #[serde(alias = "waypointSymbol")]
-    waypoint_symbol: String,
+    pub waypoint_symbol: String,
     #[serde(alias = "shipSymbol")]
-    ship_symbol: String,
+    pub ship_symbol: String,
     #[serde(alias = "tradeSymbol")]
-    trade_symbol: String, //TradeSymbol,
-    r#type: GetMarketType,
-    units: u32,
+    pub trade_symbol: String, //TradeSymbol,
+    pub r#type: GetMarketType,
+    pub units: u32,
     #[serde(alias = "pricePerUnit")]
-    price_per_unit: u32,
+    pub price_per_unit: u32,
     #[serde(alias = "totalPrice")]
-    total_price: u32,
-    timestamp: String,
+    pub total_price: u32,
+    pub timestamp: String,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetMarketTradeGoods {
-    symbol: String,
+    pub symbol: String,
     #[serde(alias = "tradeVolume")]
-    trade_volume: u32,
-    supply: GetMarketSupplyType,
+    pub trade_volume: u32,
+    pub supply: GetMarketSupplyType,
     #[serde(alias = "purchasePrice")]
-    purchase_price: u32,
+    pub purchase_price: u32,
     #[serde(alias = "sellPrice")]
-    sell_price: u32,
+    pub sell_price: u32,
 }
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardL0 {
-    data: GetShipyardL1,
+    pub data: GetShipyardL1,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardL1 {
-    symbol: String,
+    pub symbol: String,
     #[serde(alias = "shipTypes")]
-    ship_types: Vec<GetShipyardTypes>,
-    transactions: Vec<GetShipyardTransactions>,
-    ships: Vec<GetShipyardShips>,
+    pub ship_types: Vec<GetShipyardTypes>,
+    pub transactions: Vec<GetShipyardTransactions>,
+    pub ships: Vec<GetShipyardShips>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardTypes {
-    r#type: ShipType,
+    pub r#type: ShipType,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardTransactions {
     #[serde(alias = "waypointSymbol")]
-    waypoint_symbol: String,
+    pub waypoint_symbol: String,
     #[serde(alias = "shipSymbol")]
-    ship_symbol: String,
+    pub ship_symbol: String,
     #[serde(alias = "agentSymbol")]
-    agent_symbol: String,
-    timestamp: String,
+    pub agent_symbol: String,
+    pub timestamp: String,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardShips {
-    r#type: ShipType,
-    name: String,
+    pub r#type: ShipType,
+    pub name: String,
     // description: String,
     #[serde(alias = "purchasePrice")]
-    purchase_price: u32,
-    frame: GetShipyardFrame,
-    reactor: GetShipyardReactor,
-    engine: GetShipyardEngine,
-    modules: Vec<GetShipyardModules>,
-    mounts: Vec<GetShipyardMounts>,
+    pub purchase_price: u32,
+    pub frame: GetShipyardFrame,
+    pub reactor: GetShipyardReactor,
+    pub engine: GetShipyardEngine,
+    pub modules: Vec<GetShipyardModules>,
+    pub mounts: Vec<GetShipyardMounts>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardFrame {
-    symbol: ShipFrame,
-    name: String,
+    pub symbol: ShipFrame,
+    pub name: String,
     // description: String,
-    condition: u32,
+    pub condition: u32,
     #[serde(alias = "moduleSlots")]
-    module_slots: u32,
+    pub module_slots: u32,
     #[serde(alias = "mountingPoints")]
-    mounting_points: u32,
+    pub mounting_points: u32,
     #[serde(alias = "fuelCapacity")]
-    fuel_capacity: u32,
-    requirements: HashMap<String, u32>,
+    pub fuel_capacity: u32,
+    pub requirements: HashMap<String, u32>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardReactor {
-    symbol: ShipReactor,
-    name: String,
+    pub symbol: ShipReactor,
+    pub name: String,
     // description: String,
-    condition: u32,
+    pub condition: u32,
     #[serde(alias = "powerOutput")]
-    power_output: u32,
-    requirements: HashMap<String, u32>,
+    pub power_output: u32,
+    pub requirements: HashMap<String, u32>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardEngine {
-    symbol: ShipEngine,
-    name: String,
+    pub symbol: ShipEngine,
+    pub name: String,
     // description: String,
-    condition: u32,
-    speed: u32,
-    requirements: HashMap<String, u32>,
+    pub condition: u32,
+    pub speed: u32,
+    pub requirements: HashMap<String, u32>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardModules {
-    symbol: ShipModule,
-    name: String,
+    pub symbol: ShipModule,
+    pub name: String,
     // description: String,
-    capacity: u32,
-    range: u32,
-    requirements: HashMap<String, u32>,
+    pub capacity: u32,
+    pub range: u32,
+    pub requirements: HashMap<String, u32>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardMounts {
-    symbol: ShipMount,
-    name: String,
+    pub symbol: ShipMount,
+    pub name: String,
     // description: String,
-    strength: u32,
-    deposits: Vec<TradeSymbol>,
-    requirements: HashMap<String, u32>,
+    pub strength: u32,
+    pub deposits: Vec<TradeSymbol>,
+    pub requirements: HashMap<String, u32>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetJumpGateL0 {
-    data: GetJumpGateL1,
+    pub data: GetJumpGateL1,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetJumpGateL1 {
     #[serde(alias = "jumpRange")]
-    jump_range: i64,
+    pub jump_range: i64,
     #[serde(alias = "factionSymbol")]
-    faction_symbol: String,
+    pub faction_symbol: String,
     #[serde(alias = "connectedSystems")]
-    connected_systems: Vec<GetJumpGateConnectedSystems>,
+    pub connected_systems: Vec<GetJumpGateConnectedSystems>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetJumpGateConnectedSystems {
-    symbol: String,
+    pub symbol: String,
     #[serde(alias = "sectorSymbol")]
-    sector_symbol: String,
-    r#type: SystemType,
+    pub sector_symbol: String,
+    pub r#type: SystemType,
     #[serde(alias = "factionSymbol")]
-    faction_symbol: String,
-    x: u32,
-    y: u32,
-    distance: u32,
+    pub faction_symbol: String,
+    pub x: u32,
+    pub y: u32,
+    pub distance: u32,
 }

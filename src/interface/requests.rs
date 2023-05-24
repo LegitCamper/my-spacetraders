@@ -1,11 +1,11 @@
-use serde::{Serialize};
+use serde::Serialize;
 
 use super::enums::*;
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Debug)]
 pub struct BuyShip {
-    pub shipType: ShipType,
+    pub shipType: String,
     pub waypointSymbol: String,
 }
 

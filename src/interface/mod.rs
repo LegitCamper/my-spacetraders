@@ -1,17 +1,17 @@
 pub mod responses;
+use core::panic;
+
 use responses::{agents::*, contracts::*, fleet::*, systems::*}; //factions::*
 pub mod requests;
 use requests::*;
 pub mod enums;
 use enums::*;
 
-use std::collections::HashMap;
-
 use crate::interface::responses::GetRegistrationL0;
 
 use random_string::generate;
 use reqwest::{
-    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
+    header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
     Client,
 };
 use serde::{Deserialize, Serialize};
@@ -69,11 +69,13 @@ impl SpaceTraders {
             HeaderValue::from_bytes(format!("Bearer {}", self.credentials.token).as_bytes())
                 .unwrap(),
         );
+        headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
+        headers.insert(ACCEPT, "application/json".parse().unwrap());
         if let Some(data) = json {
-            headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
             headers.insert(CONTENT_LENGTH, data.chars().count().into());
+        } else {
+            headers.insert(CONTENT_LENGTH, 0.into());
         }
-        println!("{:?}", headers);
         headers
     }
 
@@ -157,7 +159,7 @@ impl SpaceTraders {
 
         match response {
             Ok(response) => {
-                println!("{}", response);
+                println!("\n{}", response);
                 response
             }
 
@@ -217,8 +219,6 @@ impl SpaceTradersHandler {
             .text()
             .await
             .unwrap();
-        println!("{}", response);
-        println!("{:?}", post_message);
         let token: GetRegistrationL0 = serde_json::from_str(&response).unwrap();
 
         let credentials = Credentials::new(&token.data.token);
@@ -247,6 +247,10 @@ impl SpaceTradersHandler {
                 }
             }),
         }
+    }
+
+    pub fn diagnose(&self) {
+        panic!("\nagent {:?}", self.info.credentials)
     }
 
     pub fn make_json<T: Serialize>(&self, data: T) -> String {
@@ -439,7 +443,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn purchase_ship(&self, data: ShipType) {
+    pub async fn purchase_ship(&self, data: BuyShip) {
         serde_json::from_str(
             &self
                 .make_request(
@@ -554,12 +558,12 @@ pub struct Coordinates {
     y: f64,
 }
 
-pub fn parse_waypoint(waypoint: String) -> Waypoint {
+pub fn parse_waypoint(waypoint: &str) -> Waypoint {
     let waypoint_split: Vec<&str> = waypoint.split('-').collect();
     Waypoint {
-        sector: waypoint_split[0].to_string(),
-        system: format!("{}-{}", waypoint_split[0], waypoint_split[1]),
-        waypoint,
+        sector: waypoint_split[0].to_string(), // X1
+        system: format!("{}-{}", waypoint_split[0], waypoint_split[1]), // X1-DF55
+        waypoint: waypoint.to_string(),        // X1-DF55-20250Z
     }
 }
 #[derive(Debug)]

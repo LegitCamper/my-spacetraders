@@ -9,7 +9,7 @@ use serde::Deserialize;
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ListShipsL0 {
-    data: Vec<ListShipsL1>,
+    pub data: Vec<ListShipsL1>,
     meta: Meta,
 }
 #[allow(dead_code)]
