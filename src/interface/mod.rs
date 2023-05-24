@@ -5,6 +5,8 @@ use requests::*;
 pub mod enums;
 use enums::*;
 
+use std::collections::HashMap;
+
 use crate::interface::responses::GetRegistrationL0;
 
 use random_string::generate;
@@ -67,11 +69,11 @@ impl SpaceTraders {
             HeaderValue::from_bytes(format!("Bearer {}", self.credentials.token).as_bytes())
                 .unwrap(),
         );
-        headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
         if let Some(data) = json {
-            print!("{}", data.len());
-            headers.insert(CONTENT_LENGTH, data.len().to_string().parse().unwrap());
+            headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
+            headers.insert(CONTENT_LENGTH, data.chars().count().into());
         }
+        println!("{:?}", headers);
         headers
     }
 
@@ -202,21 +204,13 @@ impl SpaceTradersHandler {
     }
 
     pub async fn default() -> Self {
-        let post_message = json!({
-            "symbol": generate(19, "abcdefghijklmnopqrstuvwxyz1234567890_"),
-            "faction": "QUANTUM"
-        });
-        let mut headers = HeaderMap::with_capacity(2);
-        headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
-        // headers.insert(
-        //     CONTENT_LENGTH,
-        //     post_message.to_string().len().to_string().parse().unwrap(),
-        // );
+        let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
+        let post_message = json!({"faction": "QUANTUM", "symbol": username});
 
         let response = reqwest::Client::new()
             .post("https://api.spacetraders.io/v2/register")
-            .headers(headers)
-            .json(&post_message.to_string())
+            .header(CONTENT_LENGTH, post_message.to_string().chars().count())
+            .json(&post_message)
             .send()
             .await
             .unwrap()
@@ -224,7 +218,7 @@ impl SpaceTradersHandler {
             .await
             .unwrap();
         println!("{}", response);
-        println!("{}", post_message);
+        println!("{:?}", post_message);
         let token: GetRegistrationL0 = serde_json::from_str(&response).unwrap();
 
         let credentials = Credentials::new(&token.data.token);
