@@ -186,7 +186,9 @@ pub struct GetShipyardL1 {
     pub symbol: String,
     #[serde(alias = "shipTypes")]
     pub ship_types: Vec<GetShipyardTypes>,
+    #[serde(default)]
     pub transactions: Vec<GetShipyardTransactions>,
+    #[serde(default)]
     pub ships: Vec<GetShipyardShips>,
 }
 #[allow(dead_code)]

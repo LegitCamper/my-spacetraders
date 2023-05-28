@@ -1,7 +1,6 @@
 pub mod responses;
-use core::panic;
 
-use responses::{agents::*, contracts::*, fleet::*, systems::*}; //factions::*
+use responses::{agents::*, contracts::*, factions::*, fleet::*, systems::*};
 pub mod requests;
 use requests::*;
 pub mod enums;
@@ -9,6 +8,7 @@ use enums::*;
 
 use crate::interface::responses::GetRegistrationL0;
 
+use convert_case::{Case, Casing};
 use random_string::generate;
 use reqwest::{
     header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
@@ -159,10 +159,20 @@ impl SpaceTraders {
 
         match response {
             Ok(response) => {
-                println!("\n{}", response);
-                response
-            }
+                // check if server error - Expects error here
+                let error: Result<responses::Error, _> = serde_json::from_str(&response);
 
+                // if error print
+                if let Ok(error) = error {
+                    panic!(
+                        "\nerror: {:?}\nurl: {}\ncreds: {:?}\n",
+                        error, url, self.credentials
+                    );
+                } else {
+                    response
+                }
+            }
+            // client error
             Err(error) => panic!("{}", error),
         }
     }
@@ -254,6 +264,7 @@ impl SpaceTradersHandler {
     }
 
     pub fn make_json<T: Serialize>(&self, data: T) -> String {
+        println!("{}", serde_json::to_string(&data).unwrap());
         serde_json::to_string(&data).unwrap()
     }
 
@@ -549,7 +560,7 @@ pub struct ChannelMessage {
     oneshot: oneshot::Sender<String>,
 }
 
-// Other helpful structs and enums
+// Other helpful functions
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -571,4 +582,8 @@ pub struct Waypoint {
     pub sector: String,
     pub system: String,
     pub waypoint: String,
+}
+
+pub fn enum_to_string<T: std::fmt::Display>(name: T) -> String {
+    name.to_string().to_case(Case::UpperSnake)
 }

@@ -1,12 +1,19 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug, Display};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ListContractsType {
     Procurement,
     Transport,
     Shuttle,
+}
+impl fmt::Display for ListContractsType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
 }
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
@@ -72,6 +79,13 @@ pub enum WaypointTrait {
     Ocean,
     Stripped,
 }
+impl fmt::Display for WaypointTrait {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -85,6 +99,13 @@ pub enum WaypointType {
     Nebula,
     DebrisField,
     GravityWell,
+}
+impl fmt::Display for WaypointType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
 }
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
@@ -101,8 +122,15 @@ pub enum SystemType {
     Nebula,
     Unstable,
 }
+impl fmt::Display for SystemType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipType {
     ShipProbe,
@@ -124,7 +152,7 @@ impl fmt::Display for ShipType {
     }
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipRole {
     Fabricator,
@@ -142,8 +170,15 @@ pub enum ShipRole {
     Explorer,
     Refinery,
 }
+impl fmt::Display for ShipRole {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipReactor {
     ReactorSolarI,
@@ -152,16 +187,30 @@ pub enum ShipReactor {
     ReactorChemicalI,
     ReactorAntimatterI,
 }
+impl fmt::Display for ShipReactor {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipNavStatus {
     InTransit,
     InOrbit,
     Docked,
 }
+impl fmt::Display for ShipNavStatus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipMount {
     MountGasSiphonI,
@@ -180,8 +229,15 @@ pub enum ShipMount {
     MountMissileLauncherI,
     MountTurretI,
 }
+impl fmt::Display for ShipMount {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Default, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TradeSymbol {
     #[default]
@@ -297,8 +353,15 @@ pub enum TradeSymbol {
     MountMissileLauncherI,
     MountTurretI,
 }
+impl fmt::Display for TradeSymbol {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipModule {
     ModuleMineralProcessorI,
@@ -319,8 +382,15 @@ pub enum ShipModule {
     ModuleShieldGeneratorI,
     ModuleShieldGeneratorIi,
 }
+impl fmt::Display for ShipModule {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipFrame {
     FrameProbe,
@@ -339,8 +409,15 @@ pub enum ShipFrame {
     FrameCruiser,
     FrameCarrier,
 }
+impl fmt::Display for ShipFrame {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipEngine {
     EngineImpulseDriveI,
@@ -348,8 +425,15 @@ pub enum ShipEngine {
     EngineIonDriveIi,
     EngineHyperDriveI,
 }
+impl fmt::Display for ShipEngine {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FlightMode {
     Cruise,
@@ -357,10 +441,24 @@ pub enum FlightMode {
     Drift,
     Stealth,
 }
+impl fmt::Display for FlightMode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipCrewRotation {
     Strict,
     Relaxed,
+}
+impl fmt::Display for ShipCrewRotation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
 }

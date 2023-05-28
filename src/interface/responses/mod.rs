@@ -21,6 +21,18 @@ pub struct GetRegistrationData {
     pub token: String,
 }
 
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+pub struct Error {
+    pub error: ErrorError,
+}
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+pub struct ErrorError {
+    pub code: u32,
+    pub message: String,
+}
+
 pub mod agents;
 pub mod contracts;
 pub mod factions;
@@ -28,6 +40,24 @@ pub mod fleet;
 pub mod systems;
 
 // use unit test to confirm deserialization before runtime
+
+#[cfg(test)]
+mod error_test {
+    use super::Error;
+
+    #[test]
+    fn recieve_error() {
+        let _: Error = serde_json::from_str(
+            r#"{
+              "error": {
+                "code": 400,
+                "message": "Invalid JSON data. Review your request body and try again."
+              }
+            }"#,
+        )
+        .unwrap();
+    }
+}
 
 #[cfg(test)]
 mod registration_tests {

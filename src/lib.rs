@@ -1,14 +1,15 @@
 pub mod interface;
 
 use interface::{
+    enum_to_string,
     enums::{ListContractsType, ShipRole, WaypointTrait},
     parse_waypoint,
     requests::BuyShip,
-    responses::{contracts::ListContractsL1, fleet::PurchaseShipAgent},
+    responses::{contracts, contracts::ListContractsL1, fleet::PurchaseShipAgent, systems},
     SpaceTradersHandler,
 };
 
-use crate::interface::responses::{contracts, systems};
+use crate::interface::enums::ShipType;
 
 // use std::sync::Arc;
 // use tokio::sync::broadcast;
@@ -88,43 +89,48 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
         // 2.5) if not but ship
         if !have_correct_ship {
             let system = parse_waypoint(&interface.agent().await.data.headquarters).system;
-            println!("\n{}\n", system);
+            let mut found_shipyard = false;
             for waypoint in interface.list_waypoints(&system).await.data.iter() {
-                let mut found_shipyard = false;
-
                 for waypoint_trait in waypoint.traits.iter() {
                     if waypoint_trait.symbol == WaypointTrait::Shipyard {
                         found_shipyard = true;
-                        let shipyard_waypoint = parse_waypoint(&waypoint.symbol).sector;
+                        let parsed_waypoint = parse_waypoint(&waypoint.symbol);
                         let ships_in_shipyard = interface
-                            .get_shipyard(&waypoint.symbol, &shipyard_waypoint)
+                            .get_shipyard(&parsed_waypoint.system, &parsed_waypoint.waypoint)
                             .await;
+
+                        println!("{:?}", ships_in_shipyard.data.ship_types);
+                        eprintln!("e");
+
                         for ship in ships_in_shipyard.data.ship_types.iter() {
-                            println!("{:?}", ship);
                             // match current_contract.r#type {
                             // should buy the correct ship for the contract. for now I will just buy mining drone
-                            // ListContractsType::Procurement => {
-                            //     if ship.
-                            // }
-                            // ListContractsType::Transport => {}
-                            // ListContractsType::Shuttle => {}
-                            // }
-                            interface
-                                .purchase_ship(BuyShip {
-                                    // shipType: ship.symbol,
-                                    shipType: interface::enums::ShipType::ShipMiningDrone
-                                        .to_string(),
-                                    waypointSymbol: waypoint.symbol.clone(),
-                                })
-                                .await
+                            if ship.r#type == ShipType::ShipMiningDrone {
+                                // ListContractsType::Procurement => {
+                                //     if ship.
+                                // }
+                                // ListContractsType::Transport => {}
+                                // ListContractsType::Shuttle => {}
+                                println!(
+                                    "{}, {}",
+                                    enum_to_string(ship.r#type),
+                                    waypoint.symbol.clone(),
+                                );
+                                interface
+                                    .purchase_ship(BuyShip {
+                                        shipType: enum_to_string(ship.r#type),
+                                        waypointSymbol: waypoint.symbol.clone(),
+                                    })
+                                    .await
+                            }
                         }
                         break;
                     }
-                    if !found_shipyard {
-                        println!("Failed to find Shipyard");
-                        interface.diagnose();
-                    }
                 }
+            }
+            if !found_shipyard {
+                println!("Failed to find Shipyard");
+                interface.diagnose();
             }
         }
     }
