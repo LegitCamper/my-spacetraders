@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Debug, Display};
+use std::fmt::{self, Debug};
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

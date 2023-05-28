@@ -1,10 +1,10 @@
 pub mod responses;
 
-use responses::{agents::*, contracts::*, factions::*, fleet::*, systems::*};
+use responses::{agents::*, contracts::*, fleet::*, systems::*};
 pub mod requests;
 use requests::*;
 pub mod enums;
-use enums::*;
+
 
 use crate::interface::responses::GetRegistrationL0;
 
