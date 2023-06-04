@@ -227,6 +227,7 @@ pub struct GetShipyardFrame {
     pub symbol: ShipFrame,
     pub name: String,
     // description: String,
+    #[serde(default)]
     pub condition: u32,
     #[serde(alias = "moduleSlots")]
     pub module_slots: u32,
@@ -234,7 +235,7 @@ pub struct GetShipyardFrame {
     pub mounting_points: u32,
     #[serde(alias = "fuelCapacity")]
     pub fuel_capacity: u32,
-    pub requirements: HashMap<String, u32>,
+    pub requirements: HashMap<String, i32>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -242,10 +243,11 @@ pub struct GetShipyardReactor {
     pub symbol: ShipReactor,
     pub name: String,
     // description: String,
+    #[serde(default)]
     pub condition: u32,
     #[serde(alias = "powerOutput")]
     pub power_output: u32,
-    pub requirements: HashMap<String, u32>,
+    pub requirements: HashMap<String, i32>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -253,29 +255,36 @@ pub struct GetShipyardEngine {
     pub symbol: ShipEngine,
     pub name: String,
     // description: String,
+    #[serde(default)]
     pub condition: u32,
     pub speed: u32,
-    pub requirements: HashMap<String, u32>,
+    pub requirements: HashMap<String, i32>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardModules {
     pub symbol: ShipModule,
     pub name: String,
+    // #[serde(default)]
     // description: String,
+    #[serde(default)]
     pub capacity: u32,
+    #[serde(default)]
     pub range: u32,
-    pub requirements: HashMap<String, u32>,
+    pub requirements: HashMap<String, i32>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipyardMounts {
     pub symbol: ShipMount,
     pub name: String,
+    // #[serde(default)]
     // description: String,
+    #[serde(default)]
     pub strength: u32,
+    #[serde(default)]
     pub deposits: Vec<TradeSymbol>,
-    pub requirements: HashMap<String, u32>,
+    pub requirements: HashMap<String, i32>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]

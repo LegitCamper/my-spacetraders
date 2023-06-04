@@ -203,6 +203,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "get-size"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "016d98c5465aa9c741e4e520b307375d0c15f6a1670fee78f37b1a2e706deff0"
+
+[[package]]
 name = "h2"
 version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -458,6 +464,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "convert_case",
+ "get-size",
  "random-string",
  "reqwest",
  "serde",

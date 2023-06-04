@@ -5,10 +5,10 @@ pub mod requests;
 use requests::*;
 pub mod enums;
 
-
 use crate::interface::responses::GetRegistrationL0;
 
 use convert_case::{Case, Casing};
+use get_size::GetSize;
 use random_string::generate;
 use reqwest::{
     header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
@@ -16,6 +16,7 @@ use reqwest::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::collections::HashMap;
 use tokio::{
     sync::{mpsc, oneshot},
     task,
@@ -24,6 +25,12 @@ use tokio::{
 use url::Url;
 
 use self::responses::factions::{GetFactionsL0, ListFactionsL0};
+
+// TODO: better error handling
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Error {
+    InsufficientFunds(HashMap<String, u32>),
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Method {
@@ -62,8 +69,8 @@ impl SpaceTraders {
         }
     }
 
-    fn get_header(&self, json: Option<String>) -> HeaderMap {
-        let mut headers = HeaderMap::with_capacity(3);
+    fn get_header(&self, json: Option<HashMap<String, String>>) -> HeaderMap {
+        let mut headers = HeaderMap::with_capacity(4);
         headers.insert(
             AUTHORIZATION,
             HeaderValue::from_bytes(format!("Bearer {}", self.credentials.token).as_bytes())
@@ -72,7 +79,7 @@ impl SpaceTraders {
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
         headers.insert(ACCEPT, "application/json".parse().unwrap());
         if let Some(data) = json {
-            headers.insert(CONTENT_LENGTH, data.chars().count().into());
+            headers.insert(CONTENT_LENGTH, GetSize::get_heap_size(&data).into());
         } else {
             headers.insert(CONTENT_LENGTH, 0.into());
         }
@@ -83,13 +90,18 @@ impl SpaceTraders {
         Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
 
-    pub async fn make_reqwest(&self, method: Method, url: &str, data: Option<String>) -> String {
+    pub async fn make_reqwest(
+        &self,
+        method: Method,
+        url: &str,
+        data: Option<HashMap<String, String>>,
+    ) -> String {
         let response = match method {
             Method::Get => match data {
                 Some(json) => {
                     self.client
                         .get(self.get_url(url))
-                        .json(&json)
+                        .form(&json)
                         .headers(self.get_header(Some(json)))
                         .send()
                         .await
@@ -113,7 +125,7 @@ impl SpaceTraders {
                 Some(json) => {
                     self.client
                         .post(self.get_url(url))
-                        .json(&json)
+                        .form(&json)
                         .headers(self.get_header(Some(json)))
                         .send()
                         .await
@@ -136,7 +148,7 @@ impl SpaceTraders {
                 Some(json) => {
                     self.client
                         .patch(self.get_url(url))
-                        .json(&json)
+                        .form(&json)
                         .headers(self.get_header(Some(json)))
                         .send()
                         .await
@@ -219,56 +231,35 @@ impl SpaceTradersHandler {
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = json!({"faction": "QUANTUM", "symbol": username});
 
-        let response = reqwest::Client::new()
+        let registration = reqwest::Client::new()
             .post("https://api.spacetraders.io/v2/register")
             .header(CONTENT_LENGTH, post_message.to_string().chars().count())
             .json(&post_message)
             .send()
             .await
             .unwrap()
-            .text()
+            .json::<GetRegistrationL0>()
             .await
             .unwrap();
-        let token: GetRegistrationL0 = serde_json::from_str(&response).unwrap();
 
-        let credentials = Credentials::new(&token.data.token);
-        let space_trader = SpaceTraders::new(credentials);
-
-        let (channel_sender, mut channel_receiver) = mpsc::channel(500);
-
-        SpaceTradersHandler {
-            info: space_trader.clone(),
-            channel: channel_sender,
-            task: task::spawn(async move {
-                loop {
-                    sleep(Duration::from_millis(500)).await; // only 2 requests per second
-                    let msg = channel_receiver.recv().await.unwrap();
-                    msg.oneshot
-                        .send(
-                            space_trader
-                                .make_reqwest(
-                                    msg.message.method,
-                                    msg.message.url.as_str(),
-                                    msg.message.data,
-                                )
-                                .await,
-                        )
-                        .unwrap();
-                }
-            }),
-        }
+        SpaceTradersHandler::new(&registration.data.token).await
     }
 
     pub fn diagnose(&self) {
         panic!("\nagent {:?}", self.info.credentials)
     }
 
-    pub fn make_json<T: Serialize>(&self, data: T) -> String {
-        println!("{}", serde_json::to_string(&data).unwrap());
-        serde_json::to_string(&data).unwrap()
+    pub fn make_json<T: Serialize>(&self, data: T) -> HashMap<String, String> {
+        let string = serde_json::to_string(&data).unwrap();
+        serde_json::from_str(&string).unwrap()
     }
 
-    pub async fn make_request(&self, method: Method, url: String, data: Option<String>) -> String {
+    pub async fn make_request(
+        &self,
+        method: Method,
+        url: String,
+        data: Option<HashMap<String, String>>,
+    ) -> String {
         // make oneshot channel
         let (oneshot_sender, oneshot_receiver) = oneshot::channel();
 
@@ -282,9 +273,10 @@ impl SpaceTradersHandler {
             .unwrap(); //.await.unwrap();
 
         // listen to oneshot for response
-        let Ok(res) = oneshot_receiver.await else { panic!("Reponse was bad!")
-        };
-        res
+        match oneshot_receiver.await {
+            Ok(res) => res,
+            Err(err) => panic!("Interface failed to send back a correct response: {}", err),
+        }
     }
 
     // Agents
@@ -454,7 +446,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn purchase_ship(&self, data: BuyShip) {
+    pub async fn purchase_ship(&self, data: BuyShip) -> PurchaseShipL0 {
         serde_json::from_str(
             &self
                 .make_request(
@@ -552,7 +544,7 @@ impl SpaceTradersHandler {
 pub struct RequestMessage {
     pub method: Method,
     pub url: String,
-    pub data: Option<String>,
+    pub data: Option<HashMap<String, String>>,
 }
 #[derive(Debug)]
 pub struct ChannelMessage {

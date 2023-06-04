@@ -5,7 +5,7 @@ use interface::{
     enums::{ListContractsType, ShipRole, WaypointTrait},
     parse_waypoint,
     requests::BuyShip,
-    responses::{contracts::ListContractsL1},
+    responses::contracts::ListContractsL1,
     SpaceTradersHandler,
 };
 
@@ -46,7 +46,7 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
         interface.accept_contract(&contracts[0].id).await;
         accepted.push(&contracts[0])
     } else if accepted.is_empty() && contracts.is_empty() {
-        panic!("accepted contracts is zero, but there are now contracts to accept")
+        panic!("accepted contracts is zero, but there are no contracts to accept")
     }
 
     for current_contract in accepted.iter() {
@@ -99,9 +99,6 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
                             .get_shipyard(&parsed_waypoint.system, &parsed_waypoint.waypoint)
                             .await;
 
-                        println!("{:?}", ships_in_shipyard.data.ship_types);
-                        eprintln!("e");
-
                         for ship in ships_in_shipyard.data.ship_types.iter() {
                             // match current_contract.r#type {
                             // should buy the correct ship for the contract. for now I will just buy mining drone
@@ -111,19 +108,17 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
                                 // }
                                 // ListContractsType::Transport => {}
                                 // ListContractsType::Shuttle => {}
-                                println!(
-                                    "{}, {}",
-                                    enum_to_string(ship.r#type),
-                                    waypoint.symbol.clone(),
-                                );
-                                interface
+                                let u = interface
                                     .purchase_ship(BuyShip {
                                         shipType: enum_to_string(ship.r#type),
                                         waypointSymbol: waypoint.symbol.clone(),
                                     })
-                                    .await
+                                    .await;
+                                println!("{:?}", u);
+                                break;
                             }
                         }
+                        println!("yolo");
                         break;
                     }
                 }
@@ -132,6 +127,7 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
                 println!("Failed to find Shipyard");
                 interface.diagnose();
             }
+            panic!("WORKED")
         }
     }
 }
