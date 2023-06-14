@@ -1,11 +1,9 @@
+pub mod enums;
+pub mod requests;
 pub mod responses;
 
-use responses::{agents::*, contracts::*, fleet::*, systems::*};
-pub mod requests;
 use requests::*;
-pub mod enums;
-
-use crate::interface::responses::GetRegistrationL0;
+use responses::{agents, contracts, factions, fleet, systems};
 
 use convert_case::{Case, Casing};
 use get_size::GetSize;
@@ -24,7 +22,7 @@ use tokio::{
 };
 use url::Url;
 
-use self::responses::factions::{GetFactionsL0, ListFactionsL0};
+// use self::responses::factions::{Faction, Factions};
 
 // TODO: better error handling
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -238,7 +236,7 @@ impl SpaceTradersHandler {
             .send()
             .await
             .unwrap()
-            .json::<GetRegistrationL0>()
+            .json::<responses::GetRegistrationL0>()
             .await
             .unwrap();
 
@@ -280,7 +278,7 @@ impl SpaceTradersHandler {
     }
 
     // Agents
-    pub async fn agent(&self) -> AgentL0 {
+    pub async fn agent(&self) -> agents::Agent {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, "/v2/my/agent".to_string(), None)
@@ -290,7 +288,7 @@ impl SpaceTradersHandler {
     }
 
     // Systems
-    pub async fn list_systems(&self) -> ListSystemsL0 {
+    pub async fn list_systems(&self) -> systems::Systems {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, "/v2/systems".to_string(), None)
@@ -298,7 +296,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_system(&self, system_symbol: &str) -> GetSystemL0 {
+    pub async fn get_system(&self, system_symbol: &str) -> systems::System {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, format!("/v2/systems/{}", system_symbol), None)
@@ -306,7 +304,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn list_waypoints(&self, system_symbol: &str) -> ListWaypointsL0 {
+    pub async fn list_waypoints(&self, system_symbol: &str) -> systems::Waypoints {
         serde_json::from_str(
             &self
                 .make_request(
@@ -318,7 +316,11 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_waypoint(&self, system_symbol: &str, waypoint_symbol: &str) -> GetWaypointL0 {
+    pub async fn get_waypoint(
+        &self,
+        system_symbol: &str,
+        waypoint_symbol: &str,
+    ) -> systems::Waypoint {
         serde_json::from_str(
             &self
                 .make_request(
@@ -333,7 +335,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_market(&self, system_symbol: &str, waypoint_symbol: &str) -> GetMarketL0 {
+    pub async fn get_market(&self, system_symbol: &str, waypoint_symbol: &str) -> systems::Market {
         serde_json::from_str(
             &self
                 .make_request(
@@ -348,7 +350,11 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_shipyard(&self, system_symbol: &str, waypoint_symbol: &str) -> GetShipyardL0 {
+    pub async fn get_shipyard(
+        &self,
+        system_symbol: &str,
+        waypoint_symbol: &str,
+    ) -> systems::Shipyard {
         serde_json::from_str(
             &self
                 .make_request(
@@ -363,7 +369,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn jump_gate(&self, system_symbol: &str, waypoint_symbol: &str) -> GetJumpGateL0 {
+    pub async fn jump_gate(&self, system_symbol: &str, waypoint_symbol: &str) -> systems::JumpGate {
         serde_json::from_str(
             &self
                 .make_request(
@@ -380,7 +386,7 @@ impl SpaceTradersHandler {
     }
 
     // Contracts
-    pub async fn list_contracts(&self) -> ListContractsL0 {
+    pub async fn list_contracts(&self) -> contracts::Contracts {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, String::from("/v2/my/contracts"), None)
@@ -388,7 +394,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_contract(&self, contract_id: &str) -> GetContractsL0 {
+    pub async fn get_contract(&self, contract_id: &str) -> contracts::Contract {
         serde_json::from_str(
             &self
                 .make_request(
@@ -400,7 +406,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn accept_contract(&self, contract_id: &str) -> AcceptContractL0 {
+    pub async fn accept_contract(&self, contract_id: &str) -> contracts::AcceptContract {
         serde_json::from_str(
             &self
                 .make_request(
@@ -412,7 +418,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn deliver_contract(&self, contract_id: &str) -> DeliverContractL0 {
+    pub async fn deliver_contract(&self, contract_id: &str) -> contracts::DeliverContract {
         serde_json::from_str(
             &self
                 .make_request(
@@ -424,7 +430,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn fulfill_contract(&self, contract_id: &str) -> FulfillContractL0 {
+    pub async fn fulfill_contract(&self, contract_id: &str) -> contracts::FulfillContract {
         serde_json::from_str(
             &self
                 .make_request(
@@ -438,7 +444,7 @@ impl SpaceTradersHandler {
     }
 
     // Fleet
-    pub async fn list_ships(&self) -> ListShipsL0 {
+    pub async fn list_ships(&self) -> fleet::Ships {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, String::from("/v2/my/ships"), None)
@@ -446,7 +452,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn purchase_ship(&self, data: BuyShip) -> PurchaseShipL0 {
+    pub async fn purchase_ship(&self, data: BuyShip) -> fleet::PurchaseShip {
         serde_json::from_str(
             &self
                 .make_request(
@@ -458,7 +464,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_ship(&self, ship_symbol: String) -> GetShipL0 {
+    pub async fn get_ship(&self, ship_symbol: String) -> fleet::Ship {
         // the ship symbol might be an enum I already have
         serde_json::from_str(
             &self
@@ -467,7 +473,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_ship_cargo(&self, ship_symbol: String) -> GetShipCargoL0 {
+    pub async fn get_ship_cargo(&self, ship_symbol: String) -> fleet::ShipCargo {
         serde_json::from_str(
             &self
                 .make_request(
@@ -479,7 +485,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn orbit_ship(&self, ship_symbol: String) -> OrbitShipL0 {
+    pub async fn orbit_ship(&self, ship_symbol: String) -> fleet::OrbitShip {
         serde_json::from_str(
             &self
                 .make_request(
@@ -491,7 +497,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn ship_refine(&self, ship_symbol: String, data: ShipRefine) -> ShipRefineL0 {
+    pub async fn ship_refine(&self, ship_symbol: String, data: ShipRefine) -> fleet::ShipRefine {
         serde_json::from_str(
             &self
                 .make_request(
@@ -503,7 +509,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn create_chart(&self, ship_symbol: String) -> CreateChartL0 {
+    pub async fn create_chart(&self, ship_symbol: String) -> fleet::CreateChart {
         serde_json::from_str(
             &self
                 .make_request(
@@ -517,7 +523,7 @@ impl SpaceTradersHandler {
     }
 
     // Factions
-    pub async fn list_factions(&self) -> ListFactionsL0 {
+    pub async fn list_factions(&self) -> factions::Factions {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, String::from("/v2/factions"), None)
@@ -525,7 +531,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_faction(&self, faction_symbol: &str) -> GetFactionsL0 {
+    pub async fn get_faction(&self, faction_symbol: &str) -> factions::Factions {
         serde_json::from_str(
             &self
                 .make_request(

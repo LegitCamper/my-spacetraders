@@ -1,34 +1,15 @@
-use crate::interface::enums::*;
-use crate::interface::responses::Meta;
+pub use super::schemas;
 use serde::Deserialize;
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct ListFactionsL0 {
-    data: Vec<ListFactionsL1>,
-    meta: Meta,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct ListFactionsL1 {
-    symbol: String,
-    name: String,
-    // description: String,
-    headquarters: String,
-    traits: Vec<ListFactionTraits>,
-    #[serde(alias = "isRecruiting")]
-    is_recruiting: bool,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct ListFactionTraits {
-    symbol: WaypointTrait,
-    name: String,
-    // description: String,
+pub struct Factions {
+    pub data: Vec<schemas::Faction>,
+    pub meta: schemas::Meta,
 }
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct GetFactionsL0 {
-    data: ListFactionsL1,
+pub struct Faction {
+    pub data: schemas::Faction,
 }

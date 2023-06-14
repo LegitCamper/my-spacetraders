@@ -1,11 +1,8 @@
 pub mod interface;
 
 use interface::{
-    enum_to_string,
-    enums::{ListContractsType, ShipRole, WaypointTrait},
-    parse_waypoint,
-    requests::BuyShip,
-    responses::contracts::ListContractsL1,
+    enum_to_string, enums, parse_waypoint, requests,
+    responses::{contracts, systems},
     SpaceTradersHandler,
 };
 
@@ -32,7 +29,7 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
     // 1) check for accepted contracts
     let contracts = interface.list_contracts().await.data;
 
-    let mut accepted: Vec<&ListContractsL1> = vec![];
+    let mut accepted: Vec<&contracts::schemas::Contract> = vec![];
     for contract in contracts.iter() {
         if contract.accepted {
             accepted.push(contract);
@@ -54,31 +51,31 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
         let mut have_correct_ship = false;
         // 2) check if ship can complete contracts
         match current_contract.r#type {
-            ListContractsType::Procurement => {
+            enums::ListContractsType::Procurement => {
                 // Need mining ship // probably
                 for ship in ships.data.iter() {
-                    if ship.registration.role == ShipRole::Excavator
-                        || ship.registration.role == ShipRole::Harvester
+                    if ship.registration.role == enums::ShipRole::Excavator
+                        || ship.registration.role == enums::ShipRole::Harvester
                     {
                         have_correct_ship = true;
                     }
                 }
             }
-            ListContractsType::Transport => {
+            enums::ListContractsType::Transport => {
                 // probably need figigate or hauler ship
                 for ship in ships.data.iter() {
-                    if ship.registration.role == ShipRole::Hauler
-                        || ship.registration.role == ShipRole::Carrier
+                    if ship.registration.role == enums::ShipRole::Hauler
+                        || ship.registration.role == enums::ShipRole::Carrier
                     {
                         have_correct_ship = true;
                     }
                 }
             }
-            ListContractsType::Shuttle => {
+            enums::ListContractsType::Shuttle => {
                 // probaly need shuttle
                 for ship in ships.data.iter() {
-                    if ship.registration.role == ShipRole::Carrier
-                        || ship.registration.role == ShipRole::Transport
+                    if ship.registration.role == enums::ShipRole::Carrier
+                        || ship.registration.role == enums::ShipRole::Transport
                     {
                         have_correct_ship = true;
                     }
@@ -92,7 +89,7 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
             let mut found_shipyard = false;
             for waypoint in interface.list_waypoints(&system).await.data.iter() {
                 for waypoint_trait in waypoint.traits.iter() {
-                    if waypoint_trait.symbol == WaypointTrait::Shipyard {
+                    if waypoint_trait.symbol == enums::WaypointTrait::Shipyard {
                         found_shipyard = true;
                         let parsed_waypoint = parse_waypoint(&waypoint.symbol);
                         let ships_in_shipyard = interface
@@ -109,7 +106,7 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
                                 // ListContractsType::Transport => {}
                                 // ListContractsType::Shuttle => {}
                                 let u = interface
-                                    .purchase_ship(BuyShip {
+                                    .purchase_ship(requests::BuyShip {
                                         shipType: enum_to_string(ship.r#type),
                                         waypointSymbol: waypoint.symbol.clone(),
                                     })

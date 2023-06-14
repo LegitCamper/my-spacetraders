@@ -1,13 +1,11 @@
-use serde::Deserialize;
+pub mod agents;
+pub mod contracts;
+pub mod factions;
+pub mod fleet;
+pub mod schemas;
+pub mod systems;
 
-#[derive(Deserialize, Debug)]
-#[allow(dead_code)]
-pub struct Meta {
-    // metadata for responses
-    total: u32,
-    page: u32,
-    limit: u32,
-}
+use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
@@ -32,12 +30,6 @@ pub struct ErrorError {
     pub code: u32,
     pub message: String,
 }
-
-pub mod agents;
-pub mod contracts;
-pub mod factions;
-pub mod fleet;
-pub mod systems;
 
 // use unit test to confirm deserialization before runtime
 
@@ -251,11 +243,11 @@ mod registration_tests {
 
 #[cfg(test)]
 mod agent_tests {
-    use super::agents::AgentL0;
+    use super::agents::Agent;
 
     #[test]
     fn agent() {
-        let _: AgentL0 = serde_json::from_str(
+        let _: Agent = serde_json::from_str(
             r#"{
               "data": {
                 "accountId": "string",
@@ -272,14 +264,11 @@ mod agent_tests {
 
 #[cfg(test)]
 mod system_tests {
-    use super::systems::{
-        GetJumpGateL0, GetMarketL0, GetShipyardL0, GetSystemL0, GetWaypointL0, ListSystemsL0,
-        ListWaypointsL0,
-    };
+    use super::systems::{JumpGate, Market, Shipyard, System, Systems, Waypoint, Waypoints};
 
     #[test]
     fn list_systems() {
-        let _: ListSystemsL0 = serde_json::from_str(
+        let _: Systems = serde_json::from_str(
             r#"{
               "data": [
                 {
@@ -314,7 +303,7 @@ mod system_tests {
     }
     #[test]
     fn get_system() {
-        let _: GetSystemL0 = serde_json::from_str(
+        let _: System = serde_json::from_str(
             r#"{
               "data": {
                 "symbol": "string",
@@ -342,7 +331,7 @@ mod system_tests {
     }
     #[test]
     fn list_waypoints() {
-        let _: ListWaypointsL0 = serde_json::from_str(
+        let _: Waypoints = serde_json::from_str(
             r#"{
               "data": [
                 {
@@ -384,7 +373,7 @@ mod system_tests {
     }
     #[test]
     fn get_waypoint() {
-        let _: GetWaypointL0 = serde_json::from_str(
+        let _: Waypoint = serde_json::from_str(
             r#"{
               "data": {
                 "symbol": "string",
@@ -419,7 +408,7 @@ mod system_tests {
     }
     #[test]
     fn get_market() {
-        let _: GetMarketL0 = serde_json::from_str(
+        let _: Market = serde_json::from_str(
             r#"{
               "data": {
                 "symbol": "string",
@@ -472,7 +461,7 @@ mod system_tests {
     }
     #[test]
     fn get_shipyard() {
-        let _: GetShipyardL0 = serde_json::from_str(
+        let _: Shipyard = serde_json::from_str(
             r#"{
               "data": {
                 "symbol": "string",
@@ -573,7 +562,7 @@ mod system_tests {
     }
     #[test]
     fn get_jump_gate() {
-        let _: GetJumpGateL0 = serde_json::from_str(
+        let _: JumpGate = serde_json::from_str(
             r#"{
               "data": {
                 "jumpRange": 0,
@@ -598,13 +587,11 @@ mod system_tests {
 
 #[cfg(test)]
 mod contract_tests {
-    use super::contracts::{
-        AcceptContractL0, DeliverContractL0, FulfillContractL0, GetContractsL0, ListContractsL0,
-    };
+    use super::contracts::{AcceptContract, Contract, Contracts, DeliverContract, FulfillContract};
 
     #[test]
     fn list_contracts() {
-        let _: ListContractsL0 = serde_json::from_str(
+        let _: Contracts = serde_json::from_str(
             r#"{
               "data": [
                 {
@@ -643,7 +630,7 @@ mod contract_tests {
     }
     #[test]
     fn get_contracts() {
-        let _: GetContractsL0 = serde_json::from_str(
+        let _: Contract = serde_json::from_str(
             r#"{
               "data": {
                 "id": "string",
@@ -675,7 +662,7 @@ mod contract_tests {
     }
     #[test]
     fn accept_contracts() {
-        let _: AcceptContractL0 = serde_json::from_str(
+        let _: AcceptContract = serde_json::from_str(
             r#"{
               "data": {
                 "agent": {
@@ -716,7 +703,7 @@ mod contract_tests {
     }
     #[test]
     fn deliver_contract() {
-        let _: DeliverContractL0 = serde_json::from_str(
+        let _: DeliverContract = serde_json::from_str(
             r#"{
               "data": {
                 "contract": {
@@ -762,7 +749,7 @@ mod contract_tests {
     }
     #[test]
     fn fulfill_contract() {
-        let _: FulfillContractL0 = serde_json::from_str(
+        let _: FulfillContract = serde_json::from_str(
             r#"{
               "data": {
                 "agent": {
@@ -805,11 +792,11 @@ mod contract_tests {
 
 #[cfg(test)]
 mod faction_tests {
-    use super::factions::{GetFactionsL0, ListFactionsL0};
+    use super::factions::{Faction, Factions};
 
     #[test]
     fn list_factions() {
-        let _: ListFactionsL0 = serde_json::from_str(
+        let _: Factions = serde_json::from_str(
             r#"{
               "data": [
                 {
@@ -839,7 +826,7 @@ mod faction_tests {
 
     #[test]
     fn get_factions() {
-        let _: GetFactionsL0 = serde_json::from_str(
+        let _: Faction = serde_json::from_str(
             r#"{
               "data": {
                 "symbol": "string",
@@ -863,14 +850,11 @@ mod faction_tests {
 
 #[cfg(test)]
 mod fleet_tests {
-    use super::fleet::{
-        CreateChartL0, GetShipCargoL0, GetShipL0, ListShipsL0, OrbitShipL0, PurchaseShipL0,
-        ShipRefineL0,
-    };
+    use super::fleet::{CreateChart, OrbitShip, PurchaseShip, Ship, ShipCargo, ShipRefine, Ships};
 
     #[test]
     fn list_ships() {
-        let _: ListShipsL0 = serde_json::from_str(
+        let _: Ships = serde_json::from_str(
             r#"{
               "data": [
                 {
@@ -1013,7 +997,7 @@ mod fleet_tests {
     }
     #[test]
     fn purchase_ship() {
-        let _: PurchaseShipL0 = serde_json::from_str(
+        let _: PurchaseShip = serde_json::from_str(
             r#"{
               "data": {
                 "agent": {
@@ -1165,7 +1149,7 @@ mod fleet_tests {
     }
     #[test]
     fn get_ship() {
-        let _: GetShipL0 = serde_json::from_str(
+        let _: Ship = serde_json::from_str(
             r#"{
               "data": {
                 "symbol": "string",
@@ -1301,7 +1285,7 @@ mod fleet_tests {
     }
     #[test]
     fn get_ship_cargo() {
-        let _: GetShipCargoL0 = serde_json::from_str(
+        let _: ShipCargo = serde_json::from_str(
             r#"{
               "data": {
                 "capacity": 0,
@@ -1321,7 +1305,7 @@ mod fleet_tests {
     }
     #[test]
     fn orbit_ship() {
-        let _: OrbitShipL0 = serde_json::from_str(
+        let _: OrbitShip = serde_json::from_str(
             r#"{
               "data": {
                 "nav": {
@@ -1355,7 +1339,7 @@ mod fleet_tests {
     }
     #[test]
     fn ship_refine() {
-        let _: ShipRefineL0 = serde_json::from_str(
+        let _: ShipRefine = serde_json::from_str(
             r#"{
               "data": {
                 "cargo": {
@@ -1395,7 +1379,7 @@ mod fleet_tests {
     }
     #[test]
     fn create_chart() {
-        let _: CreateChartL0 = serde_json::from_str(
+        let _: CreateChart = serde_json::from_str(
             r#"{
               "data": {
                 "chart": {

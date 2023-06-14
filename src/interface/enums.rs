@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug};
 
+// USE THE COMMAND 'ccase -t pascal enums' TO TRANSFORM THE DOCS TO RUST ENUMS
+
+// TODO: use macros to impl the display trait instead of all the duplication
+
 #[derive(Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ListContractsType {
@@ -108,7 +112,7 @@ impl fmt::Display for WaypointType {
     }
 }
 
-#[derive(Deserialize, PartialEq, Eq, Debug)]
+#[derive(Deserialize, PartialEq, Eq, Default, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SystemType {
     NeutronStar,
@@ -121,6 +125,8 @@ pub enum SystemType {
     Hypergiant,
     Nebula,
     Unstable,
+    #[default]
+    Default,
 }
 impl fmt::Display for SystemType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -240,8 +246,6 @@ impl fmt::Display for ShipMount {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Default, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TradeSymbol {
-    #[default]
-    Nothing,
     PreciousStones,
     QuartzSand,
     SiliconCrystals,
@@ -352,6 +356,8 @@ pub enum TradeSymbol {
     MountLaserCannonI,
     MountMissileLauncherI,
     MountTurretI,
+    #[default]
+    Default,
 }
 impl fmt::Display for TradeSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -456,6 +462,82 @@ pub enum ShipCrewRotation {
     Relaxed,
 }
 impl fmt::Display for ShipCrewRotation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum FactionSymbols {
+    Cosmic,
+    Void,
+    Galactic,
+    Quantum,
+    Dominion,
+    Astro,
+    Corsairs,
+    Obsidian,
+    Aegis,
+    United,
+    Solitary,
+    Cobalt,
+    Omega,
+    Echo,
+    Lords,
+    Cult,
+    Ancients,
+    Shadow,
+    Ethereal,
+}
+impl fmt::Display for FactionSymbols {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum GetMarketType {
+    Purchase,
+    Sell,
+}
+impl fmt::Display for GetMarketType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum GetMarketSupplyType {
+    Scarce,
+    Limited,
+    Moderate,
+    Abundant,
+}
+impl fmt::Display for GetMarketSupplyType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
+    }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum DepositSize {
+    Small,
+    Moderate,
+    Large,
+}
+impl fmt::Display for DepositSize {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
         // or, alternatively:
