@@ -1,12 +1,10 @@
-pub mod interface;
-
 use interface::{
     enum_to_string, enums, parse_waypoint, requests,
     responses::{contracts, systems},
     SpaceTradersHandler,
 };
 
-use crate::interface::enums::ShipType;
+use crate::enums::ShipType;
 
 // use std::sync::Arc;
 // use tokio::sync::broadcast;
@@ -16,7 +14,8 @@ async fn create_interface() -> SpaceTradersHandler {
     SpaceTradersHandler::default().await
 }
 
-pub async fn main_algo() {
+#[tokio::main]
+async fn main() {
     let interface = create_interface().await;
 
     // loop {

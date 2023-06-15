@@ -1,4 +1,4 @@
-use crate::interface::enums;
+use crate::enums;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -7,7 +7,7 @@ pub struct Agent {
     pub account_id: String,
     pub symbol: String,
     pub headquarters: String,
-    pub credits: u64,
+    pub credits: i64,
     #[serde(alias = "startingFaction")]
     pub starting_faction: String,
 }
@@ -33,9 +33,9 @@ pub struct ConnectedSystem {
     pub r#typ: enums::SystemType,
     #[serde(alias = "factionSymbol")]
     pub faction_symbol: String,
-    pub x: u32,
-    pub y: u32,
-    pub distance: u64,
+    pub x: i32,
+    pub y: i32,
+    pub distance: f64,
 }
 
 #[derive(Deserialize, Debug)]
@@ -134,12 +134,13 @@ pub struct FactionTrait {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
 pub struct JumpGate {
     #[serde(alias = "jumpRange")]
-    pub jump_range: i64,
+    pub jump_range: f64,
     #[serde(alias = "factionSymbol")]
-    pub faction_symbol: enums::FactionSymbols,
+    #[serde(default)]
+    pub faction_symbol: enums::FactionSymbols, // this fails in tests, but is okay //TODO: see if fixed - issue on discord
     #[serde(alias = "connectedSystems")]
     pub connected_systems: Vec<JumpGateConnectedSystems>,
 }
@@ -186,7 +187,7 @@ pub struct GetMarketTradeGood {
     pub trade_volume: u32,
     pub supply: enums::GetMarketSupplyType,
     #[serde(alias = "purchasePrice")]
-    pub purchase_price: u32,
+    pub purchase_price: i32,
     #[serde(alias = "sellPrice")]
     pub sell_price: u32,
 }
@@ -456,11 +457,11 @@ pub struct ShipRegistration {
 #[derive(Deserialize, Debug)]
 pub struct ShipRequirements {
     #[serde(default)]
-    pub power: u32,
+    pub power: i32,
     #[serde(default)]
-    pub crew: u32,
+    pub crew: i32,
     #[serde(default)]
-    pub slots: u32,
+    pub slots: i32,
 }
 
 #[allow(dead_code)]
@@ -472,7 +473,7 @@ pub struct Shipyard {
     #[serde(default)]
     pub transactions: Vec<ShipyardTransaction>,
     #[serde(default)]
-    pub ships: Vec<Ship>,
+    pub ships: Vec<ShipyardShip>,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -487,7 +488,7 @@ pub struct ShipyardShip {
     pub name: String,
     // description: String,
     #[serde(alias = "purchasePrice")]
-    pub purchase_price: u32,
+    pub purchase_price: i32,
     pub frame: ShipFrame,
     pub reactor: ShipReactor,
     pub engine: ShipEngine,

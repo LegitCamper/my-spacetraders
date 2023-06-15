@@ -55,7 +55,7 @@ impl Credentials {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum SpaceTradersEnv {
     Live,
     Mock,
@@ -66,11 +66,12 @@ struct SpaceTraders {
     credentials: Credentials,
     client: Client,
     url: String,
+    enviroment: SpaceTradersEnv,
 }
 
 impl SpaceTraders {
-    pub fn new(credentials: Credentials, eniroment: SpaceTradersEnv) -> Self {
-        let url = match eniroment {
+    pub fn new(credentials: Credentials, enviroment: SpaceTradersEnv) -> Self {
+        let url = match enviroment {
             SpaceTradersEnv::Live => LIVEURL,
             SpaceTradersEnv::Mock => MOCKURL,
         };
@@ -79,6 +80,7 @@ impl SpaceTraders {
             credentials,
             client: reqwest::Client::new(),
             url: String::from(url),
+            enviroment,
         }
     }
 
@@ -95,6 +97,10 @@ impl SpaceTraders {
             headers.insert(CONTENT_LENGTH, GetSize::get_heap_size(&data).into());
         } else {
             headers.insert(CONTENT_LENGTH, 0.into());
+        }
+        // adds dynamic header for unit tests
+        if self.enviroment == SpaceTradersEnv::Mock {
+            headers.insert("Prefer", "dynamic=true".parse().unwrap());
         }
         headers
     }
@@ -201,6 +207,30 @@ impl SpaceTraders {
             Err(error) => panic!("{}", error),
         }
     }
+
+    pub async fn custom_endpoint(&self, endpoint: &str, method: Method) -> String {
+        match method {
+            Method::Post => self
+                .client
+                .post(&format!("{}{}", self.url, endpoint))
+                .send()
+                .await
+                .unwrap()
+                .text()
+                .await
+                .unwrap(),
+            Method::Get => self
+                .client
+                .get(&format!("{}{}", self.url, endpoint))
+                .send()
+                .await
+                .unwrap()
+                .text()
+                .await
+                .unwrap(),
+            Method::Patch => todo!(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -277,7 +307,10 @@ impl SpaceTradersHandler {
     }
 
     pub fn diagnose(&self) {
-        panic!("\nagent {:?}", self.info.credentials)
+        panic!(
+            "\ntoken: {}\nurl: {}\nenviroment: {:#?}",
+            self.info.credentials.token, self.info.url, self.info.enviroment
+        )
     }
 
     pub fn make_json<T: Serialize>(&self, data: T) -> HashMap<String, String> {
@@ -306,7 +339,10 @@ impl SpaceTradersHandler {
         // listen to oneshot for response
         match oneshot_receiver.await {
             Ok(res) => res,
-            Err(err) => panic!("Interface failed to send back a correct response: {}", err),
+            Err(err) => {
+                self.diagnose();
+                panic!("Interface failed to send back a correct response: {}", err);
+            }
         }
     }
 
@@ -490,7 +526,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_ship(&self, ship_symbol: String) -> fleet::Ship {
+    pub async fn get_ship(&self, ship_symbol: &str) -> fleet::Ship {
         // the ship symbol might be an enum I already have
         serde_json::from_str(
             &self
@@ -499,7 +535,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn get_ship_cargo(&self, ship_symbol: String) -> fleet::ShipCargo {
+    pub async fn get_ship_cargo(&self, ship_symbol: &str) -> fleet::ShipCargo {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, format!("/my/ships{}/cargo", ship_symbol), None)
@@ -507,7 +543,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn orbit_ship(&self, ship_symbol: String) -> fleet::OrbitShip {
+    pub async fn orbit_ship(&self, ship_symbol: &str) -> fleet::OrbitShip {
         serde_json::from_str(
             &self
                 .make_request(
@@ -519,7 +555,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn ship_refine(&self, ship_symbol: String, data: ShipRefine) -> fleet::ShipRefine {
+    pub async fn ship_refine(&self, ship_symbol: &str, data: ShipRefine) -> fleet::ShipRefine {
         serde_json::from_str(
             &self
                 .make_request(
@@ -531,7 +567,7 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
-    pub async fn create_chart(&self, ship_symbol: String) -> fleet::CreateChart {
+    pub async fn create_chart(&self, ship_symbol: &str) -> fleet::CreateChart {
         serde_json::from_str(
             &self
                 .make_request(
@@ -593,6 +629,7 @@ pub fn parse_waypoint(waypoint: &str) -> Waypoint {
         waypoint: waypoint.to_string(),        // X1-DF55-20250Z
     }
 }
+
 #[derive(Debug)]
 pub struct Waypoint {
     pub sector: String,

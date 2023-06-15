@@ -469,7 +469,7 @@ impl fmt::Display for ShipCrewRotation {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Eq, Copy, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FactionSymbols {
     Cosmic,
@@ -491,6 +491,8 @@ pub enum FactionSymbols {
     Ancients,
     Shadow,
     Ethereal,
+    #[default]
+    Default,
 }
 impl fmt::Display for FactionSymbols {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
