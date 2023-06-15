@@ -199,7 +199,7 @@ pub struct MarketTransaction {
     #[serde(alias = "shipSymbol")]
     pub ship_symbol: String,
     #[serde(alias = "tradeSymbol")]
-    pub trade_symbol: enums::TradeSymbol,
+    pub trade_symbol: String,
     pub r#type: enums::GetMarketType,
     pub units: u32,
     #[serde(alias = "pricePerUnit")]
@@ -334,6 +334,7 @@ pub struct ShipEngine {
     pub symbol: enums::ShipEngine,
     pub name: String,
     // description: String,
+    #[serde(default)]
     pub condition: u32,
     pub speed: u32,
     pub requirements: ShipRequirements,
@@ -345,6 +346,7 @@ pub struct ShipFrame {
     pub symbol: enums::ShipFrame,
     pub name: String,
     // description: String,
+    #[serde(default)]
     pub condition: u32,
     #[serde(alias = "moduleSlots")]
     pub module_slots: u32,
@@ -570,7 +572,7 @@ pub struct Waypoint {
     pub traits: Vec<ScannedWaypointTrait>,
     #[serde(default)]
     pub chart: Chart,
-    pub faction: ScannedWaypointTrait,
+    pub faction: SystemFaction,
 }
 
 #[allow(dead_code)]

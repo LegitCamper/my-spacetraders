@@ -83,7 +83,7 @@ pub struct ShipRefine {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ShipRefineData {
-    pub cargo: ShipCargo,
+    pub cargo: schemas::ShipCargo,
     pub cooldown: schemas::Cooldown,
     pub produced: Vec<ShipRefineIO>,
     pub consumed: Vec<ShipRefineIO>,
