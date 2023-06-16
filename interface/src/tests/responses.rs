@@ -1,6 +1,9 @@
 use crate::{
-    enums::{ShipType, TradeSymbol},
-    requests::{BuyShip, ShipRefine},
+    enums::{FlightMode, ShipType, TradeSymbol},
+    requests::{
+        BuyShip, InstallMount, JumpShip, NavigateShip, PatchShipNav, RemoveMount, ShipRefine,
+        WarpShip,
+    },
     Method, SpaceTradersHandler,
 };
 
@@ -223,7 +226,208 @@ async fn create_chart() {
         interface.create_chart(SYSTEM).await;
     }
 }
-
+#[tokio::test]
+// #[serial]
+async fn get_ship_cooldown() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.get_ship_cooldown(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn dock_ship() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.dock_ship(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn create_survey() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.create_survey(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn extract_resources() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.extract_resources(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn jettison_cargo() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.jettison_cargo(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn jump_ship() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface
+            .jump_ship(
+                SYSTEM,
+                JumpShip {
+                    ship_symbol: ShipType::ShipProbe,
+                },
+            )
+            .await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn navigate_ship() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface
+            .navigate_ship(
+                SYSTEM,
+                NavigateShip {
+                    ship_symbol: ShipType::ShipProbe,
+                },
+            )
+            .await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn patch_ship_nav() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface
+            .patch_ship_nav(
+                SYSTEM,
+                PatchShipNav {
+                    ship_symbol: FlightMode::Cruise,
+                },
+            )
+            .await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn get_ship_nav() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.get_ship_nav(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn warp_ship() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.warp_ship(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn sell_cargo() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface
+            .sell_cargo(
+                SYSTEM,
+                WarpShip {
+                    ship_symbol: SYSTEM.to_string(),
+                },
+            )
+            .await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn scan_systems() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.scan_systems(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn scan_waypoints() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.scan_waypoints(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn scan_ships() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.scan_ships(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn purchase_cargo() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.purchase_cargo(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn transfer_cargo() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.transfer_cargo(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn negotiate_contract() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.negotiate_contract(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn get_mounts() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.get_mounts(SYSTEM).await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn install_mount() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface
+            .install_mount(
+                SYSTEM,
+                InstallMount {
+                    symbol: SYSTEM.to_string(),
+                },
+            )
+            .await;
+    }
+}
+#[tokio::test]
+// #[serial]
+async fn remove_mount() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface
+            .remove_mount(
+                SYSTEM,
+                RemoveMount {
+                    symbol: SYSTEM.to_string(),
+                },
+            )
+            .await;
+    }
+}
 // #[test]
 // #[serial]
 // async fn get_systems() {
