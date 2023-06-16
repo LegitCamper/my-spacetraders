@@ -1,8 +1,4 @@
-use interface::{
-    enum_to_string, enums, parse_waypoint, requests,
-    responses::{contracts, systems},
-    SpaceTradersHandler,
-};
+use interface::{enums, parse_waypoint, requests, responses::contracts, SpaceTradersHandler};
 
 use crate::enums::ShipType;
 
@@ -106,8 +102,8 @@ async fn complete_contracts(interface: &SpaceTradersHandler) {
                                 // ListContractsType::Shuttle => {}
                                 let u = interface
                                     .purchase_ship(requests::BuyShip {
-                                        shipType: enum_to_string(ship.r#type),
-                                        waypointSymbol: waypoint.symbol.clone(),
+                                        ship_type: ship.r#type,
+                                        waypoint_symbol: waypoint.symbol.clone(),
                                     })
                                     .await;
                                 println!("{:?}", u);

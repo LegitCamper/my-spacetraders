@@ -9,24 +9,27 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
-pub struct GetRegistrationL0 {
-    pub data: GetRegistrationData,
+pub struct RegisterNewAgent {
+    pub data: RegisterNewAgentData,
 }
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
-pub struct GetRegistrationData {
-    // there is more data - I only want the token
+pub struct RegisterNewAgentData {
+    pub agent: agents::Agent,
+    pub contract: contracts::Contract,
+    pub faction: factions::Faction,
+    pub ship: fleet::Ship,
     pub token: String,
 }
 
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
 pub struct Error {
-    pub error: ErrorError,
+    pub error: ErrorData,
 }
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
-pub struct ErrorError {
+pub struct ErrorData {
     pub code: u32,
     pub message: String,
 }

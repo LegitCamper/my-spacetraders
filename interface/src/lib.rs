@@ -6,14 +6,13 @@ mod tests;
 use requests::*;
 use responses::{agents, contracts, factions, fleet, systems};
 
-use convert_case::{Case, Casing};
 use get_size::GetSize;
 use random_string::generate;
 use reqwest::{
     header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
     Client,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
 use std::collections::HashMap;
 use tokio::{
@@ -208,7 +207,8 @@ impl SpaceTraders {
         }
     }
 
-    pub async fn custom_endpoint(&self, endpoint: &str, method: Method) -> String {
+    #[allow(dead_code)]
+    async fn custom_endpoint(&self, endpoint: &str, method: Method) -> String {
         match method {
             Method::Post => self
                 .client
@@ -281,13 +281,14 @@ impl SpaceTradersHandler {
             .send()
             .await
             .unwrap()
-            .json::<responses::GetRegistrationL0>()
+            .json::<responses::RegisterNewAgent>()
             .await
             .unwrap();
 
         SpaceTradersHandler::new(&registration.data.token, SpaceTradersEnv::Live).await
     }
 
+    #[allow(dead_code)]
     async fn new_testing() -> Self {
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = json!({"faction": "QUANTUM", "symbol": username});
@@ -299,7 +300,7 @@ impl SpaceTradersHandler {
             .send()
             .await
             .unwrap()
-            .json::<responses::GetRegistrationL0>()
+            .json::<responses::RegisterNewAgent>()
             .await
             .unwrap();
 
@@ -579,6 +580,274 @@ impl SpaceTradersHandler {
         )
         .unwrap()
     }
+    pub async fn get_ship_cooldown(&self, ship_symbol: &str) -> fleet::GetShipCooldown {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Get,
+                    format!("/my/ships/{}/cooldown", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn dock_ship(&self, ship_symbol: &str) -> fleet::DockShip {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/dock", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn create_survey(&self, ship_symbol: &str) -> fleet::CreateSurvey {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/survey", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn extract_resources(&self, ship_symbol: &str) -> fleet::ExtractResources {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/extract", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn jettison_cargo(&self, ship_symbol: &str) -> fleet::JettisonCargo {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/jettison", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn jump_ship(&self, ship_symbol: &str, data: requests::JumpShip) -> fleet::JumpShip {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/jump", ship_symbol),
+                    Some(self.make_json(data)),
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn navigate_ship(
+        &self,
+        ship_symbol: &str,
+        data: requests::NavigateShip,
+    ) -> fleet::NavigateShip {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/navigate", ship_symbol),
+                    Some(self.make_json(data)),
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn patch_ship_nav(
+        &self,
+        ship_symbol: &str,
+        data: requests::PatchShipNav,
+    ) -> fleet::PatchShipNav {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Patch,
+                    format!("/my/ships/{}/nav", ship_symbol),
+                    Some(self.make_json(data)),
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn get_ship_nav(&self, ship_symbol: &str) -> fleet::GetShipNav {
+        serde_json::from_str(
+            &self
+                .make_request(Method::Get, format!("/my/ships/{}/nav", ship_symbol), None)
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn warp_ship(&self, ship_symbol: &str) -> fleet::WarpShip {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/warp", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn sell_cargo(
+        &self,
+        ship_symbol: &str,
+        data: requests::WarpShip,
+    ) -> fleet::SellCargo {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/sell", ship_symbol),
+                    Some(self.make_json(data)),
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn scan_systems(&self, ship_symbol: &str) -> fleet::ScanSystems {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/scan/systems", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn scan_waypoints(&self, ship_symbol: &str) -> fleet::ScanWaypoints {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/scan/waypoints", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn scan_ships(&self, ship_symbol: &str) -> fleet::ScanShips {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/scan/ships", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn refuel_ship(&self, ship_symbol: &str) -> fleet::RefuelShip {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/refuel", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn purchase_cargo(&self, ship_symbol: &str) -> fleet::PurchaseCargo {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/purchase", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn transfer_cargo(&self, ship_symbol: &str) -> fleet::TransferCargo {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/transfer", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn negotiate_contract(&self, ship_symbol: &str) -> fleet::NegotiateContract {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/negotiate/contract", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn get_mounts(&self, ship_symbol: &str) -> fleet::GetMounts {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Get,
+                    format!("/my/ships/{}/negotiate/mounts", ship_symbol),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn install_mount(
+        &self,
+        ship_symbol: &str,
+        data: requests::InstallMount,
+    ) -> fleet::InstallMounts {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/negotiate/mounts/install", ship_symbol),
+                    Some(self.make_json(data)),
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn remove_mount(
+        &self,
+        ship_symbol: &str,
+        data: requests::RemoveMount,
+    ) -> fleet::RemoveMounts {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/negotiate/mounts/remove", ship_symbol),
+                    Some(self.make_json(data)),
+                )
+                .await,
+        )
+        .unwrap()
+    }
 
     // Factions
     pub async fn list_factions(&self) -> factions::Factions {
@@ -613,13 +882,12 @@ pub struct ChannelMessage {
 }
 
 // Other helpful functions
-
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct Coordinates {
-    x: f64,
-    y: f64,
-}
+// #[derive(Debug)]
+// enum WaypointKind {
+//     Sector(String, String),
+//     System(String),
+//     Waypoint(String, String, String),
+// }
 
 pub fn parse_waypoint(waypoint: &str) -> Waypoint {
     let waypoint_split: Vec<&str> = waypoint.split('-').collect();
@@ -628,15 +896,16 @@ pub fn parse_waypoint(waypoint: &str) -> Waypoint {
         system: format!("{}-{}", waypoint_split[0], waypoint_split[1]), // X1-DF55
         waypoint: waypoint.to_string(),        // X1-DF55-20250Z
     }
-}
-
+} // TODO
 #[derive(Debug)]
 pub struct Waypoint {
     pub sector: String,
     pub system: String,
     pub waypoint: String,
 }
-
-pub fn enum_to_string<T: std::fmt::Display>(name: T) -> String {
-    name.to_string().to_case(Case::UpperSnake)
+impl<'de> serde::Deserialize<'de> for Waypoint {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(d)?;
+        Ok(parse_waypoint(&s))
+    }
 }

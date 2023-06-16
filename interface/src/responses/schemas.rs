@@ -250,7 +250,7 @@ pub struct ScannedSystem {
 #[derive(Deserialize, Debug)]
 pub struct ScannedWaypoint {
     #[serde(alias = "systemSymbol")]
-    pub system_symbol: String,
+    pub system_symbol: Waypoint,
     pub symbol: String,
     pub r#type: enums::WaypointType,
     pub x: i32,
@@ -405,7 +405,7 @@ pub struct ShipNav {
     #[serde(alias = "systemSymbol")]
     pub system_symbol: String,
     #[serde(alias = "waypointSymbol")]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: Waypoint,
     pub route: ShipNavRoute,
     pub status: enums::ShipNavStatus,
     #[serde(alias = "flightMode")]
@@ -500,9 +500,10 @@ pub struct ShipyardShip {
 #[derive(Deserialize, Debug)]
 pub struct ShipyardTransaction {
     #[serde(alias = "waypointSymbol")]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: Waypoint,
     #[serde(alias = "shipSymbol")]
     pub ship_symbol: String,
+    pub price: u32,
     #[serde(alias = "agentSymbol")]
     pub agent_symbol: String,
     pub timestamp: String,

@@ -1,5 +1,4 @@
 use crate::{
-    enum_to_string,
     enums::{ShipType, TradeSymbol},
     requests::{BuyShip, ShipRefine},
     Method, SpaceTradersHandler,
@@ -49,7 +48,6 @@ async fn list_systems() {
         interface.list_systems().await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn get_systems() {
@@ -58,7 +56,6 @@ async fn get_systems() {
         interface.get_system(SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn list_waypoints() {
@@ -67,7 +64,6 @@ async fn list_waypoints() {
         interface.list_waypoints(SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn get_waypoint() {
@@ -76,7 +72,6 @@ async fn get_waypoint() {
         interface.get_waypoint(SYSTEM, SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn get_market() {
@@ -85,7 +80,6 @@ async fn get_market() {
         interface.get_market(SYSTEM, SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn get_shipyard() {
@@ -94,7 +88,6 @@ async fn get_shipyard() {
         interface.get_shipyard(SYSTEM, SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn get_jump_gate() {
@@ -112,7 +105,6 @@ async fn list_contracts() {
         interface.list_contracts().await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn get_contract() {
@@ -121,7 +113,6 @@ async fn get_contract() {
         interface.get_contract(SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn accept_contracts() {
@@ -130,7 +121,6 @@ async fn accept_contracts() {
         interface.accept_contract(SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn deliver_contract() {
@@ -139,7 +129,6 @@ async fn deliver_contract() {
         interface.deliver_contract(SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn fulfill_contract() {
@@ -157,7 +146,6 @@ async fn list_factions() {
         interface.list_factions().await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn get_faction() {
@@ -175,7 +163,6 @@ async fn list_ships() {
         interface.list_ships().await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn purchase_ship() {
@@ -183,13 +170,12 @@ async fn purchase_ship() {
     for _ in 0..TIMES_TO_RUN {
         interface
             .purchase_ship(BuyShip {
-                waypointSymbol: SYSTEM.to_string(),
-                shipType: enum_to_string(ShipType::ShipMiningDrone),
+                waypoint_symbol: SYSTEM.to_string(),
+                ship_type: ShipType::ShipMiningDrone,
             })
             .await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn get_ship() {
@@ -198,7 +184,6 @@ async fn get_ship() {
         interface.get_ship(SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn get_ship_cargo() {
@@ -207,7 +192,6 @@ async fn get_ship_cargo() {
         interface.get_ship_cargo(SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn orbit_ship() {
@@ -216,7 +200,6 @@ async fn orbit_ship() {
         interface.orbit_ship(SYSTEM).await;
     }
 }
-
 #[tokio::test]
 // #[serial]
 async fn ship_refine() {
@@ -232,15 +215,14 @@ async fn ship_refine() {
             .await;
     }
 }
-
-// #[tokio::test]
-// // #[serial]
-// fn create_chart() {
-//     let interface = SpaceTradersHandler::new_testing().await;
-//     for _ in 0..TIMES_TO_RUN {
-//         interface.create_chart("").await;
-//     }
-// }
+#[tokio::test]
+// #[serial]
+async fn create_chart() {
+    let interface = SpaceTradersHandler::new_testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        interface.create_chart(SYSTEM).await;
+    }
+}
 
 // #[test]
 // #[serial]
