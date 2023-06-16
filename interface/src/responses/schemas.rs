@@ -1,15 +1,19 @@
 use crate::enums;
 use serde::Deserialize;
 
+// TODO: use chrono to deserialize string to datetime
+// TODO: deserialize faction symbol to FactionSymbol enum
+// TODO: desetialize wapoints into custom struct
+
 #[derive(Deserialize, Debug)]
 pub struct Agent {
     #[serde(alias = "accountId")]
     pub account_id: String,
     pub symbol: String,
     pub headquarters: String,
-    pub credits: i64,
+    pub credits: f64,
     #[serde(alias = "startingFaction")]
-    pub starting_faction: String,
+    pub starting_faction: String, // enums::FactionSymbols,
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -32,7 +36,7 @@ pub struct ConnectedSystem {
     pub sector_symbol: String,
     pub r#typ: enums::SystemType,
     #[serde(alias = "factionSymbol")]
-    pub faction_symbol: String,
+    pub faction_symbol: String, // enums::FactionSymbols,
     pub x: i32,
     pub y: i32,
     pub distance: f64,
@@ -42,7 +46,7 @@ pub struct ConnectedSystem {
 pub struct Contract {
     pub id: String,
     #[serde(alias = "factionSymbol")]
-    pub faction_symbol: String,
+    pub faction_symbol: String, // enums::FactionSymbols,
     pub r#type: enums::ListContractsType,
     pub terms: ContractTerms,
     pub accepted: bool,
@@ -61,19 +65,19 @@ pub struct ContractDeliverGood {
     pub trade_symbol: enums::TradeSymbol,
     #[serde(alias = "destinationSymbol")]
     pub destination_symbol: String,
-    #[serde(alias = "unitesRequired")]
-    pub units_required: u64,
+    #[serde(alias = "unitsRequired")]
+    pub units_required: i64,
     #[serde(alias = "unitsFulfilled")]
-    pub units_fulfilled: u64,
+    pub units_fulfilled: i64,
 }
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ContractPayment {
     #[serde(alias = "onAccepted")]
-    pub on_accepted: u64,
+    pub on_accepted: i64,
     #[serde(alias = "onFulfilled")]
-    pub on_fulfilled: u64,
+    pub on_fulfilled: i64,
 }
 
 #[allow(dead_code)]
@@ -116,7 +120,7 @@ pub struct ExtractionYield {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Faction {
-    pub symbol: enums::FactionSymbols,
+    pub symbol: String, // enums::FactionSymbols,
     pub name: String,
     // description: String,
     pub headquarters: String,
@@ -140,7 +144,7 @@ pub struct JumpGate {
     pub jump_range: f64,
     #[serde(alias = "factionSymbol")]
     #[serde(default)]
-    pub faction_symbol: enums::FactionSymbols, // this fails in tests, but is okay //TODO: see if fixed - issue on discord
+    pub faction_symbol: String, // enums::FactionSymbols, // this fails in tests, but is okay //TODO: see if fixed - issue on discord
     #[serde(alias = "connectedSystems")]
     pub connected_systems: Vec<JumpGateConnectedSystems>,
 }
@@ -154,7 +158,7 @@ pub struct JumpGateConnectedSystems {
     pub r#type: enums::SystemType,
     #[serde(default)]
     #[serde(alias = "factionSymbol")]
-    pub faction_symbol: String,
+    pub faction_symbol: String, // enums::FactionSymbols,
     pub x: i32,
     pub y: i32,
     pub distance: i32,
@@ -250,7 +254,7 @@ pub struct ScannedSystem {
 #[derive(Deserialize, Debug)]
 pub struct ScannedWaypoint {
     #[serde(alias = "systemSymbol")]
-    pub system_symbol: Waypoint,
+    pub system_symbol: String,
     pub symbol: String,
     pub r#type: enums::WaypointType,
     pub x: i32,
@@ -269,7 +273,7 @@ pub struct ScannedWaypointOrbitals {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ScannedWaypointFaction {
-    pub symbol: enums::FactionSymbols,
+    pub symbol: String, // enums::FactionSymbols,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -359,15 +363,15 @@ pub struct ShipFrame {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
 pub struct ShipFuel {
     pub current: u32,
     pub capacity: u32,
-    // #[serde(default)]
+    #[serde(default)]
     pub consumed: ShipFuelConsumed,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
 pub struct ShipFuelConsumed {
     pub amount: u32,
     pub timestamp: String, // datetime
@@ -405,7 +409,7 @@ pub struct ShipNav {
     #[serde(alias = "systemSymbol")]
     pub system_symbol: String,
     #[serde(alias = "waypointSymbol")]
-    pub waypoint_symbol: Waypoint,
+    pub waypoint_symbol: String,
     pub route: ShipNavRoute,
     pub status: enums::ShipNavStatus,
     #[serde(alias = "flightMode")]
@@ -449,7 +453,7 @@ pub struct ShipReactor {
 pub struct ShipRegistration {
     pub name: String,
     #[serde(alias = "factionSymbol")]
-    pub faction_symbol: String,
+    pub faction_symbol: String, // enums::FactionSymbols,
     pub role: enums::ShipRole,
 }
 
@@ -500,7 +504,7 @@ pub struct ShipyardShip {
 #[derive(Deserialize, Debug)]
 pub struct ShipyardTransaction {
     #[serde(alias = "waypointSymbol")]
-    pub waypoint_symbol: Waypoint,
+    pub waypoint_symbol: String,
     #[serde(alias = "shipSymbol")]
     pub ship_symbol: String,
     pub price: u32,
@@ -541,7 +545,7 @@ pub struct System {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct SystemFaction {
-    pub symbol: enums::FactionSymbols,
+    pub symbol: String, // enums::FactionSymbols,
 }
 
 #[allow(dead_code)]

@@ -199,6 +199,7 @@ impl SpaceTraders {
                         error, url, self.credentials
                     );
                 } else {
+                    println!("response error: {}", response);
                     response
                 }
             }

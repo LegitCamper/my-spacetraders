@@ -15,10 +15,10 @@ pub struct RegisterNewAgent {
 #[derive(Deserialize, Debug)]
 #[allow(dead_code)]
 pub struct RegisterNewAgentData {
-    pub agent: agents::Agent,
-    pub contract: contracts::Contract,
-    pub faction: factions::Faction,
-    pub ship: fleet::Ship,
+    pub agent: schemas::Agent,
+    pub contract: schemas::Contract,
+    pub faction: schemas::Faction,
+    pub ship: schemas::Ship,
     pub token: String,
 }
 
