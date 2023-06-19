@@ -42,7 +42,7 @@ pub struct ConnectedSystem {
     pub distance: f64,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Contract {
     pub id: String,
     #[serde(alias = "factionSymbol")]
@@ -59,7 +59,7 @@ pub struct Contract {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ContractDeliverGood {
     #[serde(alias = "tradeSymbol")]
     pub trade_symbol: enums::TradeSymbol,
@@ -72,7 +72,7 @@ pub struct ContractDeliverGood {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ContractPayment {
     #[serde(alias = "onAccepted")]
     pub on_accepted: i64,
@@ -81,7 +81,7 @@ pub struct ContractPayment {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ContractTerms {
     pub deadline: String, // datetime
     pub payment: ContractPayment,

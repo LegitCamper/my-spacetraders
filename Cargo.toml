@@ -1,5 +1,6 @@
 [workspace]
 members = [
-    "interface",
+    "spacetraders",
     "automation",
+    "interface"
 ]

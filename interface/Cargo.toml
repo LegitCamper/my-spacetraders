@@ -1,18 +1,13 @@
 [package]
 name = "interface"
 version = "0.1.0"
-edition = "2021"
+authors = ["sawyer bristol <sawyerbristol@gmail.com>"]
+edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.28.0", features = ["full"] }
-reqwest = { version = "0.11.17", features = ["json", "serde_json"] }
-serde = { version = "1.0.162", features = ["derive"] }
-chrono = { version = "0.4.24", features = ["serde"] }
-url = "2.3.1"
-serde_json = "1.0"
-random-string = "1.0.0"
-convert_case = "0.6.0"
-get-size = "0.1.3"
-serial_test = "2.0.0"
+spacetraders = { path = "../spacetraders" }
+automation = { path = "../automation" }
+clap = "3.2.25"
+tokio = "1.28.2"
