@@ -132,7 +132,7 @@ pub struct Faction {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct FactionTrait {
-    pub symbol: enums::WaypointTrait,
+    pub symbol: enums::FactionTrait,
     pub name: String,
     // description: String,
 }
@@ -442,6 +442,7 @@ pub struct ShipReactor {
     pub symbol: enums::ShipReactor,
     pub name: String,
     // description: String,
+    #[serde(default)]
     pub condition: u32,
     #[serde(alias = "powerOutput")]
     pub power_output: u32,

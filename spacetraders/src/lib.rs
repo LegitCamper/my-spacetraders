@@ -6,8 +6,8 @@ mod tests;
 use requests::*;
 use responses::{agents, contracts, factions, fleet, systems};
 
+use core::panic;
 use get_size::GetSize;
-use once_cell::sync::OnceCell;
 use random_string::generate;
 use reqwest::{
     header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use tokio::{
     sync::{mpsc, oneshot},
     task,
-    time::{sleep, Duration},
+    time::{interval, sleep, Duration},
 };
 use url::Url;
 
@@ -233,13 +233,15 @@ impl SpaceTraders {
 
         let (channel_sender, mut channel_receiver) = mpsc::channel(10000);
 
-        let singleton = SpaceTraders {
+        let mut interval = interval(Duration::from_millis(500));
+
+        SpaceTraders {
             interface: space_trader.clone(),
-            channel: channel_sender,
+            channel: channel_sender.clone(),
             task: task::spawn(async move {
-                loop {
-                    sleep(Duration::from_millis(500)).await; // only 2 requests per second
-                    let msg = channel_receiver.recv().await.unwrap();
+                while let Some(msg) = channel_receiver.recv().await {
+                    interval.tick().await; // avoids rate limiting
+                    eprintln!("Got new message");
                     msg.oneshot
                         .send(
                             space_trader
@@ -252,10 +254,9 @@ impl SpaceTraders {
                         )
                         .unwrap();
                 }
+                println!("Channel closed")
             }),
-        };
-        // OnceCell::with_value(singleton)
-        singleton
+        }
     }
 
     pub async fn default() -> Self {
@@ -294,9 +295,7 @@ impl SpaceTraders {
             .await
             .unwrap();
 
-        // OnceCell::with_value(
         SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Mock).await
-        // )
     }
 
     pub fn diagnose(&self) {
@@ -317,17 +316,21 @@ impl SpaceTraders {
         url: String,
         data: Option<HashMap<String, String>>,
     ) -> String {
-        // make oneshot channel
         let (oneshot_sender, oneshot_receiver) = oneshot::channel();
 
         // make request
-        self.channel
+        match self
+            .channel
             .send(ChannelMessage {
                 message: RequestMessage { method, url, data },
                 oneshot: oneshot_sender,
             })
             .await
-            .unwrap(); //.await.unwrap();
+        {
+            Err(r) => panic!("closed: {}", r),
+            Ok(s) => s,
+        }
+        // .unwrap();
 
         // listen to oneshot for response
         match oneshot_receiver.await {
