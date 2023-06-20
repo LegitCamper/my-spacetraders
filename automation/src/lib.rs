@@ -1,8 +1,8 @@
-use spacetraders::{enums, parse_waypoint, requests, responses::contracts, SpaceTradersHandler};
+use spacetraders::{enums, parse_waypoint, requests, responses::contracts, SpaceTraders};
 
-pub async fn automate(interface: SpaceTradersHandler) {
+pub async fn automate(interface: SpaceTraders) {
     // loop {
-    
+
     // 1) check for accepted contracts
     let contracts = interface.list_contracts().await.data;
 

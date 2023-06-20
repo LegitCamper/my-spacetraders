@@ -3,6 +3,6 @@ use spacetraders;
 
 #[tokio::main]
 async fn main() {
-    let interface = spacetraders::SpaceTradersHandler::default().await;  
+    let interface = spacetraders::SpaceTraders::default().await;
     automation::automate(interface).await;
 }

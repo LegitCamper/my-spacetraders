@@ -7,6 +7,7 @@ use requests::*;
 use responses::{agents, contracts, factions, fleet, systems};
 
 use get_size::GetSize;
+use once_cell::sync::OnceCell;
 use random_string::generate;
 use reqwest::{
     header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
@@ -25,8 +26,6 @@ use url::Url;
 const LIVEURL: &str = "https://api.spacetraders.io/v2";
 const MOCKURL: &str = "https://stoplight.io/mocks/spacetraders/spacetraders/96627693";
 
-// use self::responses::factions::{Faction, Factions};
-
 // TODO: better error handling
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Error {
@@ -41,19 +40,6 @@ pub enum Method {
     // Delete,
 }
 
-#[derive(Debug, Clone)]
-pub struct Credentials {
-    pub token: String,
-}
-
-impl Credentials {
-    pub fn new(token: &str) -> Self {
-        Credentials {
-            token: String::from(token),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum SpaceTradersEnv {
     Live,
@@ -61,22 +47,22 @@ pub enum SpaceTradersEnv {
 }
 
 #[derive(Debug, Clone)]
-struct SpaceTraders {
-    credentials: Credentials,
-    client: Client,
-    url: String,
-    enviroment: SpaceTradersEnv,
+pub struct SpaceTradersInterface {
+    token: String,
+    pub client: Client,
+    pub url: String,
+    pub enviroment: SpaceTradersEnv,
 }
 
-impl SpaceTraders {
-    pub fn new(credentials: Credentials, enviroment: SpaceTradersEnv) -> Self {
+impl SpaceTradersInterface {
+    pub fn new(token: String, enviroment: SpaceTradersEnv) -> Self {
         let url = match enviroment {
             SpaceTradersEnv::Live => LIVEURL,
             SpaceTradersEnv::Mock => MOCKURL,
         };
 
-        SpaceTraders {
-            credentials,
+        SpaceTradersInterface {
+            token,
             client: reqwest::Client::new(),
             url: String::from(url),
             enviroment,
@@ -87,8 +73,7 @@ impl SpaceTraders {
         let mut headers = HeaderMap::with_capacity(4);
         headers.insert(
             AUTHORIZATION,
-            HeaderValue::from_bytes(format!("Bearer {}", self.credentials.token).as_bytes())
-                .unwrap(),
+            HeaderValue::from_bytes(format!("Bearer {}", self.token).as_bytes()).unwrap(),
         );
         headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
         headers.insert(ACCEPT, "application/json".parse().unwrap());
@@ -108,7 +93,7 @@ impl SpaceTraders {
         Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
 
-    pub async fn make_reqwest(
+    async fn make_reqwest(
         &self,
         method: Method,
         url: &str,
@@ -196,7 +181,7 @@ impl SpaceTraders {
                 if let Ok(error) = error {
                     panic!(
                         "\nerror: {:?}\nurl: {}\ncreds: {:?}\n",
-                        error, url, self.credentials
+                        error, url, self.token
                     );
                 } else {
                     println!("response error: {}", response);
@@ -235,21 +220,21 @@ impl SpaceTraders {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
-pub struct SpaceTradersHandler {
-    info: SpaceTraders,
-    channel: mpsc::Sender<ChannelMessage>,
-    task: task::JoinHandle<()>,
+pub struct SpaceTraders {
+    pub interface: SpaceTradersInterface,
+    pub channel: mpsc::Sender<ChannelMessage>,
+    pub task: task::JoinHandle<()>,
 }
 
-impl SpaceTradersHandler {
+impl SpaceTraders {
     pub async fn new(token: &str, enviroment: SpaceTradersEnv) -> Self {
-        let space_trader = SpaceTraders::new(Credentials::new(token), enviroment);
+        //OnceCell<Self>
+        let space_trader = SpaceTradersInterface::new(token.to_string(), enviroment);
 
-        let (channel_sender, mut channel_receiver) = mpsc::channel(500);
+        let (channel_sender, mut channel_receiver) = mpsc::channel(10000);
 
-        SpaceTradersHandler {
-            info: space_trader.clone(),
+        let singleton = SpaceTraders {
+            interface: space_trader.clone(),
             channel: channel_sender,
             task: task::spawn(async move {
                 loop {
@@ -268,10 +253,13 @@ impl SpaceTradersHandler {
                         .unwrap();
                 }
             }),
-        }
+        };
+        // OnceCell::with_value(singleton)
+        singleton
     }
 
     pub async fn default() -> Self {
+        //OnceCell<Self>
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = json!({"faction": "QUANTUM", "symbol": username});
 
@@ -286,11 +274,12 @@ impl SpaceTradersHandler {
             .await
             .unwrap();
 
-        SpaceTradersHandler::new(&registration.data.token, SpaceTradersEnv::Live).await
+        SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Live).await
     }
 
     #[allow(dead_code)]
     async fn new_testing() -> Self {
+        //OnceCell<Self>
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = json!({"faction": "QUANTUM", "symbol": username});
 
@@ -305,13 +294,15 @@ impl SpaceTradersHandler {
             .await
             .unwrap();
 
-        SpaceTradersHandler::new(&registration.data.token, SpaceTradersEnv::Mock).await
+        // OnceCell::with_value(
+        SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Mock).await
+        // )
     }
 
     pub fn diagnose(&self) {
         panic!(
             "\ntoken: {}\nurl: {}\nenviroment: {:#?}",
-            self.info.credentials.token, self.info.url, self.info.enviroment
+            self.interface.token, self.interface.url, self.interface.enviroment
         )
     }
 
