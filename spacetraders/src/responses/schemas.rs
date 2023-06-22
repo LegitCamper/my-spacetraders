@@ -1,9 +1,18 @@
-use crate::enums;
-use serde::Deserialize;
+use crate::enums::{self, TradeSymbol};
 
-// TODO: use chrono to deserialize string to datetime
+// use bson::serde_helpers::chrono_datetime_as_bson_datetime;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Deserializer};
+
 // TODO: deserialize faction symbol to FactionSymbol enum
 // TODO: desetialize wapoints into custom struct
+
+fn skip_trade_symbol<'de, D>(de: D) -> Result<Option<enums::TradeSymbol>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(TradeSymbol::deserialize(de).ok())
+}
 
 #[derive(Deserialize, Debug)]
 pub struct Agent {
@@ -26,7 +35,8 @@ pub struct Chart {
     pub submitted_by: String,
     #[serde(alias = "submittedOn")]
     #[serde(default)]
-    pub submitted_on: String, // datetime
+    // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    pub submitted_on: DateTime<Utc>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -55,14 +65,15 @@ pub struct Contract {
     pub expiration: String,
     #[serde(default)]
     #[serde(alias = "deadlineToAccept")]
-    pub deadline_to_accept: String, // datetime
+    // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    pub deadline_to_accept: DateTime<Utc>,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Clone, Debug)]
 pub struct ContractDeliverGood {
     #[serde(alias = "tradeSymbol")]
-    pub trade_symbol: enums::TradeSymbol,
+    #[serde(deserialize_with = "skip_trade_symbol")]
+    pub trade_symbol: Option<enums::TradeSymbol>,
     #[serde(alias = "destinationSymbol")]
     pub destination_symbol: String,
     #[serde(alias = "unitsRequired")]
@@ -71,7 +82,6 @@ pub struct ContractDeliverGood {
     pub units_fulfilled: i64,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Clone, Debug)]
 pub struct ContractPayment {
     #[serde(alias = "onAccepted")]
@@ -80,16 +90,15 @@ pub struct ContractPayment {
     pub on_fulfilled: i64,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Clone, Debug)]
 pub struct ContractTerms {
-    pub deadline: String, // datetime
+    // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    pub deadline: DateTime<Utc>,
     pub payment: ContractPayment,
     #[serde(default)]
     pub deliver: Vec<ContractDeliverGood>,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Cooldown {
     #[serde(alias = "shipSymbol")]
@@ -99,10 +108,10 @@ pub struct Cooldown {
     #[serde(alias = "remainingSeconds")]
     pub remaining_seconds: u32,
     #[serde(default)]
-    pub expiration: String, // datetime
+    // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    pub expiration: DateTime<Utc>,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Extraction {
     #[serde(alias = "shipSymbol")]
@@ -110,14 +119,12 @@ pub struct Extraction {
     pub r#yield: ExtractionYield,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ExtractionYield {
     pub symbol: enums::TradeSymbol,
     pub units: u32,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Faction {
     pub symbol: String, // enums::FactionSymbols,
@@ -129,7 +136,6 @@ pub struct Faction {
     pub is_recruiting: bool,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct FactionTrait {
     pub symbol: enums::FactionTrait,
@@ -137,7 +143,6 @@ pub struct FactionTrait {
     // description: String,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Default, Debug)]
 pub struct JumpGate {
     #[serde(alias = "jumpRange")]
@@ -148,7 +153,6 @@ pub struct JumpGate {
     #[serde(alias = "connectedSystems")]
     pub connected_systems: Vec<JumpGateConnectedSystems>,
 }
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct JumpGateConnectedSystems {
     pub symbol: String,
@@ -164,7 +168,6 @@ pub struct JumpGateConnectedSystems {
     pub distance: i32,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Market {
     pub symbol: String,
@@ -175,7 +178,6 @@ pub struct Market {
     #[serde(alias = "tradeGoods")]
     pub trade_goods: Vec<GetMarketTradeGood>,
 }
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct MarketDetails {
     pub symbol: enums::TradeSymbol,
@@ -183,7 +185,6 @@ pub struct MarketDetails {
     // pub description: String,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetMarketTradeGood {
     pub symbol: String,
@@ -196,7 +197,6 @@ pub struct GetMarketTradeGood {
     pub sell_price: u32,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct MarketTransaction {
     #[serde(alias = "waypointSymbol")]
@@ -211,10 +211,10 @@ pub struct MarketTransaction {
     pub price_per_unit: u32,
     #[serde(alias = "totalPrice")]
     pub total_price: u32,
-    pub timestamp: String, // datetime
+    // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    pub timestamp: DateTime<Utc>,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Meta {
     pub total: u32,
@@ -222,7 +222,6 @@ pub struct Meta {
     pub limit: u32,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ScannedShip {
     pub symbol: String,
@@ -238,7 +237,6 @@ pub struct ScannedShip {
     pub fuel: ShipFuel,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ScannedSystem {
     pub symbol: String,
@@ -250,7 +248,6 @@ pub struct ScannedSystem {
     pub distance: u32,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ScannedWaypoint {
     #[serde(alias = "systemSymbol")]
@@ -265,17 +262,14 @@ pub struct ScannedWaypoint {
     pub chart: Chart,
     pub faction: SystemFaction,
 }
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ScannedWaypointOrbitals {
     pub symbol: String,
 }
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ScannedWaypointFaction {
     pub symbol: String, // enums::FactionSymbols,
 }
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ScannedWaypointTrait {
     pub symbol: enums::WaypointTrait,
@@ -283,8 +277,7 @@ pub struct ScannedWaypointTrait {
     // pub description: String,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Ship {
     pub symbol: String,
     pub registration: ShipRegistration,
@@ -299,16 +292,14 @@ pub struct Ship {
     pub fuel: ShipFuel,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipCargo {
     pub capacity: u32,
     pub units: u32,
     pub inventory: Vec<ShipCargoItem>,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipCargoItem {
     pub symbol: String,
     pub name: String,
@@ -316,14 +307,12 @@ pub struct ShipCargoItem {
     pub units: u32,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ShipCargoCondition {
     pub condition: u32,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipCrew {
     pub current: i32,
     pub required: i32,
@@ -333,8 +322,7 @@ pub struct ShipCrew {
     pub wages: u32,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipEngine {
     pub symbol: enums::ShipEngine,
     pub name: String,
@@ -345,8 +333,7 @@ pub struct ShipEngine {
     pub requirements: ShipRequirements,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipFrame {
     pub symbol: enums::ShipFrame,
     pub name: String,
@@ -362,23 +349,21 @@ pub struct ShipFrame {
     pub requirements: ShipRequirements,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Clone, Debug)]
 pub struct ShipFuel {
     pub current: u32,
     pub capacity: u32,
     #[serde(default)]
     pub consumed: ShipFuelConsumed,
 }
-#[allow(dead_code)]
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Clone, Debug)]
 pub struct ShipFuelConsumed {
     pub amount: u32,
-    pub timestamp: String, // datetime
+    // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    pub timestamp: DateTime<Utc>,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipModule {
     pub symbol: enums::ShipModule,
     // description: String,
@@ -390,8 +375,7 @@ pub struct ShipModule {
     pub requirements: ShipRequirements,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipMount {
     pub symbol: enums::ShipMount,
     pub name: String,
@@ -403,8 +387,7 @@ pub struct ShipMount {
     pub requirements: ShipRequirements,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipNav {
     #[serde(alias = "systemSymbol")]
     pub system_symbol: String,
@@ -416,17 +399,17 @@ pub struct ShipNav {
     pub flight_mode: enums::FlightMode,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipNavRoute {
     pub destination: ShipNavRouteWaypoint,
     pub departure: ShipNavRouteWaypoint,
     #[serde(alias = "departureTime")]
-    pub departure_time: String, // datetime
-    pub arrival: String, // datetime
+    // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    pub departure_time: DateTime<Utc>,
+    // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    pub arrival: DateTime<Utc>,
 }
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipNavRouteWaypoint {
     pub symbol: String,
     pub r#type: enums::WaypointType,
@@ -436,8 +419,7 @@ pub struct ShipNavRouteWaypoint {
     pub y: i32,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipReactor {
     pub symbol: enums::ShipReactor,
     pub name: String,
@@ -449,8 +431,7 @@ pub struct ShipReactor {
     pub requirements: ShipRequirements,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipRegistration {
     pub name: String,
     #[serde(alias = "factionSymbol")]
@@ -458,8 +439,7 @@ pub struct ShipRegistration {
     pub role: enums::ShipRole,
 }
 
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ShipRequirements {
     #[serde(default)]
     pub power: i32,
@@ -469,7 +449,6 @@ pub struct ShipRequirements {
     pub slots: i32,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Shipyard {
     pub symbol: String,
@@ -480,13 +459,11 @@ pub struct Shipyard {
     #[serde(default)]
     pub ships: Vec<ShipyardShip>,
 }
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ShipyardTypes {
     pub r#type: enums::ShipType,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ShipyardShip {
     pub r#type: enums::ShipType,
@@ -501,7 +478,6 @@ pub struct ShipyardShip {
     pub mounts: Vec<ShipMount>,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ShipyardTransaction {
     #[serde(alias = "waypointSymbol")]
@@ -514,23 +490,21 @@ pub struct ShipyardTransaction {
     pub timestamp: String,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Survey {
     pub signature: String,
     pub symbol: String,
     pub deposits: Vec<SurveyDeposit>,
-    pub experation: String, // datetime
+    // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    pub expiration: DateTime<Utc>,
     pub size: enums::DepositSize,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct SurveyDeposit {
     pub symbol: String, // maybe change to enum TradeSymbol
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct System {
     pub symbol: String,
@@ -543,13 +517,11 @@ pub struct System {
     pub factions: Vec<SystemFaction>,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct SystemFaction {
     pub symbol: String, // enums::FactionSymbols,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct SystemWaypoint {
     pub symbol: String,
@@ -558,7 +530,6 @@ pub struct SystemWaypoint {
     pub y: i32,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct TradeGoods {
     pub symbol: enums::TradeSymbol,
@@ -566,7 +537,6 @@ pub struct TradeGoods {
     // descripton
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Waypoint {
     #[serde(alias = "systemSymbol")]
@@ -582,7 +552,6 @@ pub struct Waypoint {
     pub faction: SystemFaction,
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct WaypointOrbital {
     pub symbol: String,

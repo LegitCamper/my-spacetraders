@@ -11,7 +11,7 @@ use get_size::GetSize;
 use random_string::generate;
 use reqwest::{
     header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
-    Client,
+    Client, //blocking::Client
 };
 use serde::Serialize;
 use serde_json::json;
@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use tokio::{
     sync::{mpsc, oneshot},
     task,
-    time::{interval, sleep, Duration},
+    time::{interval, Duration},
 };
 use url::Url;
 
@@ -63,7 +63,7 @@ impl SpaceTradersInterface {
 
         SpaceTradersInterface {
             token,
-            client: reqwest::Client::new(),
+            client: Client::new(),
             url: String::from(url),
             enviroment,
         }
@@ -228,7 +228,6 @@ pub struct SpaceTraders {
 
 impl SpaceTraders {
     pub async fn new(token: &str, enviroment: SpaceTradersEnv) -> Self {
-        //OnceCell<Self>
         let space_trader = SpaceTradersInterface::new(token.to_string(), enviroment);
 
         let (channel_sender, mut channel_receiver) = mpsc::channel(10000);
@@ -241,7 +240,6 @@ impl SpaceTraders {
             task: task::spawn(async move {
                 while let Some(msg) = channel_receiver.recv().await {
                     interval.tick().await; // avoids rate limiting
-                    eprintln!("Got new message");
                     msg.oneshot
                         .send(
                             space_trader
@@ -254,17 +252,15 @@ impl SpaceTraders {
                         )
                         .unwrap();
                 }
-                println!("Channel closed")
             }),
         }
     }
 
     pub async fn default() -> Self {
-        //OnceCell<Self>
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = json!({"faction": "QUANTUM", "symbol": username});
 
-        let registration = reqwest::Client::new()
+        let registration = Client::new()
             .post(&format!("{}/register", LIVEURL))
             .header(CONTENT_LENGTH, post_message.to_string().chars().count())
             .json(&post_message)
@@ -280,11 +276,10 @@ impl SpaceTraders {
 
     #[allow(dead_code)]
     async fn new_testing() -> Self {
-        //OnceCell<Self>
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = json!({"faction": "QUANTUM", "symbol": username});
 
-        let registration = reqwest::Client::new()
+        let registration = Client::new()
             .post(&format!("{}/register", MOCKURL))
             .header(CONTENT_LENGTH, post_message.to_string().chars().count())
             .json(&post_message)
@@ -300,14 +295,20 @@ impl SpaceTraders {
 
     pub fn diagnose(&self) {
         panic!(
-            "\ntoken: {}\nurl: {}\nenviroment: {:#?}",
-            self.interface.token, self.interface.url, self.interface.enviroment
+            "\ntoken: {}\nurl: {}\nenviroment: {:#?}, task: {:#?}, channel: {:#?}",
+            self.interface.token,
+            self.interface.url,
+            self.interface.enviroment,
+            self.task,
+            self.channel
         )
     }
 
     pub fn make_json<T: Serialize>(&self, data: T) -> HashMap<String, String> {
-        let string = serde_json::to_string(&data).unwrap();
-        serde_json::from_str(&string).unwrap()
+        // let string = serde_json::to_string(&data).unwrap();
+        // serde_json::from_str(&string).unwrap()
+        let data = serde_json::to_value(data).unwrap();
+        serde_json::from_value(data).unwrap()
     }
 
     pub async fn make_request(
@@ -476,13 +477,17 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn deliver_contract(&self, contract_id: &str) -> contracts::DeliverContract {
+    pub async fn deliver_contract(
+        &self,
+        contract_id: &str,
+        data: requests::DeliverCargoToContract,
+    ) -> contracts::DeliverContract {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
                     format!("/my/contracts/{}/deliver", contract_id),
-                    None,
+                    Some(self.make_json(data)),
                 )
                 .await,
         )

@@ -68,6 +68,6 @@ pub struct DeliverCargoToContract {
     #[serde(alias = "shipSymbol")]
     pub ship_symbol: ShipType,
     #[serde(alias = "tradeSymbol")]
-    pub trade_symbol: String,
-    pub units: String,
+    pub trade_symbol: TradeSymbol,
+    pub units: String, //i64,
 }
