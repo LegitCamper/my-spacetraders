@@ -1,8 +1,8 @@
 use crate::{
     enums::{FlightMode, ShipType, TradeSymbol},
     requests::{
-        BuyShip, InstallMount, JumpShip, NavigateShip, PatchShipNav, RemoveMount, ShipRefine,
-        WarpShip,
+        BuyShip, InstallMount, JumpShip, NavigateShip, PatchShipNav, RemoveMount, SellCargo,
+        ShipRefine, WarpShip,
     },
     Method, SpaceTraders,
 };
@@ -16,7 +16,7 @@ const SYSTEM: &str = "X1-OE";
 
 lazy_static! {
     static ref INTERFACE: AsyncOnce<SpaceTraders> =
-        AsyncOnce::new(async { SpaceTraders::new_testing().await });
+        AsyncOnce::new(async { SpaceTraders::testing().await });
 }
 
 #[tokio::test]
@@ -136,7 +136,7 @@ async fn deliver_contract() {
                 crate::requests::DeliverCargoToContract {
                     ship_symbol: ShipType::ShipProbe,
                     trade_symbol: TradeSymbol::PreciousStones,
-                    units: 1000.to_string(),
+                    units: 1000,
                 },
             )
             .await;
@@ -336,8 +336,9 @@ async fn sell_cargo() {
             .await
             .sell_cargo(
                 SYSTEM,
-                WarpShip {
-                    ship_symbol: SYSTEM.to_string(),
+                SellCargo {
+                    symbol: TradeSymbol::PreciousStones,
+                    units: 1000,
                 },
             )
             .await;

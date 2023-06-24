@@ -1,9 +1,6 @@
 use spacetraders::{
     enums, parse_waypoint, requests,
-    responses::{
-        contracts,
-        schemas::{self, ShipyardTypes},
-    },
+    responses::{contracts, schemas},
     SpaceTraders,
 };
 

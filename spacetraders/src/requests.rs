@@ -2,6 +2,22 @@ use serde::Serialize;
 
 use super::enums::{FactionSymbols, FlightMode, ShipType, TradeSymbol};
 
+#[derive(Debug, Serialize)]
+pub enum Requests {
+    RegisterNewAgent(RegisterNewAgent),
+    BuyShip(BuyShip),
+    ShipRefine(ShipRefine),
+    JettisonCargo(JettisonCargo),
+    JumpShip(JumpShip),
+    NavigateShip(NavigateShip),
+    PatchShipNav(PatchShipNav),
+    WarpShip(WarpShip),
+    SellCargo(SellCargo),
+    InstallMount(InstallMount),
+    RemoveMount(RemoveMount),
+    DeliverCargoToContract(DeliverCargoToContract),
+}
+
 #[derive(Serialize, Debug)]
 pub struct RegisterNewAgent {
     pub faction: FactionSymbols,
@@ -54,6 +70,12 @@ pub struct WarpShip {
 }
 
 #[derive(Serialize, Debug)]
+pub struct SellCargo {
+    pub symbol: TradeSymbol,
+    pub units: u32,
+}
+
+#[derive(Serialize, Debug)]
 pub struct InstallMount {
     pub symbol: String,
 }
@@ -69,5 +91,5 @@ pub struct DeliverCargoToContract {
     pub ship_symbol: ShipType,
     #[serde(alias = "tradeSymbol")]
     pub trade_symbol: TradeSymbol,
-    pub units: String, //i64,
+    pub units: i64,
 }

@@ -1,3 +1,4 @@
+use serde::Serialize;
 use spacetraders::SpaceTraders;
 mod func;
 

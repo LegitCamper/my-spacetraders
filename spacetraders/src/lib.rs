@@ -6,14 +6,11 @@ mod tests;
 use requests::*;
 use responses::{agents, contracts, factions, fleet, systems};
 
-use core::panic;
-use get_size::GetSize;
 use random_string::generate;
 use reqwest::{
-    header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
+    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
     Client, //blocking::Client
 };
-use serde::Serialize;
 use serde_json::json;
 use std::collections::HashMap;
 use tokio::{
@@ -69,19 +66,13 @@ impl SpaceTradersInterface {
         }
     }
 
-    fn get_header(&self, json: Option<HashMap<String, String>>) -> HeaderMap {
+    fn get_header(&self) -> HeaderMap {
         let mut headers = HeaderMap::with_capacity(4);
         headers.insert(
             AUTHORIZATION,
             HeaderValue::from_bytes(format!("Bearer {}", self.token).as_bytes()).unwrap(),
         );
-        headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
-        headers.insert(ACCEPT, "application/json".parse().unwrap());
-        if let Some(data) = json {
-            headers.insert(CONTENT_LENGTH, GetSize::get_heap_size(&data).into());
-        } else {
-            headers.insert(CONTENT_LENGTH, 0.into());
-        }
+        // headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
         // adds dynamic header for unit tests
         if self.enviroment == SpaceTradersEnv::Mock {
             headers.insert("Prefer", "dynamic=true".parse().unwrap());
@@ -93,83 +84,16 @@ impl SpaceTradersInterface {
         Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
 
-    async fn make_reqwest(
-        &self,
-        method: Method,
-        url: &str,
-        data: Option<HashMap<String, String>>,
-    ) -> String {
-        let response = match method {
-            Method::Get => match data {
-                Some(json) => {
-                    self.client
-                        .get(self.get_url(url))
-                        .form(&json)
-                        .headers(self.get_header(Some(json)))
-                        .send()
-                        .await
-                        .unwrap()
-                        .text()
-                        .await
-                }
-                None => {
-                    self.client
-                        .get(self.get_url(url))
-                        .headers(self.get_header(None))
-                        .send()
-                        .await
-                        .unwrap()
-                        .text()
-                        .await
-                }
-            },
+    async fn make_reqwest(&self, method: Method, url: &str, data: Option<Requests>) -> String {
+        let client = match method {
+            Method::Get => self.client.get(self.get_url(url)),
+            Method::Post => self.client.post(self.get_url(url)),
+            Method::Patch => self.client.patch(self.get_url(url)),
+        };
 
-            Method::Post => match data {
-                Some(json) => {
-                    self.client
-                        .post(self.get_url(url))
-                        .form(&json)
-                        .headers(self.get_header(Some(json)))
-                        .send()
-                        .await
-                        .unwrap()
-                        .text()
-                        .await
-                }
-                None => {
-                    self.client
-                        .post(self.get_url(url))
-                        .headers(self.get_header(None))
-                        .send()
-                        .await
-                        .unwrap()
-                        .text()
-                        .await
-                }
-            },
-            Method::Patch => match data {
-                Some(json) => {
-                    self.client
-                        .patch(self.get_url(url))
-                        .form(&json)
-                        .headers(self.get_header(Some(json)))
-                        .send()
-                        .await
-                        .unwrap()
-                        .text()
-                        .await
-                }
-                None => {
-                    self.client
-                        .patch(self.get_url(url))
-                        .headers(self.get_header(None))
-                        .send()
-                        .await
-                        .unwrap()
-                        .text()
-                        .await
-                }
-            },
+        let response = match data {
+            Some(json) => client.json(&json).send().await.unwrap().text().await,
+            None => client.send().await.unwrap().text().await,
         };
 
         match response {
@@ -195,35 +119,20 @@ impl SpaceTradersInterface {
 
     #[allow(dead_code)]
     async fn custom_endpoint(&self, endpoint: &str, method: Method) -> String {
-        match method {
-            Method::Post => self
-                .client
-                .post(&format!("{}{}", self.url, endpoint))
-                .send()
-                .await
-                .unwrap()
-                .text()
-                .await
-                .unwrap(),
-            Method::Get => self
-                .client
-                .get(&format!("{}{}", self.url, endpoint))
-                .send()
-                .await
-                .unwrap()
-                .text()
-                .await
-                .unwrap(),
+        let client = match method {
+            Method::Post => self.client.post(&format!("{}{}", self.url, endpoint)),
+            Method::Get => self.client.get(&format!("{}{}", self.url, endpoint)),
             Method::Patch => todo!(),
-        }
+        };
+        client.send().await.unwrap().text().await.unwrap()
     }
 }
 
 #[derive(Debug)]
 pub struct SpaceTraders {
-    pub interface: SpaceTradersInterface,
-    pub channel: mpsc::Sender<ChannelMessage>,
-    pub task: task::JoinHandle<()>,
+    interface: SpaceTradersInterface,
+    channel: mpsc::Sender<ChannelMessage>,
+    task: task::JoinHandle<()>,
 }
 
 impl SpaceTraders {
@@ -275,7 +184,7 @@ impl SpaceTraders {
     }
 
     #[allow(dead_code)]
-    async fn new_testing() -> Self {
+    async fn testing() -> Self {
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = json!({"faction": "QUANTUM", "symbol": username});
 
@@ -304,18 +213,11 @@ impl SpaceTraders {
         )
     }
 
-    pub fn make_json<T: Serialize>(&self, data: T) -> HashMap<String, String> {
-        // let string = serde_json::to_string(&data).unwrap();
-        // serde_json::from_str(&string).unwrap()
-        let data = serde_json::to_value(data).unwrap();
-        serde_json::from_value(data).unwrap()
-    }
-
     pub async fn make_request(
         &self,
         method: Method,
         url: String,
-        data: Option<HashMap<String, String>>,
+        data: Option<Requests>,
     ) -> String {
         let (oneshot_sender, oneshot_receiver) = oneshot::channel();
 
@@ -487,7 +389,7 @@ impl SpaceTraders {
                 .make_request(
                     Method::Post,
                     format!("/my/contracts/{}/deliver", contract_id),
-                    Some(self.make_json(data)),
+                    Some(Requests::DeliverCargoToContract(data)),
                 )
                 .await,
         )
@@ -521,7 +423,7 @@ impl SpaceTraders {
                 .make_request(
                     Method::Post,
                     String::from("/my/ships"),
-                    Some(self.make_json(data)),
+                    Some(Requests::BuyShip(data)),
                 )
                 .await,
         )
@@ -562,7 +464,7 @@ impl SpaceTraders {
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/refine", ship_symbol),
-                    Some(self.make_json(data)),
+                    Some(Requests::ShipRefine(data)),
                 )
                 .await,
         )
@@ -646,7 +548,7 @@ impl SpaceTraders {
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/jump", ship_symbol),
-                    Some(self.make_json(data)),
+                    Some(Requests::JumpShip(data)),
                 )
                 .await,
         )
@@ -662,7 +564,7 @@ impl SpaceTraders {
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/navigate", ship_symbol),
-                    Some(self.make_json(data)),
+                    Some(Requests::NavigateShip(data)),
                 )
                 .await,
         )
@@ -678,7 +580,7 @@ impl SpaceTraders {
                 .make_request(
                     Method::Patch,
                     format!("/my/ships/{}/nav", ship_symbol),
-                    Some(self.make_json(data)),
+                    Some(Requests::PatchShipNav(data)),
                 )
                 .await,
         )
@@ -707,14 +609,14 @@ impl SpaceTraders {
     pub async fn sell_cargo(
         &self,
         ship_symbol: &str,
-        data: requests::WarpShip,
+        data: requests::SellCargo,
     ) -> fleet::SellCargo {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/sell", ship_symbol),
-                    Some(self.make_json(data)),
+                    Some(Requests::SellCargo(data)),
                 )
                 .await,
         )
@@ -826,7 +728,7 @@ impl SpaceTraders {
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/negotiate/mounts/install", ship_symbol),
-                    Some(self.make_json(data)),
+                    Some(Requests::InstallMount(data)),
                 )
                 .await,
         )
@@ -842,7 +744,7 @@ impl SpaceTraders {
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/negotiate/mounts/remove", ship_symbol),
-                    Some(self.make_json(data)),
+                    Some(Requests::RemoveMount(data)),
                 )
                 .await,
         )
@@ -869,11 +771,11 @@ impl SpaceTraders {
 }
 
 // struct to handle the dataflow through channel
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct RequestMessage {
     pub method: Method,
     pub url: String,
-    pub data: Option<HashMap<String, String>>,
+    pub data: Option<Requests>,
 }
 #[derive(Debug)]
 pub struct ChannelMessage {
