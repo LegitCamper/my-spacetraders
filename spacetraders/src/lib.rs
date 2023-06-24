@@ -91,10 +91,20 @@ impl SpaceTradersInterface {
             Method::Patch => self.client.patch(self.get_url(url)),
         };
 
-        let response = match data {
-            Some(json) => client.json(&json).send().await.unwrap().text().await,
-            None => client.send().await.unwrap().text().await,
+        let client = match data {
+            Some(json) => client.json(&json),
+            None => client,
         };
+
+        let client = match self.enviroment {
+            SpaceTradersEnv::Live => client.header(
+                AUTHORIZATION,
+                HeaderValue::from_bytes(format!("Bearer {}", self.token).as_bytes()).unwrap(),
+            ),
+            SpaceTradersEnv::Mock => client.header("Prefer", "dynamic=true"),
+        };
+
+        let response = client.send().await.unwrap().text().await;
 
         match response {
             Ok(response) => {
