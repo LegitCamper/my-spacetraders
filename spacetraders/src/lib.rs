@@ -68,6 +68,13 @@ impl SpaceTradersInterface {
         }
     }
 
+    pub fn diagnose(&self) {
+        panic!(
+            "\ntoken: {}\nurl: {}\nenviroment: {:#?}\nclient: {:?}",
+            self.token, self.url, self.enviroment, self.client
+        )
+    }
+
     fn get_url(&self, endpoint: &str) -> Url {
         Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
@@ -138,10 +145,8 @@ impl SpaceTradersInterface {
 
                 // if error print
                 if let Ok(error) = error {
-                    panic!(
-                        "\nerror: {:?}\nurl: {}\ncreds: {:?}\n",
-                        error, url, self.token
-                    );
+                    eprintln!("error: {:?}", error);
+                    panic!("{:?}", self.diagnose());
                 } else {
                     println!("response error: {}", response);
                     response
@@ -153,11 +158,57 @@ impl SpaceTradersInterface {
     }
 
     #[allow(dead_code)]
-    async fn custom_endpoint(&self, endpoint: &str, method: Method) -> String {
+    async fn custom_endpoint(
+        &self,
+        endpoint: &str,
+        method: Method,
+        data: Option<Requests>,
+    ) -> String {
         let client = match method {
             Method::Post => self.client.post(&format!("{}{}", self.url, endpoint)),
             Method::Get => self.client.get(&format!("{}{}", self.url, endpoint)),
             Method::Patch => todo!(),
+        };
+        let client = match data {
+            Some(dataenum) => match dataenum {
+                Requests::RegisterNewAgent(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::BuyShip(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::ShipRefine(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::JettisonCargo(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::JumpShip(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::NavigateShip(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::PatchShipNav(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::WarpShip(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::SellCargo(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::InstallMount(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::RemoveMount(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::DeliverCargoToContract(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+            },
+            None => client.header(CONTENT_LENGTH, "0"),
         };
         client.send().await.unwrap().text().await.unwrap()
     }
@@ -237,14 +288,15 @@ impl SpaceTraders {
         SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Mock).await
     }
 
-    pub fn diagnose(&self) {
-        panic!(
-            "\ntoken: {}\nurl: {}\nenviroment: {:#?}, task: {:#?}, channel: {:#?}",
+    pub fn diagnose(&self) -> String {
+        format!(
+            "\ntoken: {}\nurl: {}\nenviroment: {:#?}\nclient: {:?}", //, task: {:#?}, channel: {:#?}",
             self.interface.token,
             self.interface.url,
             self.interface.enviroment,
-            self.task,
-            self.channel
+            self.interface.client,
+            // self.task,
+            // self.channel
         )
     }
 
@@ -265,7 +317,10 @@ impl SpaceTraders {
             })
             .await
         {
-            Err(r) => panic!("closed: {}", r),
+            Err(r) => {
+                eprintln!("closed: {}", r);
+                panic!("{}", self.diagnose())
+            }
             Ok(s) => s,
         }
 
@@ -273,8 +328,8 @@ impl SpaceTraders {
         match oneshot_receiver.await {
             Ok(res) => res,
             Err(err) => {
-                self.diagnose();
-                panic!("Interface failed to send back a correct response: {}", err);
+                eprintln!("Interface failed to send back a correct response: {}", err);
+                panic!("{}", self.diagnose());
             }
         }
     }

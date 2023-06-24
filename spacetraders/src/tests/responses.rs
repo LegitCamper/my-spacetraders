@@ -27,7 +27,7 @@ async fn recieve_error() {
             .get()
             .await
             .interface
-            .custom_endpoint("/doesnotexist", Method::Post)
+            .custom_endpoint("/doesnotexist", Method::Post, None)
             .await;
     }
 }
@@ -40,7 +40,7 @@ async fn get_new_registration() {
             .get()
             .await
             .interface
-            .custom_endpoint("/register", Method::Post)
+            .custom_endpoint("/register", Method::Post, None)
             .await;
     }
 }
