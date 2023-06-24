@@ -66,20 +66,6 @@ impl SpaceTradersInterface {
         }
     }
 
-    fn get_header(&self) -> HeaderMap {
-        let mut headers = HeaderMap::with_capacity(4);
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_bytes(format!("Bearer {}", self.token).as_bytes()).unwrap(),
-        );
-        // headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
-        // adds dynamic header for unit tests
-        if self.enviroment == SpaceTradersEnv::Mock {
-            headers.insert("Prefer", "dynamic=true".parse().unwrap());
-        }
-        headers
-    }
-
     fn get_url(&self, endpoint: &str) -> Url {
         Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
