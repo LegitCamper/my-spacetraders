@@ -78,7 +78,20 @@ impl SpaceTradersInterface {
         };
 
         let client = match data {
-            Some(json) => client.json(&json),
+            Some(dataenum) => match dataenum {
+                Requests::RegisterNewAgent(json) => client.json(&json),
+                Requests::BuyShip(json) => client.json(&json),
+                Requests::ShipRefine(json) => client.json(&json),
+                Requests::JettisonCargo(json) => client.json(&json),
+                Requests::JumpShip(json) => client.json(&json),
+                Requests::NavigateShip(json) => client.json(&json),
+                Requests::PatchShipNav(json) => client.json(&json),
+                Requests::WarpShip(json) => client.json(&json),
+                Requests::SellCargo(json) => client.json(&json),
+                Requests::InstallMount(json) => client.json(&json),
+                Requests::RemoveMount(json) => client.json(&json),
+                Requests::DeliverCargoToContract(json) => client.json(&json),
+            },
             None => client,
         };
 
