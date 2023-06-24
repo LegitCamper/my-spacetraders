@@ -85,11 +85,11 @@ pub struct RemoveMount {
     pub symbol: String,
 }
 
+// TODO: fix field names
+#[allow(non_snake_case)]
 #[derive(Serialize, Debug)]
 pub struct DeliverCargoToContract {
-    #[serde(alias = "shipSymbol")]
-    pub ship_symbol: ShipType,
-    #[serde(alias = "tradeSymbol")]
-    pub trade_symbol: TradeSymbol,
+    pub shipSymbol: ShipType,
+    pub tradeSymbol: TradeSymbol,
     pub units: i64,
 }

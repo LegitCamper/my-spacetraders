@@ -134,8 +134,8 @@ async fn deliver_contract() {
             .deliver_contract(
                 SYSTEM,
                 crate::requests::DeliverCargoToContract {
-                    ship_symbol: ShipType::ShipProbe,
-                    trade_symbol: TradeSymbol::PreciousStones,
+                    shipSymbol: ShipType::ShipProbe,
+                    tradeSymbol: TradeSymbol::PreciousStones,
                     units: 1000,
                 },
             )

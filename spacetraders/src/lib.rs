@@ -6,10 +6,12 @@ mod tests;
 use requests::*;
 use responses::{agents, contracts, factions, fleet, systems};
 
+use core::panic;
 use random_string::generate;
 use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
-    Client, //blocking::Client
+    Client,
+    Request, //blocking::Client
 };
 use serde_json::json;
 use std::collections::HashMap;
@@ -77,30 +79,54 @@ impl SpaceTradersInterface {
             Method::Patch => self.client.patch(self.get_url(url)),
         };
 
-        let client = match data {
-            Some(dataenum) => match dataenum {
-                Requests::RegisterNewAgent(json) => client.json(&json),
-                Requests::BuyShip(json) => client.json(&json),
-                Requests::ShipRefine(json) => client.json(&json),
-                Requests::JettisonCargo(json) => client.json(&json),
-                Requests::JumpShip(json) => client.json(&json),
-                Requests::NavigateShip(json) => client.json(&json),
-                Requests::PatchShipNav(json) => client.json(&json),
-                Requests::WarpShip(json) => client.json(&json),
-                Requests::SellCargo(json) => client.json(&json),
-                Requests::InstallMount(json) => client.json(&json),
-                Requests::RemoveMount(json) => client.json(&json),
-                Requests::DeliverCargoToContract(json) => client.json(&json),
-            },
-            None => client,
-        };
-
         let client = match self.enviroment {
             SpaceTradersEnv::Live => client.header(
                 AUTHORIZATION,
                 HeaderValue::from_bytes(format!("Bearer {}", self.token).as_bytes()).unwrap(),
             ),
             SpaceTradersEnv::Mock => client.header("Prefer", "dynamic=true"),
+        };
+
+        let client = match data {
+            Some(dataenum) => match dataenum {
+                Requests::RegisterNewAgent(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::BuyShip(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::ShipRefine(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::JettisonCargo(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::JumpShip(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::NavigateShip(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::PatchShipNav(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::WarpShip(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::SellCargo(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::InstallMount(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::RemoveMount(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::DeliverCargoToContract(json) => client
+                    .json(&json)
+                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+            },
+            None => client.header(CONTENT_LENGTH, "0"),
         };
 
         let response = client.send().await.unwrap().text().await;
@@ -242,7 +268,6 @@ impl SpaceTraders {
             Err(r) => panic!("closed: {}", r),
             Ok(s) => s,
         }
-        // .unwrap();
 
         // listen to oneshot for response
         match oneshot_receiver.await {
