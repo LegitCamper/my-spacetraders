@@ -30,53 +30,53 @@ pub async fn get_contract(space_traders: &SpaceTraders) -> Vec<contracts::schema
     accepted_contracts
 }
 
-pub async fn get_contract_ship(
-    space_traders: &SpaceTraders,
-    contract: schemas::Contract,
-) -> schemas::Ship {
-    let my_ships = space_traders.list_ships().await;
+// pub async fn get_contract_ship(
+//     space_traders: &SpaceTraders,
+//     contract: schemas::Contract,
+// ) -> schemas::Ship {
+//     let my_ships = space_traders.list_ships().await;
 
-    for ship in my_ships.data.iter() {
-        match contract.r#type {
-            enums::ListContractsType::Procurement => {
-                // Need mining ship // probably
-                if ship.registration.role == enums::ShipRole::Excavator
-                    || ship.registration.role == enums::ShipRole::Harvester
-                {
-                    return ship.clone();
-                } else {
-                    // TODO: find ship that matches role and buy that one
-                    return buy_ship(&space_traders, enums::ShipType::ShipMiningDrone).await;
-                }
-            }
-            enums::ListContractsType::Transport => {
-                // probably need figigate or hauler ship
-                if ship.registration.role == enums::ShipRole::Hauler
-                    || ship.registration.role == enums::ShipRole::Carrier
-                {
-                    return ship.clone();
-                } else {
-                    // TODO: find ship that matches role and buy that one
-                    return buy_ship(&space_traders, enums::ShipType::ShipLightHauler).await;
-                }
-            }
-            enums::ListContractsType::Shuttle => {
-                // probaly need shuttle
-                if ship.registration.role == enums::ShipRole::Carrier
-                    || ship.registration.role == enums::ShipRole::Transport
-                {
-                    return ship.clone();
-                } else {
-                    // TODO: find ship that matches role and buy that one
-                    return buy_ship(&space_traders, enums::ShipType::ShipHeavyFreighter).await;
-                }
-            }
-        }
-    }
-    my_ships.data[0].clone()
-}
+//     for ship in my_ships.data.iter() {
+//         match contract.r#type {
+//             enums::ListContractsType::Procurement => {
+//                 // Need mining ship // probably
+//                 if ship.registration.role == enums::ShipRole::Excavator
+//                     || ship.registration.role == enums::ShipRole::Harvester
+//                 {
+//                     return ship.clone();
+//                 } else {
+//                     // TODO: find ship that matches role and buy that one
+//                     return buy_ship(&space_traders, enums::ShipType::ShipMiningDrone).await;
+//                 }
+//             }
+//             enums::ListContractsType::Transport => {
+//                 // probably need figigate or hauler ship
+//                 if ship.registration.role == enums::ShipRole::Hauler
+//                     || ship.registration.role == enums::ShipRole::Carrier
+//                 {
+//                     return ship.clone();
+//                 } else {
+//                     // TODO: find ship that matches role and buy that one
+//                     return buy_ship(&space_traders, enums::ShipType::ShipLightHauler).await;
+//                 }
+//             }
+//             enums::ListContractsType::Shuttle => {
+//                 // probaly need shuttle
+//                 if ship.registration.role == enums::ShipRole::Carrier
+//                     || ship.registration.role == enums::ShipRole::Transport
+//                 {
+//                     return ship.clone();
+//                 } else {
+//                     // TODO: find ship that matches role and buy that one
+//                     return buy_ship(&space_traders, enums::ShipType::ShipHeavyFreighter).await;
+//                 }
+//             }
+//         }
+//     }
+//     my_ships.data[0].clone()
+// }
 
-pub async fn buy_ship(space_traders: &SpaceTraders, ship: enums::ShipType) -> schemas::Ship {
+pub async fn buy_ship(space_traders: &SpaceTraders, _ship: enums::ShipType) -> schemas::Ship {
     let mut found_shipyard = false;
     let system = parse_waypoint(&space_traders.agent().await.data.headquarters).system;
 

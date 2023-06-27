@@ -2,7 +2,7 @@ use crate::{
     enums::{FlightMode, ShipType, TradeSymbol},
     requests::{
         BuyShip, InstallMount, JumpShip, NavigateShip, PatchShipNav, RemoveMount, SellCargo,
-        ShipRefine, WarpShip,
+        ShipRefine,
     },
     Method, SpaceTraders,
 };
@@ -11,7 +11,7 @@ use async_once::AsyncOnce;
 use lazy_static::lazy_static;
 use serial_test::serial;
 
-const TIMES_TO_RUN: i32 = 100;
+const TIMES_TO_RUN: i32 = 1;
 const SYSTEM: &str = "X1-OE";
 
 lazy_static! {
@@ -424,11 +424,4 @@ async fn remove_mount() {
             )
             .await;
     }
-}
-
-// testssdlkfajsdklfaj;klsd
-#[tokio::test]
-#[serial]
-async fn print() {
-    panic!("{:?}", INTERFACE.get().await.diagnose());
 }

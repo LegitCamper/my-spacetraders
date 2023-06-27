@@ -9,9 +9,8 @@ use responses::{agents, contracts, factions, fleet, systems};
 use core::panic;
 use random_string::generate;
 use reqwest::{
-    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
-    Client,
-    Request, //blocking::Client
+    header::{HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
+    Client, //blocking::Client
 };
 use serde_json::json;
 use std::collections::HashMap;
@@ -80,61 +79,67 @@ impl SpaceTradersInterface {
     }
 
     async fn make_reqwest(&self, method: Method, url: &str, data: Option<Requests>) -> String {
-        let client = match method {
+        let mut client = match method {
             Method::Get => self.client.get(self.get_url(url)),
             Method::Post => self.client.post(self.get_url(url)),
+            // .header(CONTENT_TYPE, "application/json"),
             Method::Patch => self.client.patch(self.get_url(url)),
         };
 
-        let client = match self.enviroment {
+        client = match self.enviroment {
             SpaceTradersEnv::Live => client.header(
                 AUTHORIZATION,
                 HeaderValue::from_bytes(format!("Bearer {}", self.token).as_bytes()).unwrap(),
             ),
-            SpaceTradersEnv::Mock => client.header("Prefer", "dynamic=true"),
+            SpaceTradersEnv::Mock => client.header("Prefer", "dynamic=true").header(
+                AUTHORIZATION,
+                HeaderValue::from_bytes(format!("Bearer {}", self.token).as_bytes()).unwrap(),
+            ),
         };
 
-        let client = match data {
+        client = match data {
             Some(dataenum) => match dataenum {
                 Requests::RegisterNewAgent(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::BuyShip(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::ShipRefine(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::JettisonCargo(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::JumpShip(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::NavigateShip(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::PatchShipNav(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::WarpShip(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::SellCargo(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::InstallMount(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::RemoveMount(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::DeliverCargoToContract(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
             },
             None => client.header(CONTENT_LENGTH, "0"),
         };
+
+        println!("{:?}", client);
 
         let response = client.send().await.unwrap().text().await;
 
@@ -165,47 +170,47 @@ impl SpaceTradersInterface {
         data: Option<Requests>,
     ) -> String {
         let client = match method {
-            Method::Post => self.client.post(&format!("{}{}", self.url, endpoint)),
-            Method::Get => self.client.get(&format!("{}{}", self.url, endpoint)),
+            Method::Post => self.client.post(format!("{}{}", self.url, endpoint)),
+            Method::Get => self.client.get(format!("{}{}", self.url, endpoint)),
             Method::Patch => todo!(),
         };
         let client = match data {
             Some(dataenum) => match dataenum {
                 Requests::RegisterNewAgent(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::BuyShip(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::ShipRefine(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::JettisonCargo(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::JumpShip(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::NavigateShip(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::PatchShipNav(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::WarpShip(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::SellCargo(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::InstallMount(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::RemoveMount(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::DeliverCargoToContract(json) => client
-                    .json(&json)
+                    .form(&json)
                     .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
             },
             None => client.header(CONTENT_LENGTH, "0"),
@@ -215,6 +220,7 @@ impl SpaceTradersInterface {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct SpaceTraders {
     interface: SpaceTradersInterface,
     channel: mpsc::Sender<ChannelMessage>,
@@ -231,7 +237,7 @@ impl SpaceTraders {
 
         SpaceTraders {
             interface: space_trader.clone(),
-            channel: channel_sender.clone(),
+            channel: channel_sender,
             task: task::spawn(async move {
                 while let Some(msg) = channel_receiver.recv().await {
                     interval.tick().await; // avoids rate limiting
@@ -258,7 +264,7 @@ impl SpaceTraders {
         let registration = Client::new()
             .post(&format!("{}/register", LIVEURL))
             .header(CONTENT_LENGTH, post_message.to_string().chars().count())
-            .json(&post_message)
+            .form(&post_message)
             .send()
             .await
             .unwrap()
@@ -271,21 +277,7 @@ impl SpaceTraders {
 
     #[allow(dead_code)]
     async fn testing() -> Self {
-        let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
-        let post_message = json!({"faction": "QUANTUM", "symbol": username});
-
-        let registration = Client::new()
-            .post(&format!("{}/register", MOCKURL))
-            .header(CONTENT_LENGTH, post_message.to_string().chars().count())
-            .json(&post_message)
-            .send()
-            .await
-            .unwrap()
-            .json::<responses::RegisterNewAgent>()
-            .await
-            .unwrap();
-
-        SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Mock).await
+        SpaceTraders::new("undefined", SpaceTradersEnv::Mock).await
     }
 
     pub fn diagnose(&self) -> String {
@@ -519,7 +511,6 @@ impl SpaceTraders {
         .unwrap()
     }
     pub async fn get_ship(&self, ship_symbol: &str) -> fleet::Ship {
-        // the ship symbol might be an enum I already have
         serde_json::from_str(
             &self
                 .make_request(Method::Get, format!("/my/ships/{}", ship_symbol), None)
@@ -859,7 +850,6 @@ impl SpaceTraders {
     }
 }
 
-// struct to handle the dataflow through channel
 #[derive(Debug)]
 pub struct RequestMessage {
     pub method: Method,
