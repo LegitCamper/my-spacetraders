@@ -6,16 +6,17 @@ pub async fn automate(space_traders: SpaceTraders) {
 
     let accepted_contracts = func::get_contract(&space_traders).await;
 
-    for current_contract in accepted_contracts {
-        // println!(
-        // "{:?}",
-        // func::get_contract_ship(&space_traders, current_contract).await
-        // );
+    println!("{:?}", accepted_contracts);
+    // for current_contract in accepted_contracts {
+    // println!(
+    //     "{:?}",
+    //     func::get_contract_ship(&space_traders, current_contract).await
+    // );
 
-        // for current_contract in accepted.iter() {
-        // if !have_correct_ship {
-        // func::buy_ship(&space_traders);
-        // }
-        // }
-    }
+    // for current_contract in accepted.iter() {
+    // if !have_correct_ship {
+    // func::buy_ship(&space_traders);
+    // }
+    // }
+    // }
 }

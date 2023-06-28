@@ -11,7 +11,7 @@ use async_once::AsyncOnce;
 use lazy_static::lazy_static;
 use serial_test::serial;
 
-const TIMES_TO_RUN: i32 = 1;
+const TIMES_TO_RUN: i32 = 10;
 const SYSTEM: &str = "X1-OE";
 
 lazy_static! {
@@ -27,7 +27,7 @@ async fn recieve_error() {
             .get()
             .await
             .interface
-            .custom_endpoint("/doesnotexist", Method::Post, None)
+            .custom_endpoint(Method::Post, "/doesnotexist", None)
             .await;
     }
 }
@@ -40,7 +40,30 @@ async fn get_new_registration() {
             .get()
             .await
             .interface
-            .custom_endpoint("/register", Method::Post, None)
+            .custom_endpoint(Method::Post, "/register", None)
+            .await;
+    }
+}
+
+#[tokio::test]
+#[serial]
+async fn post_man_check() {
+    for _ in 0..TIMES_TO_RUN {
+        INTERFACE
+            .get()
+            .await
+            .interface
+            .custom_endpoint(
+                Method::Post,
+                "",
+                Some(crate::requests::Requests::DeliverCargoToContract(
+                    crate::requests::DeliverCargoToContract {
+                        shipSymbol: ShipType::ShipProbe,
+                        tradeSymbol: TradeSymbol::PreciousStones,
+                        units: 10314234000,
+                    },
+                )),
+            )
             .await;
     }
 }
@@ -127,6 +150,21 @@ async fn accept_contracts() {
 #[tokio::test]
 #[serial]
 async fn deliver_contract() {
+    println!(
+        "{:?}",
+        INTERFACE
+            .get()
+            .await
+            .deliver_contract(
+                SYSTEM,
+                crate::requests::DeliverCargoToContract {
+                    shipSymbol: ShipType::ShipProbe,
+                    tradeSymbol: TradeSymbol::PreciousStones,
+                    units: 1000,
+                },
+            )
+            .await
+    );
     for _ in 0..TIMES_TO_RUN {
         INTERFACE
             .get()

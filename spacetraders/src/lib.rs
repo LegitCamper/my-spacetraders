@@ -11,6 +11,7 @@ use random_string::generate;
 use reqwest::{
     header::{HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
     Client, //blocking::Client
+    StatusCode,
 };
 use serde_json::json;
 use std::collections::HashMap;
@@ -23,6 +24,8 @@ use url::Url;
 
 const LIVEURL: &str = "https://api.spacetraders.io/v2";
 const MOCKURL: &str = "https://stoplight.io/mocks/spacetraders/spacetraders/96627693";
+// const MOCKURL: &str = "https://postman-echo.com/post";
+// const MOCKURL: &str = "https://echo.zuplo.io";
 
 // TODO: better error handling
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -35,7 +38,6 @@ pub enum Method {
     Post,
     Get,
     Patch,
-    // Delete,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -82,7 +84,6 @@ impl SpaceTradersInterface {
         let mut client = match method {
             Method::Get => self.client.get(self.get_url(url)),
             Method::Post => self.client.post(self.get_url(url)),
-            // .header(CONTENT_TYPE, "application/json"),
             Method::Patch => self.client.patch(self.get_url(url)),
         };
 
@@ -99,123 +100,66 @@ impl SpaceTradersInterface {
 
         client = match data {
             Some(dataenum) => match dataenum {
-                Requests::RegisterNewAgent(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::BuyShip(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::ShipRefine(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::JettisonCargo(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::JumpShip(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::NavigateShip(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::PatchShipNav(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::WarpShip(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::SellCargo(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::InstallMount(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::RemoveMount(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::DeliverCargoToContract(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::RegisterNewAgent(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::BuyShip(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::ShipRefine(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::JettisonCargo(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::JumpShip(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::NavigateShip(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::PatchShipNav(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::WarpShip(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::SellCargo(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::InstallMount(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::RemoveMount(json) => client.json(&json),
+                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::DeliverCargoToContract(json) => {
+                    println!("{:?}", serde_json::to_string(&json).unwrap().len());
+
+                    client.json(&json) //.header(
+                                       // CONTENT_LENGTH,
+                                       // std::mem::size_of::<requests::DeliverCargoToContract>()
+                                       // std::mem::size_of_val(&json),
+                                       // 60,
+                                       // serde_json::to_string(&json).unwrap().chars().count() - 12,
+                                       // )
+                } // .header(CONTENT_TYPE, "appication/json"),
             },
             None => client.header(CONTENT_LENGTH, "0"),
         };
 
-        println!("{:?}", client);
-
-        let response = client.send().await.unwrap().text().await;
-
-        match response {
-            Ok(response) => {
-                // check if server error - Expects error here
-                let error: Result<responses::Error, _> = serde_json::from_str(&response);
-
-                // if error print
-                if let Ok(error) = error {
-                    eprintln!("error: {:?}", error);
-                    panic!("{:?}", self.diagnose());
-                } else {
-                    println!("response error: {}", response);
-                    response
-                }
+        let response = client.send().await.unwrap();
+        match response.status() {
+            StatusCode::OK => {
+                let resp = response.text().await.unwrap();
+                println!("diag: {}", resp);
+                resp
             }
-            // client error
-            Err(error) => panic!("{}", error),
+            _ => panic!(
+                "status: {:?}, response: {}",
+                response.status(),
+                response.text().await.unwrap()
+            ),
         }
     }
 
     #[allow(dead_code)]
     async fn custom_endpoint(
         &self,
-        endpoint: &str,
         method: Method,
+        endpoint: &str,
         data: Option<Requests>,
     ) -> String {
-        let client = match method {
-            Method::Post => self.client.post(format!("{}{}", self.url, endpoint)),
-            Method::Get => self.client.get(format!("{}{}", self.url, endpoint)),
-            Method::Patch => todo!(),
-        };
-        let client = match data {
-            Some(dataenum) => match dataenum {
-                Requests::RegisterNewAgent(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::BuyShip(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::ShipRefine(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::JettisonCargo(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::JumpShip(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::NavigateShip(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::PatchShipNav(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::WarpShip(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::SellCargo(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::InstallMount(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::RemoveMount(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::DeliverCargoToContract(json) => client
-                    .form(&json)
-                    .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-            },
-            None => client.header(CONTENT_LENGTH, "0"),
-        };
-        client.send().await.unwrap().text().await.unwrap()
+        self.make_reqwest(method, endpoint, data).await
     }
 }
 
@@ -264,7 +208,7 @@ impl SpaceTraders {
         let registration = Client::new()
             .post(&format!("{}/register", LIVEURL))
             .header(CONTENT_LENGTH, post_message.to_string().chars().count())
-            .form(&post_message)
+            .json(&post_message)
             .send()
             .await
             .unwrap()
