@@ -8,8 +8,6 @@ use crate::{
     Method, SpaceTraders,
 };
 
-use async_once::AsyncOnce;
-use lazy_static::lazy_static;
 use serial_test::serial;
 
 const TIMES_TO_RUN: i32 = 10;
