@@ -356,8 +356,8 @@ pub enum ShipFrame {
     Default,
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE", untagged)]
 pub enum ShipEngine {
     EngineImpulseDriveI,
     EngineIonDriveI,
@@ -365,6 +365,7 @@ pub enum ShipEngine {
     EngineHyperDriveI,
     #[default]
     Default,
+    Other(serde_json::Value),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]

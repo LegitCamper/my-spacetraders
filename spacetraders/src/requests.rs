@@ -1,18 +1,21 @@
 use serde::Serialize;
 
-use super::enums::{FactionSymbols, FlightMode, ShipType, TradeSymbol};
+use super::enums::{DepositSize, FactionSymbols, FlightMode, ShipType, TradeSymbol};
 
 #[derive(Debug, Serialize)]
 pub enum Requests {
     RegisterNewAgent(RegisterNewAgent),
-    BuyShip(BuyShip),
+    PurchaseShip(PurchaseShip),
     ShipRefine(ShipRefine),
+    ExtractResources(ExtractResources),
     JettisonCargo(JettisonCargo),
     JumpShip(JumpShip),
     NavigateShip(NavigateShip),
     PatchShipNav(PatchShipNav),
     WarpShip(WarpShip),
     SellCargo(SellCargo),
+    PurchaseCargo(PurchaseCargo),
+    TransferCargo(TransferCargo),
     InstallMount(InstallMount),
     RemoveMount(RemoveMount),
     DeliverCargoToContract(DeliverCargoToContract),
@@ -27,16 +30,33 @@ pub struct RegisterNewAgent {
 }
 
 #[derive(Serialize, Debug)]
-pub struct BuyShip {
-    #[serde(alias = "shipType")]
+pub struct PurchaseShip {
+    #[serde(rename = "shipType")]
     pub ship_type: ShipType,
-    #[serde(alias = "waypointSymbol")]
+    #[serde(rename = "waypointSymbol")]
     pub waypoint_symbol: String,
 }
 
 #[derive(Serialize, Debug)]
 pub struct ShipRefine {
     pub produce: TradeSymbol,
+}
+
+#[derive(Serialize, Debug)]
+pub struct ExtractResources {
+    pub survey: ExtractResourcesSurvey,
+}
+#[derive(Serialize, Debug)]
+pub struct ExtractResourcesSurvey {
+    pub signature: String,
+    pub symbol: String,
+    pub deposits: Vec<ExtractResourcesSurveyDeposits>,
+    pub expiration: String, // datetime
+    pub size: DepositSize,
+}
+#[derive(Serialize, Debug)]
+pub struct ExtractResourcesSurveyDeposits {
+    pub symbol: String,
 }
 
 #[derive(Serialize, Debug)]
@@ -47,25 +67,25 @@ pub struct JettisonCargo {
 
 #[derive(Serialize, Debug)]
 pub struct JumpShip {
-    #[serde(alias = "shipSymbol")]
-    pub ship_symbol: ShipType,
+    #[serde(rename = "systemSymbol")]
+    pub system_symbol: String,
 }
 
 #[derive(Serialize, Debug)]
 pub struct NavigateShip {
-    #[serde(alias = "waypointSymbol")]
+    #[serde(rename = "waypointSymbol")]
     pub ship_symbol: ShipType,
 }
 
 #[derive(Serialize, Debug)]
 pub struct PatchShipNav {
-    #[serde(alias = "flightMode")]
+    #[serde(rename = "flightMode")]
     pub ship_symbol: FlightMode,
 }
 
 #[derive(Serialize, Debug)]
 pub struct WarpShip {
-    #[serde(alias = "waypointSymbol")]
+    #[serde(rename = "waypointSymbol")]
     pub ship_symbol: String,
 }
 
@@ -73,6 +93,21 @@ pub struct WarpShip {
 pub struct SellCargo {
     pub symbol: TradeSymbol,
     pub units: u32,
+}
+
+#[derive(Serialize, Debug)]
+pub struct PurchaseCargo {
+    pub symbol: TradeSymbol,
+    pub units: u32,
+}
+
+#[derive(Serialize, Debug)]
+pub struct TransferCargo {
+    #[serde(rename = "tradeSymbol")]
+    pub trade_symbol: TradeSymbol,
+    pub units: u32,
+    #[serde(rename = "shipSymbol")]
+    pub ship_symbol: String,
 }
 
 #[derive(Serialize, Debug)]
@@ -85,11 +120,11 @@ pub struct RemoveMount {
     pub symbol: String,
 }
 
-// TODO: fix field names
-#[allow(non_snake_case)]
 #[derive(Serialize, Debug)]
 pub struct DeliverCargoToContract {
-    pub shipSymbol: ShipType,
-    pub tradeSymbol: TradeSymbol,
+    #[serde(rename = "shipSymbol")]
+    pub ship_symbol: ShipType,
+    #[serde(rename = "tradeSymbol")]
+    pub trade_symbol: TradeSymbol,
     pub units: i64,
 }

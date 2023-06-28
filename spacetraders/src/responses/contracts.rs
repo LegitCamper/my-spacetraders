@@ -17,11 +17,11 @@ pub struct Contract {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct AcceptContract {
-    pub data: AcceptContractL1,
+    pub data: AcceptContractData,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct AcceptContractL1 {
+pub struct AcceptContractData {
     pub agent: schemas::Agent,
     pub contract: schemas::Contract,
 }
@@ -34,15 +34,8 @@ pub struct DeliverContract {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct DeliverContractData {
-    pub contract: Contract,
-    pub cargo: DeliverContractDataCargo,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct DeliverContractDataCargo {
-    pub capacity: u32,
-    pub units: u32,
-    pub inventory: Vec<schemas::ShipCargoItem>,
+    pub contract: schemas::Contract,
+    pub cargo: schemas::ShipCargo,
 }
 
 #[allow(dead_code)]
@@ -53,6 +46,6 @@ pub struct FulfillContract {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct FulfillContractData {
-    pub contract: Contracts,
+    pub contract: schemas::Contract,
     pub agent: schemas::Agent,
 }

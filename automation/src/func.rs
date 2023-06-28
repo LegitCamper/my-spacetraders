@@ -76,7 +76,7 @@ pub async fn get_contract(space_traders: &SpaceTraders) -> Vec<contracts::schema
 //     my_ships.data[0].clone()
 // }
 
-pub async fn buy_ship(space_traders: &SpaceTraders, _ship: enums::ShipType) -> schemas::Ship {
+pub async fn purchase_ship(space_traders: &SpaceTraders, _ship: enums::ShipType) -> schemas::Ship {
     let mut found_shipyard = false;
     let system = parse_waypoint(&space_traders.agent().await.data.headquarters).system;
 
@@ -99,7 +99,7 @@ pub async fn buy_ship(space_traders: &SpaceTraders, _ship: enums::ShipType) -> s
                         // ListContractsType::Transport => {}
                         // ListContractsType::Shuttle => {}
                         let u = space_traders
-                            .purchase_ship(requests::BuyShip {
+                            .purchase_ship(requests::PurchaseShip {
                                 ship_type: ship.r#type,
                                 waypoint_symbol: waypoint.symbol.clone(),
                             })

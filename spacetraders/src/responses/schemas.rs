@@ -122,7 +122,7 @@ pub struct Extraction {
 #[derive(Deserialize, Debug)]
 pub struct ExtractionYield {
     pub symbol: enums::TradeSymbol,
-    pub units: u32,
+    pub units: i32,
 }
 
 #[derive(Deserialize, Debug)]
@@ -206,11 +206,11 @@ pub struct MarketTransaction {
     #[serde(alias = "tradeSymbol")]
     pub trade_symbol: String,
     pub r#type: enums::GetMarketType,
-    pub units: u32,
+    pub units: i32,
     #[serde(alias = "pricePerUnit")]
-    pub price_per_unit: u32,
+    pub price_per_unit: i32,
     #[serde(alias = "totalPrice")]
-    pub total_price: u32,
+    pub total_price: i32,
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
     pub timestamp: DateTime<Utc>,
 }
@@ -222,8 +222,8 @@ pub struct Meta {
     pub limit: u32,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct ScannedShip {
+#[derive(Deserialize, Clone, Debug)]
+pub struct Ship {
     pub symbol: String,
     pub registration: ShipRegistration,
     pub nav: ShipNav,
@@ -242,10 +242,10 @@ pub struct ScannedSystem {
     pub symbol: String,
     #[serde(alias = "sectorSymbol")]
     pub sector_symbol: String,
-    pub r#type: enums::WaypointType,
+    pub r#type: enums::SystemType,
     pub x: i32,
     pub y: i32,
-    pub distance: u32,
+    pub distance: i32,
 }
 
 #[derive(Deserialize, Debug)]
@@ -278,24 +278,36 @@ pub struct ScannedWaypointTrait {
 }
 
 #[derive(Deserialize, Clone, Debug)]
-pub struct Ship {
+pub struct ScannedShip {
     pub symbol: String,
     pub registration: ShipRegistration,
     pub nav: ShipNav,
-    pub crew: ShipCrew,
-    pub frame: ShipFrame,
-    pub reactor: ShipReactor,
-    pub engine: ShipEngine,
-    pub modules: Vec<ShipModule>,
-    pub mounts: Vec<ShipMount>,
-    pub cargo: ShipCargo,
-    pub fuel: ShipFuel,
+    pub frame: ScannedShipFrame,
+    pub reactor: ScannedShipReactor,
+    pub engine: ScannedShipEngine,
+    pub mounts: Vec<ScannedShipMounts>,
+}
+#[derive(Deserialize, Clone, Debug)]
+pub struct ScannedShipReactor {
+    pub symbol: String,
+}
+#[derive(Deserialize, Clone, Debug)]
+pub struct ScannedShipFrame {
+    pub symbol: String,
+}
+#[derive(Deserialize, Clone, Debug)]
+pub struct ScannedShipEngine {
+    pub symbol: String,
+}
+#[derive(Deserialize, Clone, Debug)]
+pub struct ScannedShipMounts {
+    pub symbol: String,
 }
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct ShipCargo {
     pub capacity: u32,
-    pub units: u32,
+    pub units: i32,
     pub inventory: Vec<ShipCargoItem>,
 }
 
@@ -304,7 +316,7 @@ pub struct ShipCargoItem {
     pub symbol: String,
     pub name: String,
     // description: String,
-    pub units: u32,
+    pub units: i32,
 }
 
 #[derive(Deserialize, Debug)]
@@ -361,6 +373,19 @@ pub struct ShipFuelConsumed {
     pub amount: u32,
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
     pub timestamp: DateTime<Utc>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ShipModificationTransaction {
+    #[serde(alias = "waypointSymbol")]
+    pub waypoint_symbol: String,
+    #[serde(alias = "shipSymbol")]
+    pub ship_symbol: String,
+    #[serde(alias = "totalPrice")]
+    pub total_price: i32,
+    #[serde(alias = "tradeSymbol")]
+    pub trade_symbol: String,
+    pub timestamp: String,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -484,9 +509,7 @@ pub struct ShipyardTransaction {
     pub waypoint_symbol: String,
     #[serde(alias = "shipSymbol")]
     pub ship_symbol: String,
-    pub price: u32,
-    #[serde(alias = "agentSymbol")]
-    pub agent_symbol: String,
+    pub price: i32,
     pub timestamp: String,
 }
 

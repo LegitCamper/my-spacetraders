@@ -1,8 +1,3 @@
-use self::schemas::{
-    Agent, Contract, Cooldown, Extraction, MarketTransaction, ScannedShip, ScannedSystem,
-    ScannedWaypoint, ShipFuel, ShipMount, ShipNav, ShipyardTransaction, Survey,
-};
-
 pub use super::schemas;
 
 use serde::Deserialize;
@@ -17,37 +12,14 @@ pub struct Ships {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct PurchaseShip {
-    pub data: PurchaseShipL1,
+    pub data: PurchaseShipData,
 }
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
-pub struct PurchaseShipL1 {
-    pub agent: PurchaseShipAgent,
+pub struct PurchaseShipData {
+    pub agent: schemas::Agent,
     pub ship: schemas::Ship,
-    pub transaction: PurchaseShipTransaction,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct PurchaseShipAgent {
-    #[serde(alias = "accountId")]
-    pub account_id: String,
-    pub symbol: String,
-    pub headquarters: String,
-    pub credits: u32,
-    #[serde(alias = "startingFaction")]
-    pub starting_faction: String,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct PurchaseShipTransaction {
-    #[serde(alias = "waypointSymbol")]
-    pub waypoint_symbol: String,
-    #[serde(alias = "shipSymbol")]
-    pub ship_symbol: String,
-    pub price: u32,
-    #[serde(alias = "agentSymbol")]
-    pub agent_symbol: String,
-    pub timestamp: String, // timestamp
+    pub transaction: schemas::ShipyardTransaction,
 }
 
 #[allow(dead_code)]
@@ -59,14 +31,7 @@ pub struct Ship {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ShipCargo {
-    pub data: ShipCargoData,
-}
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct ShipCargoData {
-    pub capacity: u32,
-    pub units: u32,
-    pub inventory: Vec<schemas::ShipCargoItem>,
+    pub data: schemas::ShipCargo,
 }
 
 #[allow(dead_code)]
@@ -98,7 +63,7 @@ pub struct ShipRefineData {
 pub struct ShipRefineIO {
     #[serde(alias = "tradeSymbol")]
     pub trade_symbol: String,
-    pub units: u32,
+    pub units: i32,
 }
 
 #[allow(dead_code)]
@@ -116,13 +81,18 @@ pub struct CreateChartData {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipCooldown {
-    pub data: Cooldown,
+    pub data: schemas::Cooldown,
 }
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct DockShip {
-    pub data: ShipNav,
+    pub data: DockShipNav,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug)]
+pub struct DockShipNav {
+    pub nav: schemas::ShipNav,
 }
 
 #[allow(dead_code)]
@@ -133,8 +103,8 @@ pub struct CreateSurvey {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct CreateSurveyData {
-    pub cooldown: Cooldown,
-    pub surveys: Vec<Survey>,
+    pub cooldown: schemas::Cooldown,
+    pub surveys: Vec<schemas::Survey>,
 }
 
 #[allow(dead_code)]
@@ -145,9 +115,9 @@ pub struct ExtractResources {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ExtractResourcesData {
-    pub cooldown: Cooldown,
-    pub extraction: Extraction,
-    pub cargo: ShipCargo,
+    pub cooldown: schemas::Cooldown,
+    pub extraction: schemas::Extraction,
+    pub cargo: schemas::ShipCargo,
 }
 
 #[allow(dead_code)]
@@ -158,7 +128,7 @@ pub struct JettisonCargo {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct JettisonCargoData {
-    pub cargo: ShipCargo,
+    pub cargo: schemas::ShipCargo,
 }
 
 #[allow(dead_code)]
@@ -169,8 +139,8 @@ pub struct JumpShip {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct JumpShipData {
-    pub cooldown: Cooldown,
-    pub nav: ShipNav,
+    pub cooldown: schemas::Cooldown,
+    pub nav: schemas::ShipNav,
 }
 
 #[allow(dead_code)]
@@ -181,20 +151,20 @@ pub struct NavigateShip {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct NavigateShipData {
-    pub fuel: ShipFuel,
-    pub nav: ShipNav,
+    pub fuel: schemas::ShipFuel,
+    pub nav: schemas::ShipNav,
 }
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct PatchShipNav {
-    pub data: ShipNav,
+    pub data: schemas::ShipNav,
 }
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetShipNav {
-    pub data: ShipNav,
+    pub data: schemas::ShipNav,
 }
 
 #[allow(dead_code)]
@@ -205,8 +175,8 @@ pub struct WarpShip {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct WarpShipData {
-    pub fuel: ShipFuel,
-    pub nav: ShipNav,
+    pub fuel: schemas::ShipFuel,
+    pub nav: schemas::ShipNav,
 }
 
 #[allow(dead_code)]
@@ -217,9 +187,9 @@ pub struct SellCargo {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct SellCargoData {
-    pub agent: Agent,
-    pub cargo: ShipCargo,
-    pub transaction: MarketTransaction,
+    pub agent: schemas::Agent,
+    pub cargo: schemas::ShipCargo,
+    pub transaction: schemas::MarketTransaction,
 }
 
 #[allow(dead_code)]
@@ -230,8 +200,8 @@ pub struct ScanSystems {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ScanSystemsData {
-    pub cooldown: Cooldown,
-    pub systems: Vec<ScannedSystem>,
+    pub cooldown: schemas::Cooldown,
+    pub systems: Vec<schemas::ScannedSystem>,
 }
 
 #[allow(dead_code)]
@@ -242,8 +212,8 @@ pub struct ScanWaypoints {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ScanWaypointsData {
-    pub cooldown: Cooldown,
-    pub systems: Vec<ScannedWaypoint>,
+    pub cooldown: schemas::Cooldown,
+    pub waypoints: Vec<schemas::ScannedWaypoint>,
 }
 
 #[allow(dead_code)]
@@ -254,8 +224,8 @@ pub struct ScanShips {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct ScanShipsData {
-    pub cooldown: Cooldown,
-    pub systems: Vec<ScannedShip>,
+    pub cooldown: schemas::Cooldown,
+    pub ships: Vec<schemas::ScannedShip>,
 }
 
 #[allow(dead_code)]
@@ -266,9 +236,9 @@ pub struct RefuelShip {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct RefuelShipData {
-    pub agent: Agent,
-    pub fuel: ShipFuel,
-    pub transaction: MarketTransaction,
+    pub agent: schemas::Agent,
+    pub fuel: schemas::ShipFuel,
+    pub transaction: schemas::MarketTransaction,
 }
 
 #[allow(dead_code)]
@@ -279,9 +249,9 @@ pub struct PurchaseCargo {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct PurchaseCargoData {
-    pub agent: Agent,
-    pub cargo: ShipCargo,
-    pub transaction: MarketTransaction,
+    pub agent: schemas::Agent,
+    pub cargo: schemas::ShipCargo,
+    pub transaction: schemas::MarketTransaction,
 }
 
 #[allow(dead_code)]
@@ -292,7 +262,7 @@ pub struct TransferCargo {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct TransferCargoData {
-    pub cargo: ShipCargo,
+    pub cargo: schemas::ShipCargo,
 }
 
 #[allow(dead_code)]
@@ -303,13 +273,13 @@ pub struct NegotiateContract {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct NegotiateContractData {
-    pub contract: Contract,
+    pub contract: schemas::Contract,
 }
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetMounts {
-    pub data: Vec<ShipMount>,
+    pub data: Vec<schemas::ShipMount>,
 }
 
 #[allow(dead_code)]
@@ -320,10 +290,10 @@ pub struct InstallMounts {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct InstallMountsData {
-    pub agent: Agent,
-    pub mounts: Vec<ShipMount>,
-    pub cargo: ShipCargo,
-    pub transaction: ShipyardTransaction,
+    pub agent: schemas::Agent,
+    pub mounts: Vec<schemas::ShipMount>,
+    pub cargo: schemas::ShipCargo,
+    pub transaction: schemas::ShipModificationTransaction,
 }
 
 #[allow(dead_code)]
@@ -334,8 +304,8 @@ pub struct RemoveMounts {
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct RemoveMountsData {
-    pub agent: Agent,
-    pub mounts: Vec<ShipMount>,
-    pub cargo: ShipCargo,
-    pub transaction: ShipyardTransaction,
+    pub agent: schemas::Agent,
+    pub mounts: Vec<schemas::ShipMount>,
+    pub cargo: schemas::ShipCargo,
+    pub transaction: schemas::ShipModificationTransaction,
 }

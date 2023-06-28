@@ -3,17 +3,19 @@ pub mod requests;
 pub mod responses;
 mod tests;
 
-use requests::*;
+use requests::{
+    DeliverCargoToContract, ExtractResources, InstallMount, JettisonCargo, JumpShip, NavigateShip,
+    PatchShipNav, PurchaseCargo, PurchaseShip, RegisterNewAgent, RemoveMount, Requests, SellCargo,
+    ShipRefine, TransferCargo, WarpShip,
+};
 use responses::{agents, contracts, factions, fleet, systems};
 
 use core::panic;
 use random_string::generate;
 use reqwest::{
-    header::{HeaderValue, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE},
-    Client, //blocking::Client
-    StatusCode,
+    header::{HeaderValue, AUTHORIZATION, CONTENT_LENGTH},
+    Client,
 };
-use serde_json::json;
 use std::collections::HashMap;
 use tokio::{
     sync::{mpsc, oneshot},
@@ -24,8 +26,6 @@ use url::Url;
 
 const LIVEURL: &str = "https://api.spacetraders.io/v2";
 const MOCKURL: &str = "https://stoplight.io/mocks/spacetraders/spacetraders/96627693";
-// const MOCKURL: &str = "https://postman-echo.com/post";
-// const MOCKURL: &str = "https://echo.zuplo.io";
 
 // TODO: better error handling
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -101,54 +101,33 @@ impl SpaceTradersInterface {
         client = match data {
             Some(dataenum) => match dataenum {
                 Requests::RegisterNewAgent(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::BuyShip(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::PurchaseShip(json) => client.json(&json),
+                Requests::ExtractResources(json) => client.json(&json),
                 Requests::ShipRefine(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::JettisonCargo(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::JumpShip(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::NavigateShip(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::PatchShipNav(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::WarpShip(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::SellCargo(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
+                Requests::PurchaseCargo(json) => client.json(&json),
+                Requests::TransferCargo(json) => client.json(&json),
                 Requests::InstallMount(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
                 Requests::RemoveMount(json) => client.json(&json),
-                // .header(CONTENT_LENGTH, std::mem::size_of_val(&json)),
-                Requests::DeliverCargoToContract(json) => {
-                    println!("{:?}", serde_json::to_string(&json).unwrap().len());
-
-                    client.json(&json) //.header(
-                                       // CONTENT_LENGTH,
-                                       // std::mem::size_of::<requests::DeliverCargoToContract>()
-                                       // std::mem::size_of_val(&json),
-                                       // 60,
-                                       // serde_json::to_string(&json).unwrap().chars().count() - 12,
-                                       // )
-                } // .header(CONTENT_TYPE, "appication/json"),
+                Requests::DeliverCargoToContract(json) => client.json(&json),
             },
             None => client.header(CONTENT_LENGTH, "0"),
         };
 
         let response = client.send().await.unwrap();
-        match response.status() {
-            StatusCode::OK => {
-                let resp = response.text().await.unwrap();
-                println!("diag: {}", resp);
-                resp
-            }
-            _ => panic!(
-                "status: {:?}, response: {}",
+        if response.status().is_success() {
+            response.text().await.unwrap()
+        } else {
+            panic!(
+                "status: {:?}, error: {}",
                 response.status(),
                 response.text().await.unwrap()
-            ),
+            )
         }
     }
 
@@ -184,7 +163,7 @@ impl SpaceTraders {
             channel: channel_sender,
             task: task::spawn(async move {
                 while let Some(msg) = channel_receiver.recv().await {
-                    interval.tick().await; // avoids rate limiting
+                    interval.tick().await; // avoids rate limiting - waits 0
                     msg.oneshot
                         .send(
                             space_trader
@@ -196,6 +175,7 @@ impl SpaceTraders {
                                 .await,
                         )
                         .unwrap();
+                    interval.tick().await; // avoids rate limiting - waits 500 mil
                 }
             }),
         }
@@ -203,11 +183,15 @@ impl SpaceTraders {
 
     pub async fn default() -> Self {
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
-        let post_message = json!({"faction": "QUANTUM", "symbol": username});
+        let post_message = RegisterNewAgent {
+            faction: enums::FactionSymbols::Quantum,
+            symbol: username,
+            email: "".to_string(),
+        };
 
         let registration = Client::new()
             .post(&format!("{}/register", LIVEURL))
-            .header(CONTENT_LENGTH, post_message.to_string().chars().count())
+            .header(CONTENT_LENGTH, "0")
             .json(&post_message)
             .send()
             .await
@@ -226,13 +210,11 @@ impl SpaceTraders {
 
     pub fn diagnose(&self) -> String {
         format!(
-            "\ntoken: {}\nurl: {}\nenviroment: {:#?}\nclient: {:?}", //, task: {:#?}, channel: {:#?}",
+            "\ntoken: {}\nurl: {}\nenviroment: {:#?}\nclient: {:?}",
             self.interface.token,
             self.interface.url,
             self.interface.enviroment,
             self.interface.client,
-            // self.task,
-            // self.channel
         )
     }
 
@@ -407,7 +389,7 @@ impl SpaceTraders {
     pub async fn deliver_contract(
         &self,
         contract_id: &str,
-        data: requests::DeliverCargoToContract,
+        data: DeliverCargoToContract,
     ) -> contracts::DeliverContract {
         serde_json::from_str(
             &self
@@ -442,13 +424,13 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn purchase_ship(&self, data: BuyShip) -> fleet::PurchaseShip {
+    pub async fn purchase_ship(&self, data: PurchaseShip) -> fleet::PurchaseShip {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
                     String::from("/my/ships"),
-                    Some(Requests::BuyShip(data)),
+                    Some(Requests::PurchaseShip(data)),
                 )
                 .await,
         )
@@ -465,7 +447,11 @@ impl SpaceTraders {
     pub async fn get_ship_cargo(&self, ship_symbol: &str) -> fleet::ShipCargo {
         serde_json::from_str(
             &self
-                .make_request(Method::Get, format!("/my/ships{}/cargo", ship_symbol), None)
+                .make_request(
+                    Method::Get,
+                    format!("/my/ships/{}/cargo", ship_symbol),
+                    None,
+                )
                 .await,
         )
         .unwrap()
@@ -542,31 +528,39 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn extract_resources(&self, ship_symbol: &str) -> fleet::ExtractResources {
+    pub async fn extract_resources(
+        &self,
+        ship_symbol: &str,
+        data: ExtractResources,
+    ) -> fleet::ExtractResources {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/extract", ship_symbol),
-                    None,
+                    Some(Requests::ExtractResources(data)),
                 )
                 .await,
         )
         .unwrap()
     }
-    pub async fn jettison_cargo(&self, ship_symbol: &str) -> fleet::JettisonCargo {
+    pub async fn jettison_cargo(
+        &self,
+        ship_symbol: &str,
+        data: JettisonCargo,
+    ) -> fleet::JettisonCargo {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/jettison", ship_symbol),
-                    None,
+                    Some(Requests::JettisonCargo(data)),
                 )
                 .await,
         )
         .unwrap()
     }
-    pub async fn jump_ship(&self, ship_symbol: &str, data: requests::JumpShip) -> fleet::JumpShip {
+    pub async fn jump_ship(&self, ship_symbol: &str, data: JumpShip) -> fleet::JumpShip {
         serde_json::from_str(
             &self
                 .make_request(
@@ -581,7 +575,7 @@ impl SpaceTraders {
     pub async fn navigate_ship(
         &self,
         ship_symbol: &str,
-        data: requests::NavigateShip,
+        data: NavigateShip,
     ) -> fleet::NavigateShip {
         serde_json::from_str(
             &self
@@ -597,7 +591,7 @@ impl SpaceTraders {
     pub async fn patch_ship_nav(
         &self,
         ship_symbol: &str,
-        data: requests::PatchShipNav,
+        data: PatchShipNav,
     ) -> fleet::PatchShipNav {
         serde_json::from_str(
             &self
@@ -618,23 +612,19 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn warp_ship(&self, ship_symbol: &str) -> fleet::WarpShip {
+    pub async fn warp_ship(&self, ship_symbol: &str, data: WarpShip) -> fleet::WarpShip {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/warp", ship_symbol),
-                    None,
+                    Some(Requests::WarpShip(data)),
                 )
                 .await,
         )
         .unwrap()
     }
-    pub async fn sell_cargo(
-        &self,
-        ship_symbol: &str,
-        data: requests::SellCargo,
-    ) -> fleet::SellCargo {
+    pub async fn sell_cargo(&self, ship_symbol: &str, data: SellCargo) -> fleet::SellCargo {
         serde_json::from_str(
             &self
                 .make_request(
@@ -694,25 +684,33 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn purchase_cargo(&self, ship_symbol: &str) -> fleet::PurchaseCargo {
+    pub async fn purchase_cargo(
+        &self,
+        ship_symbol: &str,
+        data: PurchaseCargo,
+    ) -> fleet::PurchaseCargo {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/purchase", ship_symbol),
-                    None,
+                    Some(Requests::PurchaseCargo(data)),
                 )
                 .await,
         )
         .unwrap()
     }
-    pub async fn transfer_cargo(&self, ship_symbol: &str) -> fleet::TransferCargo {
+    pub async fn transfer_cargo(
+        &self,
+        ship_symbol: &str,
+        data: TransferCargo,
+    ) -> fleet::TransferCargo {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/transfer", ship_symbol),
-                    None,
+                    Some(Requests::TransferCargo(data)),
                 )
                 .await,
         )
@@ -735,7 +733,7 @@ impl SpaceTraders {
             &self
                 .make_request(
                     Method::Get,
-                    format!("/my/ships/{}/negotiate/mounts", ship_symbol),
+                    format!("/my/ships/{}/mounts", ship_symbol),
                     None,
                 )
                 .await,
@@ -745,29 +743,25 @@ impl SpaceTraders {
     pub async fn install_mount(
         &self,
         ship_symbol: &str,
-        data: requests::InstallMount,
+        data: InstallMount,
     ) -> fleet::InstallMounts {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
-                    format!("/my/ships/{}/negotiate/mounts/install", ship_symbol),
+                    format!("/my/ships/{}/mounts/install", ship_symbol),
                     Some(Requests::InstallMount(data)),
                 )
                 .await,
         )
         .unwrap()
     }
-    pub async fn remove_mount(
-        &self,
-        ship_symbol: &str,
-        data: requests::RemoveMount,
-    ) -> fleet::RemoveMounts {
+    pub async fn remove_mount(&self, ship_symbol: &str, data: RemoveMount) -> fleet::RemoveMounts {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
-                    format!("/my/ships/{}/negotiate/mounts/remove", ship_symbol),
+                    format!("/my/ships/{}/mounts/remove", ship_symbol),
                     Some(Requests::RemoveMount(data)),
                 )
                 .await,
@@ -784,7 +778,7 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn get_faction(&self, faction_symbol: &str) -> factions::Factions {
+    pub async fn get_faction(&self, faction_symbol: &str) -> factions::Faction {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, format!("/factions/{}", faction_symbol), None)
