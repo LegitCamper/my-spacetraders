@@ -277,20 +277,24 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn get_system(&self, system_symbol: &str) -> systems::System {
-        serde_json::from_str(
-            &self
-                .make_request(Method::Get, format!("/systems/{}", system_symbol), None)
-                .await,
-        )
-        .unwrap()
-    }
-    pub async fn list_waypoints(&self, system_symbol: &str) -> systems::Waypoints {
+    pub async fn get_system(&self, system_symbol: System) -> systems::System {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Get,
-                    format!("/systems/{}/waypoints", system_symbol),
+                    format!("/systems/{}", system_symbol.system),
+                    None,
+                )
+                .await,
+        )
+        .unwrap()
+    }
+    pub async fn list_waypoints(&self, system_symbol: System) -> systems::Waypoints {
+        serde_json::from_str(
+            &self
+                .make_request(
+                    Method::Get,
+                    format!("/systems/{}/waypoints", system_symbol.system),
                     None,
                 )
                 .await,
@@ -299,28 +303,35 @@ impl SpaceTraders {
     }
     pub async fn get_waypoint(
         &self,
-        system_symbol: &str,
-        waypoint_symbol: &str,
+        system_symbol: System,
+        waypoint_symbol: Waypoint,
     ) -> systems::Waypoint {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Get,
-                    format!("/systems/{}/waypoints/{}", system_symbol, waypoint_symbol),
+                    format!(
+                        "/systems/{}/waypoints/{}",
+                        system_symbol.system, waypoint_symbol.waypoint
+                    ),
                     None,
                 )
                 .await,
         )
         .unwrap()
     }
-    pub async fn get_market(&self, system_symbol: &str, waypoint_symbol: &str) -> systems::Market {
+    pub async fn get_market(
+        &self,
+        system_symbol: System,
+        waypoint_symbol: Waypoint,
+    ) -> systems::Market {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Get,
                     format!(
                         "/systems/{}/waypoints/{}/market",
-                        system_symbol, waypoint_symbol
+                        system_symbol.system, waypoint_symbol.waypoint
                     ),
                     None,
                 )
@@ -330,8 +341,8 @@ impl SpaceTraders {
     }
     pub async fn get_shipyard(
         &self,
-        system_symbol: &str,
-        waypoint_symbol: &str,
+        system_symbol: System,
+        waypoint_symbol: Waypoint,
     ) -> systems::Shipyard {
         serde_json::from_str(
             &self
@@ -339,7 +350,7 @@ impl SpaceTraders {
                     Method::Get,
                     format!(
                         "/systems/{}/waypoints/{}/shipyard",
-                        system_symbol, waypoint_symbol
+                        system_symbol.system, waypoint_symbol.waypoint
                     ),
                     None,
                 )
@@ -347,14 +358,18 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn jump_gate(&self, system_symbol: &str, waypoint_symbol: &str) -> systems::JumpGate {
+    pub async fn jump_gate(
+        &self,
+        system_symbol: System,
+        waypoint_symbol: Waypoint,
+    ) -> systems::JumpGate {
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Get,
                     format!(
                         "/systems/{}/waypoints/{}/jump-gate",
-                        system_symbol, waypoint_symbol
+                        system_symbol.system, waypoint_symbol.waypoint
                     ),
                     None,
                 )
@@ -814,25 +829,22 @@ pub struct Waypoint {
     pub sector: String,
 }
 impl Waypoint {
-    fn waypoint(&self) -> Self {
-        let split: Vec<&str> = self.waypoint.split('-').collect();
-        Self {
-            waypoint: self.waypoint.clone(),
-            system: format!("{}-{}", split[0], split[1]),
-            sector: split[0].to_string(),
-        }
-    }
-    fn system(&self) -> System {
-        let split: Vec<&str> = self.waypoint.split('-').collect();
+    // pub fn to_waypoint(&self) -> Self {
+    //     Self {
+    //         waypoint: self.waypoint.clone(),
+    //         system: self.system.clone(),
+    //         sector: self.sector.clone(),
+    //     }
+    // }
+    pub fn to_system(&self) -> System {
         System {
             system: self.system.clone(),
-            sector: split[0].to_string(),
+            sector: self.sector.clone(),
         }
     }
-    fn sector(&self) -> Sector {
-        let split: Vec<&str> = self.waypoint.split('-').collect();
+    pub fn to_sector(&self) -> Sector {
         Sector {
-            sector: split[0].to_string(),
+            sector: self.sector.clone(),
         }
     }
 }
@@ -870,17 +882,15 @@ pub struct System {
     pub sector: String,
 }
 impl System {
-    fn system(&self) -> Self {
-        let split: Vec<&str> = self.system.split('-').collect();
-        Self {
-            system: self.system.clone(),
-            sector: split[0].to_string(),
-        }
-    }
-    fn sector(&self) -> Sector {
-        let split: Vec<&str> = self.system.split('-').collect();
+    // pub fn to_system(&self) -> Self {
+    //     Self {
+    //         system: self.system.clone(),
+    //         sector: self.sector.clone(),
+    //     }
+    // }
+    pub fn to_sector(&self) -> Sector {
         Sector {
-            sector: split[0].to_string(),
+            sector: self.sector.clone(),
         }
     }
 }
@@ -916,11 +926,11 @@ pub struct Sector {
     pub sector: String,
 }
 impl Sector {
-    fn sector(&self) -> Self {
-        Self {
-            sector: self.sector.clone(),
-        }
-    }
+    // fn to_sector(&self) -> Self {
+    //     Self {
+    //         sector: self.sector.clone(),
+    //     }
+    // }
 }
 impl<'de> Deserialize<'de> for Sector {
     fn deserialize<D>(deserializer: D) -> Result<Sector, D::Error>

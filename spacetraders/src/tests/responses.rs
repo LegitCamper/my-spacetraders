@@ -5,13 +5,13 @@ use crate::{
         JettisonCargo, JumpShip, NavigateShip, PatchShipNav, PurchaseCargo, PurchaseShip,
         RemoveMount, SellCargo, ShipRefine, TransferCargo, WarpShip,
     },
-    Method, SpaceTraders,
+    Method, Sector, SpaceTraders, System, Waypoint,
 };
 
 use serial_test::serial;
 
 const TIMES_TO_RUN: i32 = 10;
-const SYSTEM: &str = "X1-OE";
+const STRING: &str = "X1-OE";
 
 // This test panics - duh
 // #[tokio::test]
@@ -69,7 +69,12 @@ async fn list_systems() {
 async fn get_systems() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_system(SYSTEM).await;
+        spacetraders
+            .get_system(System {
+                system: STRING.to_string(),
+                sector: STRING.to_string(),
+            })
+            .await;
     }
 }
 #[tokio::test]
@@ -77,7 +82,12 @@ async fn get_systems() {
 async fn list_waypoints() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_waypoints(SYSTEM).await;
+        spacetraders
+            .list_waypoints(System {
+                system: STRING.to_string(),
+                sector: STRING.to_string(),
+            })
+            .await;
     }
 }
 #[tokio::test]
@@ -85,7 +95,19 @@ async fn list_waypoints() {
 async fn get_waypoint() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_waypoint(SYSTEM, SYSTEM).await;
+        spacetraders
+            .get_waypoint(
+                System {
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+                Waypoint {
+                    waypoint: STRING.to_string(),
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+            )
+            .await;
     }
 }
 #[tokio::test]
@@ -93,7 +115,19 @@ async fn get_waypoint() {
 async fn get_market() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_market(SYSTEM, SYSTEM).await;
+        spacetraders
+            .get_market(
+                System {
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+                Waypoint {
+                    waypoint: STRING.to_string(),
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+            )
+            .await;
     }
 }
 #[tokio::test]
@@ -101,7 +135,19 @@ async fn get_market() {
 async fn get_shipyard() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_shipyard(SYSTEM, SYSTEM).await;
+        spacetraders
+            .get_shipyard(
+                System {
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+                Waypoint {
+                    waypoint: STRING.to_string(),
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+            )
+            .await;
     }
 }
 #[tokio::test]
@@ -109,7 +155,19 @@ async fn get_shipyard() {
 async fn get_jump_gate() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.jump_gate(SYSTEM, SYSTEM).await;
+        spacetraders
+            .jump_gate(
+                System {
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+                Waypoint {
+                    waypoint: STRING.to_string(),
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+            )
+            .await;
     }
 }
 
@@ -126,7 +184,7 @@ async fn list_contracts() {
 async fn get_contract() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_contract(SYSTEM).await;
+        spacetraders.get_contract(STRING).await;
     }
 }
 #[tokio::test]
@@ -134,7 +192,7 @@ async fn get_contract() {
 async fn accept_contracts() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.accept_contract(SYSTEM).await;
+        spacetraders.accept_contract(STRING).await;
     }
 }
 #[tokio::test]
@@ -144,7 +202,7 @@ async fn deliver_contract() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .deliver_contract(
-                SYSTEM,
+                STRING,
                 crate::requests::DeliverCargoToContract {
                     ship_symbol: ShipType::ShipProbe,
                     trade_symbol: TradeSymbol::PreciousStones,
@@ -159,7 +217,7 @@ async fn deliver_contract() {
 async fn fulfill_contract() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.fulfill_contract(SYSTEM).await;
+        spacetraders.fulfill_contract(STRING).await;
     }
 }
 
@@ -176,7 +234,7 @@ async fn list_factions() {
 async fn get_faction() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_faction(SYSTEM).await;
+        spacetraders.get_faction(STRING).await;
     }
 }
 
@@ -195,7 +253,7 @@ async fn purchase_ship() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .purchase_ship(PurchaseShip {
-                waypoint_symbol: SYSTEM.to_string(),
+                waypoint_symbol: STRING.to_string(),
                 ship_type: ShipType::ShipMiningDrone,
             })
             .await;
@@ -206,7 +264,7 @@ async fn purchase_ship() {
 async fn get_ship() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_ship(SYSTEM).await;
+        spacetraders.get_ship(STRING).await;
     }
 }
 #[tokio::test]
@@ -214,7 +272,7 @@ async fn get_ship() {
 async fn get_ship_cargo() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_ship_cargo(SYSTEM).await;
+        spacetraders.get_ship_cargo(STRING).await;
     }
 }
 #[tokio::test]
@@ -222,7 +280,7 @@ async fn get_ship_cargo() {
 async fn orbit_ship() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.orbit_ship(SYSTEM).await;
+        spacetraders.orbit_ship(STRING).await;
     }
 }
 #[tokio::test]
@@ -245,7 +303,7 @@ async fn ship_refine() {
 async fn create_chart() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.create_chart(SYSTEM).await;
+        spacetraders.create_chart(STRING).await;
     }
 }
 #[tokio::test]
@@ -253,7 +311,7 @@ async fn create_chart() {
 async fn get_ship_cooldown() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_ship_cooldown(SYSTEM).await;
+        spacetraders.get_ship_cooldown(STRING).await;
     }
 }
 #[tokio::test]
@@ -261,7 +319,7 @@ async fn get_ship_cooldown() {
 async fn dock_ship() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.dock_ship(SYSTEM).await;
+        spacetraders.dock_ship(STRING).await;
     }
 }
 #[tokio::test]
@@ -269,7 +327,7 @@ async fn dock_ship() {
 async fn create_survey() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.create_survey(SYSTEM).await;
+        spacetraders.create_survey(STRING).await;
     }
 }
 #[tokio::test]
@@ -279,13 +337,13 @@ async fn extract_resources() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .extract_resources(
-                SYSTEM,
+                STRING,
                 ExtractResources {
                     survey: ExtractResourcesSurvey {
-                        signature: SYSTEM.into(),
-                        symbol: SYSTEM.into(),
+                        signature: STRING.into(),
+                        symbol: STRING.into(),
                         deposits: vec![ExtractResourcesSurveyDeposits {
-                            symbol: SYSTEM.into(),
+                            symbol: STRING.into(),
                         }],
                         // TODO: make into datatime
                         expiration: "2019-08-24T14:15:22Z".into(),
@@ -303,7 +361,7 @@ async fn jettison_cargo() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .jettison_cargo(
-                SYSTEM,
+                STRING,
                 JettisonCargo {
                     symbol: enums::TradeSymbol::PreciousStones,
                     units: 1000,
@@ -319,9 +377,9 @@ async fn jump_ship() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .jump_ship(
-                SYSTEM,
+                STRING,
                 JumpShip {
-                    system_symbol: SYSTEM.to_string(),
+                    system_symbol: STRING.to_string(),
                 },
             )
             .await;
@@ -334,7 +392,7 @@ async fn navigate_ship() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .navigate_ship(
-                SYSTEM,
+                STRING,
                 NavigateShip {
                     ship_symbol: ShipType::ShipProbe,
                 },
@@ -349,7 +407,7 @@ async fn patch_ship_nav() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .patch_ship_nav(
-                SYSTEM,
+                STRING,
                 PatchShipNav {
                     ship_symbol: FlightMode::Cruise,
                 },
@@ -362,7 +420,7 @@ async fn patch_ship_nav() {
 async fn get_ship_nav() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_ship_nav(SYSTEM).await;
+        spacetraders.get_ship_nav(STRING).await;
     }
 }
 #[tokio::test]
@@ -372,9 +430,9 @@ async fn warp_ship() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .warp_ship(
-                SYSTEM,
+                STRING,
                 WarpShip {
-                    ship_symbol: SYSTEM.to_string(),
+                    ship_symbol: STRING.to_string(),
                 },
             )
             .await;
@@ -387,7 +445,7 @@ async fn sell_cargo() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .sell_cargo(
-                SYSTEM,
+                STRING,
                 SellCargo {
                     symbol: TradeSymbol::PreciousStones,
                     units: 1000,
@@ -401,7 +459,7 @@ async fn sell_cargo() {
 async fn scan_systems() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.scan_systems(SYSTEM).await;
+        spacetraders.scan_systems(STRING).await;
     }
 }
 #[tokio::test]
@@ -409,7 +467,7 @@ async fn scan_systems() {
 async fn scan_waypoints() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.scan_waypoints(SYSTEM).await;
+        spacetraders.scan_waypoints(STRING).await;
     }
 }
 #[tokio::test]
@@ -417,7 +475,7 @@ async fn scan_waypoints() {
 async fn scan_ships() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.scan_ships(SYSTEM).await;
+        spacetraders.scan_ships(STRING).await;
     }
 }
 #[tokio::test]
@@ -427,7 +485,7 @@ async fn purchase_cargo() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .purchase_cargo(
-                SYSTEM,
+                STRING,
                 PurchaseCargo {
                     symbol: enums::TradeSymbol::PreciousStones,
                     units: 1000,
@@ -443,11 +501,11 @@ async fn transfer_cargo() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .transfer_cargo(
-                SYSTEM,
+                STRING,
                 TransferCargo {
                     trade_symbol: TradeSymbol::PreciousStones,
                     units: 1000,
-                    ship_symbol: SYSTEM.into(),
+                    ship_symbol: STRING.into(),
                 },
             )
             .await;
@@ -458,7 +516,7 @@ async fn transfer_cargo() {
 async fn negotiate_contract() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.negotiate_contract(SYSTEM).await;
+        spacetraders.negotiate_contract(STRING).await;
     }
 }
 #[tokio::test]
@@ -466,7 +524,7 @@ async fn negotiate_contract() {
 async fn get_mounts() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_mounts(SYSTEM).await;
+        spacetraders.get_mounts(STRING).await;
     }
 }
 #[tokio::test]
@@ -476,9 +534,9 @@ async fn install_mount() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .install_mount(
-                SYSTEM,
+                STRING,
                 InstallMount {
-                    symbol: SYSTEM.to_string(),
+                    symbol: STRING.to_string(),
                 },
             )
             .await;
@@ -491,9 +549,9 @@ async fn remove_mount() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .remove_mount(
-                SYSTEM,
+                STRING,
                 RemoveMount {
-                    symbol: SYSTEM.to_string(),
+                    symbol: STRING.to_string(),
                 },
             )
             .await;

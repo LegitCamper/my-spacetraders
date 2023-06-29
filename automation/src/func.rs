@@ -12,23 +12,24 @@ pub async fn mine_astroid(ship: schemas::Ship, space_traders: Arc<Mutex<SpaceTra
 
 pub async fn buy_mining_ship(ship: schemas::Ship, space_traders: Arc<Mutex<SpaceTraders>>) {
     let agent = space_traders.lock().await.agent().await;
+    let headquarters = agent.data.headquarters;
 
-    println!("{:?}", agent.data.headquarters);
-    println!("{:?}", agent.data.headquarters.waypoint);
-    println!("{:?}", agent.data.headquarters.system);
-    println!("{:?}", agent.data.headquarters.sector);
-    // println!("{:?}", head.sector);
+    // this is how you serialize the waypoints
+    // println!("{:?}", agent.data.headquarters);
+    // println!("{:?}", agent.data.headquarters.waypoint);
+    // println!("{:?}", agent.data.headquarters.system);
+    // println!("{:?}", agent.data.headquarters.sector);
 
-    // let waypoints = space_traders
-    //     .lock()
-    //     .await
-    //     .list_waypoints(&system_symbol)
-    //     .await;
-    // let shipyard = space_traders
-    //     .lock()
-    //     .await
-    //     .get_shipyard(&system_symbol.system, &system_symbol.waypoint)
-    //     .await;
+    let waypoints = space_traders
+        .lock()
+        .await
+        .list_waypoints(headquarters.to_system())
+        .await;
+    let shipyard = space_traders
+        .lock()
+        .await
+        .get_shipyard(headquarters.to_system(), headquarters)
+        .await;
 
     // for waypoint in waypoints.data.iter() {
     //     for r#trait in waypoint.traits.iter() {
