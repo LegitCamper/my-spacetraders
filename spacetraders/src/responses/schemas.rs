@@ -1,5 +1,5 @@
 use crate::{
-    enums::{self, TradeSymbol},
+    enums::{self, FactionSymbols, TradeSymbol},
     Sector as SectorType, System as SystemType, Waypoint as WaypointType,
 };
 
@@ -8,7 +8,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer};
 
 // TODO: deserialize faction symbol to FactionSymbol enum
-// TODO: desetialize wapoints into custom struct
 
 fn skip_trade_symbol<'de, D>(de: D) -> Result<Option<enums::TradeSymbol>, D::Error>
 where
@@ -17,15 +16,23 @@ where
     Ok(TradeSymbol::deserialize(de).ok())
 }
 
+fn skip_faction_symbol<'de, D>(de: D) -> Result<Option<enums::FactionSymbols>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(FactionSymbols::deserialize(de).ok())
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Agent {
     #[serde(alias = "accountId")]
     pub account_id: String,
     pub symbol: String,
-    pub headquarters: WaypointType, //String,
+    pub headquarters: WaypointType,
     pub credits: f64,
     #[serde(alias = "startingFaction")]
-    pub starting_faction: String, // enums::FactionSymbols,
+    #[serde(deserialize_with = "skip_faction_symbol")]
+    pub starting_faction: Option<enums::FactionSymbols>,
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -49,7 +56,8 @@ pub struct ConnectedSystem {
     pub sector_symbol: String,
     pub r#typ: enums::SystemType,
     #[serde(alias = "factionSymbol")]
-    pub faction_symbol: String, // enums::FactionSymbols,
+    #[serde(deserialize_with = "skip_faction_symbol")]
+    pub faction_symbol: Option<enums::FactionSymbols>,
     pub x: i32,
     pub y: i32,
     pub distance: f64,
@@ -59,7 +67,8 @@ pub struct ConnectedSystem {
 pub struct Contract {
     pub id: String,
     #[serde(alias = "factionSymbol")]
-    pub faction_symbol: String, // enums::FactionSymbols,
+    #[serde(deserialize_with = "skip_faction_symbol")]
+    pub faction_symbol: Option<enums::FactionSymbols>,
     pub r#type: enums::ListContractsType,
     pub terms: ContractTerms,
     pub accepted: bool,
@@ -130,7 +139,8 @@ pub struct ExtractionYield {
 
 #[derive(Deserialize, Debug)]
 pub struct Faction {
-    pub symbol: String, // enums::FactionSymbols,
+    #[serde(deserialize_with = "skip_faction_symbol")]
+    pub symbol: Option<enums::FactionSymbols>,
     pub name: String,
     // description: String,
     pub headquarters: String,
@@ -152,7 +162,8 @@ pub struct JumpGate {
     pub jump_range: f64,
     #[serde(alias = "factionSymbol")]
     #[serde(default)]
-    pub faction_symbol: String, // enums::FactionSymbols, // this fails in tests, but is okay //TODO: see if fixed - issue on discord
+    #[serde(deserialize_with = "skip_faction_symbol")]
+    pub faction_symbol: Option<enums::FactionSymbols>,
     #[serde(alias = "connectedSystems")]
     pub connected_systems: Vec<JumpGateConnectedSystems>,
 }
@@ -165,7 +176,8 @@ pub struct JumpGateConnectedSystems {
     pub r#type: enums::SystemType,
     #[serde(default)]
     #[serde(alias = "factionSymbol")]
-    pub faction_symbol: String, // enums::FactionSymbols,
+    #[serde(deserialize_with = "skip_faction_symbol")]
+    pub faction_symbol: Option<enums::FactionSymbols>,
     pub x: i32,
     pub y: i32,
     pub distance: i32,
@@ -271,7 +283,8 @@ pub struct ScannedWaypointOrbitals {
 }
 #[derive(Deserialize, Debug)]
 pub struct ScannedWaypointFaction {
-    pub symbol: String, // enums::FactionSymbols,
+    #[serde(deserialize_with = "skip_faction_symbol")]
+    pub symbol: Option<enums::FactionSymbols>,
 }
 #[derive(Deserialize, Debug)]
 pub struct ScannedWaypointTrait {
@@ -463,7 +476,8 @@ pub struct ShipReactor {
 pub struct ShipRegistration {
     pub name: String,
     #[serde(alias = "factionSymbol")]
-    pub faction_symbol: String, // enums::FactionSymbols,
+    #[serde(deserialize_with = "skip_faction_symbol")]
+    pub faction_symbol: Option<enums::FactionSymbols>,
     pub role: enums::ShipRole,
 }
 
@@ -545,7 +559,8 @@ pub struct System {
 
 #[derive(Deserialize, Debug)]
 pub struct SystemFaction {
-    pub symbol: String, // enums::FactionSymbols,
+    #[serde(deserialize_with = "skip_faction_symbol")]
+    pub symbol: Option<enums::FactionSymbols>,
 }
 
 #[derive(Deserialize, Debug)]
