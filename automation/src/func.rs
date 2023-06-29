@@ -1,9 +1,58 @@
 use spacetraders::{
-    enums, parse_waypoint, requests,
-    responses::{contracts, schemas},
-    SpaceTraders,
+    enums, requests,
+    responses::{contracts, schemas, systems},
+    SpaceTraders, WaypointKind,
 };
 
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::{mpsc, Mutex};
+
+// mining astroid functions
+pub async fn mine_astroid(ship: schemas::Ship, space_traders: Arc<Mutex<SpaceTraders>>) {}
+
+pub async fn buy_mining_ship(ship: schemas::Ship, space_traders: Arc<Mutex<SpaceTraders>>) {
+    let agent = space_traders.lock().await.agent().await;
+
+    // this is how to access the waypoint data
+    // if let WaypointKind::Waypoint {
+    //     waypoint,
+    //     system,
+    //     sector,
+    // } = agent.data.headquarters
+    // {
+    //     println!("{}, {}, {}", waypoint, system, sector);
+    // }
+
+    // println!("{:?}", agent.data.headquarters);
+    // println!("{:?}", head.sector);
+
+    // let waypoints = space_traders
+    //     .lock()
+    //     .await
+    //     .list_waypoints(&system_symbol)
+    //     .await;
+    // let shipyard = space_traders
+    //     .lock()
+    //     .await
+    //     .get_shipyard(&system_symbol.system, &system_symbol.waypoint)
+    //     .await;
+
+    // for waypoint in waypoints.data.iter() {
+    //     for r#trait in waypoint.traits.iter() {
+    //         if r#trait.symbol == enums::WaypointTrait::Shipyard {
+    //             for ships in shipyard.data.ship_types.iter() {
+    //                 // if ships.contains(&enums::ShipType::ShipMiningDrone) {
+    //                 //     // for ship in
+    //                 // }
+    //                 println!("{:#?}", ships);
+    //             }
+    //         }
+    //     }
+    // }
+    // println!("{:#?}", waypoints);
+}
+
+// complete contract functions
 pub async fn get_contract(space_traders: &SpaceTraders) -> Vec<contracts::schemas::Contract> {
     let available_contracts = space_traders.list_contracts().await.data;
 
@@ -76,46 +125,46 @@ pub async fn get_contract(space_traders: &SpaceTraders) -> Vec<contracts::schema
 //     my_ships.data[0].clone()
 // }
 
-pub async fn purchase_ship(space_traders: &SpaceTraders, _ship: enums::ShipType) -> schemas::Ship {
-    let mut found_shipyard = false;
-    let system = parse_waypoint(&space_traders.agent().await.data.headquarters).system;
+// pub async fn purchase_ship(space_traders: &SpaceTraders, _ship: enums::ShipType) -> schemas::Ship {
+//     let mut found_shipyard = false;
+//     let system = parse_waypoint(&space_traders.agent().await.data.headquarters).system;
 
-    for waypoint in space_traders.list_waypoints(&system).await.data.iter() {
-        for waypoint_trait in waypoint.traits.iter() {
-            if waypoint_trait.symbol == enums::WaypointTrait::Shipyard {
-                found_shipyard = true;
-                let parsed_waypoint = parse_waypoint(&waypoint.symbol);
-                let ships_in_shipyard = space_traders
-                    .get_shipyard(&parsed_waypoint.system, &parsed_waypoint.waypoint)
-                    .await;
+//     for waypoint in space_traders.list_waypoints(&system).await.data.iter() {
+//         for waypoint_trait in waypoint.traits.iter() {
+//             if waypoint_trait.symbol == enums::WaypointTrait::Shipyard {
+//                 found_shipyard = true;
+//                 let parsed_waypoint = parse_waypoint(&waypoint.symbol);
+//                 let ships_in_shipyard = space_traders
+//                     .get_shipyard(&parsed_waypoint.system, &parsed_waypoint.waypoint)
+//                     .await;
 
-                for ship in ships_in_shipyard.data.ship_types.iter() {
-                    // match current_contract.r#type {
-                    // should buy the correct ship for the contract. for now I will just buy mining drone
-                    if ship.r#type == enums::ShipType::ShipMiningDrone {
-                        // ListContractsType::Procurement => {
-                        //     if ship.
-                        // }
-                        // ListContractsType::Transport => {}
-                        // ListContractsType::Shuttle => {}
-                        let u = space_traders
-                            .purchase_ship(requests::PurchaseShip {
-                                ship_type: ship.r#type,
-                                waypoint_symbol: waypoint.symbol.clone(),
-                            })
-                            .await;
-                        println!("{:?}", u);
-                        break;
-                    }
-                }
-                println!("yolo");
-                break;
-            }
-        }
-    }
-    if !found_shipyard {
-        println!("Failed to find Shipyard");
-        space_traders.diagnose();
-    }
-    panic!("WORKED")
-}
+//                 for ship in ships_in_shipyard.data.ship_types.iter() {
+//                     // match current_contract.r#type {
+//                     // should buy the correct ship for the contract. for now I will just buy mining drone
+//                     if ship.r#type == enums::ShipType::ShipMiningDrone {
+//                         // ListContractsType::Procurement => {
+//                         //     if ship.
+//                         // }
+//                         // ListContractsType::Transport => {}
+//                         // ListContractsType::Shuttle => {}
+//                         let u = space_traders
+//                             .purchase_ship(requests::PurchaseShip {
+//                                 ship_type: ship.r#type,
+//                                 waypoint_symbol: waypoint.symbol.clone(),
+//                             })
+//                             .await;
+//                         println!("{:?}", u);
+//                         break;
+//                     }
+//                 }
+//                 println!("yolo");
+//                 break;
+//             }
+//         }
+//     }
+//     if !found_shipyard {
+//         println!("Failed to find Shipyard");
+//         space_traders.diagnose();
+//     }
+//     panic!("WORKED")
+// }

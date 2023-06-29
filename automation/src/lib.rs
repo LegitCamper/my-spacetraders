@@ -18,33 +18,44 @@ use tokio::{
 pub struct ShipHandlerData {
     pub ships: Vec<Ship>,
     pub contracts: HashMap<String, Contract>,
-    pub interface: Arc<Mutex<SpaceTraders>>,
-    // pub handles: Vec<task::JoinHandle<()>>,
-    pub handles: Vec<()>,
+    pub handles: Vec<task::JoinHandle<()>>,
 }
 
-pub async fn start_ship_handler(contracts: Arc<Mutex<ShipHandlerData>>) -> task::JoinHandle<()> {
+pub fn start_ship_handler(
+    space_traders: Arc<Mutex<SpaceTraders>>,
+    contracts: Arc<Mutex<ShipHandlerData>>,
+) -> task::JoinHandle<()> {
     task::spawn(async move {
         let (tx, mut rx) = mpsc::channel(100);
 
-        for ship in contracts.lock().await.ships.clone().into_iter() {
+        let start_ships = space_traders.lock().await.list_ships().await.data;
+
+        // start initial ships in their own task
+        for ship in start_ships.into_iter() {
             let new_contracts = Arc::clone(&contracts);
+            let new_space_traders = Arc::clone(&space_traders);
             let new_channel = tx.clone();
-            let handle =
-                task::spawn(async move { ship_handler(ship, new_contracts, new_channel) }).await;
-            // .await
-            // .unwrap()
-            // .await;
-            contracts.lock().await.handles.push(handle.unwrap().await);
+
+            let join_handle: task::JoinHandle<()> = task::spawn(async move {
+                // loop {
+                ship_handler(ship, new_contracts, new_space_traders, new_channel).await
+                // }
+            });
+            contracts.lock().await.handles.push(join_handle);
         }
 
+        // listens for new ship purchases and spawns new task to deal with them
         while let Some(msg) = rx.recv().await {
-            let new_channel = tx.clone();
             let new_contracts = Arc::clone(&contracts);
-            task::spawn(async move { ship_handler(msg, new_contracts, new_channel) })
-                .await
-                .unwrap()
-                .await;
+            let new_space_traders = Arc::clone(&space_traders);
+            let new_channel = tx.clone();
+
+            let join_handle: task::JoinHandle<()> = task::spawn(async move {
+                // loop {
+                ship_handler(msg, new_contracts, new_space_traders, new_channel).await
+                // }
+            });
+            contracts.lock().await.handles.push(join_handle);
         }
     })
 }
@@ -52,15 +63,19 @@ pub async fn start_ship_handler(contracts: Arc<Mutex<ShipHandlerData>>) -> task:
 pub async fn ship_handler(
     ship: Ship,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
+    space_traders: Arc<Mutex<SpaceTraders>>,
     channel: mpsc::Sender<Ship>,
 ) {
-    let space_traders = ship_handler_data.lock().await.interface.clone();
-    automate(space_traders).await;
-}
+    ship_handler_data.lock().await.ships.push(ship.clone());
 
-pub async fn automate(space_traders: Arc<Mutex<SpaceTraders>>) {
-    println!("{:?}", space_traders.lock().await.agent().await);
-    // loop {
+    // println!("{:?}", space_traders.lock().await.agent().await);
+    // println!("{:?}", ship_handler_data.lock().await.ships);
+
+    // mine astroids
+    // func::mine_astroid(ship, space_traders).await;
+    func::buy_mining_ship(ship, space_traders).await;
+
+    // do contracts
 
     // let accepted_contracts = func::get_contract(&space_traders.lock().await).await;
 
@@ -74,7 +89,5 @@ pub async fn automate(space_traders: Arc<Mutex<SpaceTraders>>) {
     // for current_contract in accepted.iter() {
     // if !have_correct_ship {
     // func::buy_ship(&spacetraders);
-    // }
-    // }
     // }
 }

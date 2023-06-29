@@ -17,6 +17,10 @@ use reqwest::{
     header::{HeaderValue, AUTHORIZATION, CONTENT_LENGTH},
     Client,
 };
+use serde::{
+    de::{Error as OtherError, Expected, Unexpected, Visitor},
+    Deserialize, Deserializer,
+};
 use std::collections::HashMap;
 use tokio::{
     sync::{mpsc, oneshot},
@@ -801,31 +805,56 @@ pub struct ChannelMessage {
     oneshot: oneshot::Sender<String>,
 }
 
-// Other helpful functions
-// #[derive(Debug)]
-// enum WaypointKind {
-//     Sector(String, String),
-//     System(String),
-//     Waypoint(String, String, String),
-// }
-
-pub fn parse_waypoint(waypoint: &str) -> Waypoint {
-    let waypoint_split: Vec<&str> = waypoint.split('-').collect();
+// Waypoint handlers
+#[derive(Debug, Clone)]
+pub enum WaypointKind {
     Waypoint {
-        sector: waypoint_split[0].to_string(), // X1
-        system: format!("{}-{}", waypoint_split[0], waypoint_split[1]), // X1-DF55
-        waypoint: waypoint.to_string(),        // X1-DF55-20250Z
-    }
-} // TODO
-#[derive(Debug)]
-pub struct Waypoint {
-    pub sector: String,
-    pub system: String,
-    pub waypoint: String,
+        waypoint: String,
+        system: String,
+        sector: String,
+    },
+    System {
+        system: String,
+        sector: String,
+    },
+    Sector {
+        sector: String,
+    },
 }
-impl<'de> serde::Deserialize<'de> for Waypoint {
-    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let s = String::deserialize(d)?;
-        Ok(parse_waypoint(&s))
+impl<'de> Deserialize<'de> for WaypointKind {
+    fn deserialize<D>(deserializer: D) -> Result<WaypointKind, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        if s.contains('-') {
+            let waypoint_split: Vec<&str> = s.split('-').collect();
+            if waypoint_split.len() == 3 {
+                Ok(WaypointKind::Waypoint {
+                    sector: waypoint_split[0].to_string(),
+                    system: format!("{}-{}", waypoint_split[0], waypoint_split[1]),
+                    waypoint: s.to_string(),
+                })
+            } else if waypoint_split.len() == 2 {
+                Ok(WaypointKind::System {
+                    sector: waypoint_split[0].to_string(),
+                    system: format!("{}-{}", waypoint_split[0], waypoint_split[1]),
+                })
+            } else if waypoint_split.len() == 1 {
+                Ok(WaypointKind::Sector {
+                    sector: waypoint_split[0].to_string(),
+                })
+            } else {
+                Err(D::Error::invalid_value(
+                    Unexpected::Str(s),
+                    &"a floating point number as a string",
+                ))
+            }
+        } else {
+            Err(D::Error::invalid_value(
+                Unexpected::Str(s),
+                &"a floating point number as a string",
+            ))
+        }
     }
 }

@@ -1,4 +1,7 @@
-use crate::enums::{self, TradeSymbol};
+use crate::{
+    enums::{self, TradeSymbol},
+    WaypointKind,
+};
 
 // use bson::serde_helpers::chrono_datetime_as_bson_datetime;
 use chrono::{DateTime, Utc};
@@ -19,7 +22,7 @@ pub struct Agent {
     #[serde(alias = "accountId")]
     pub account_id: String,
     pub symbol: String,
-    pub headquarters: String,
+    pub headquarters: WaypointKind, //String,
     pub credits: f64,
     #[serde(alias = "startingFaction")]
     pub starting_faction: String, // enums::FactionSymbols,
