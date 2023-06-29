@@ -25,8 +25,8 @@ pub enum Requests {
 pub struct RegisterNewAgent {
     pub faction: FactionSymbols,
     pub symbol: String,
-    #[serde(default)]
-    pub email: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
 }
 
 #[derive(Serialize, Debug)]

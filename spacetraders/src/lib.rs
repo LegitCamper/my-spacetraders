@@ -11,6 +11,7 @@ use requests::{
 use responses::{agents, contracts, factions, fleet, systems};
 
 use core::panic;
+use rand::Rng;
 use random_string::generate;
 use reqwest::{
     header::{HeaderValue, AUTHORIZATION, CONTENT_LENGTH},
@@ -182,16 +183,16 @@ impl SpaceTraders {
     }
 
     pub async fn default() -> Self {
+        let mut rng = rand::thread_rng();
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = RegisterNewAgent {
-            faction: enums::FactionSymbols::Quantum,
+            faction: rng.gen::<enums::FactionSymbols>(),
             symbol: username,
-            email: "".to_string(),
+            email: None,
         };
 
         let registration = Client::new()
             .post(&format!("{}/register", LIVEURL))
-            .header(CONTENT_LENGTH, "0")
             .json(&post_message)
             .send()
             .await

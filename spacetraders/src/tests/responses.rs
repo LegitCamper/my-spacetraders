@@ -39,7 +39,7 @@ async fn get_new_registration() {
                     crate::requests::RegisterNewAgent {
                         faction: enums::FactionSymbols::Cosmic,
                         symbol: "placeholder".to_string(),
-                        email: "".to_string(),
+                        email: None,
                     },
                 )),
             )

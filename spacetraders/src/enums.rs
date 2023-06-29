@@ -1,3 +1,4 @@
+use rand_derive::Rand;
 use serde::{Deserialize, Serialize};
 
 // USE THE COMMAND 'ccase -t pascal enums' TO TRANSFORM THE DOCS TO RUST ENUMS
@@ -357,7 +358,7 @@ pub enum ShipFrame {
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE", untagged)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipEngine {
     EngineImpulseDriveI,
     EngineIonDriveI,
@@ -365,7 +366,8 @@ pub enum ShipEngine {
     EngineHyperDriveI,
     #[default]
     Default,
-    Other(serde_json::Value),
+    #[serde(untagged)]
+    Other(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
@@ -386,10 +388,9 @@ pub enum ShipCrewRotation {
     Relaxed,
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug, Rand)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FactionSymbols {
-    Cosmic,
     Void,
     Galactic,
     Quantum,
@@ -409,7 +410,8 @@ pub enum FactionSymbols {
     Shadow,
     Ethereal,
     #[default]
-    Default,
+    #[serde(untagged)]
+    Cosmic,
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
