@@ -1,7 +1,7 @@
 use spacetraders::{
     enums, requests,
     responses::{contracts, schemas, systems},
-    SpaceTraders, WaypointKind,
+    SpaceTraders,
 };
 
 use std::{collections::HashMap, sync::Arc};
@@ -13,17 +13,10 @@ pub async fn mine_astroid(ship: schemas::Ship, space_traders: Arc<Mutex<SpaceTra
 pub async fn buy_mining_ship(ship: schemas::Ship, space_traders: Arc<Mutex<SpaceTraders>>) {
     let agent = space_traders.lock().await.agent().await;
 
-    // this is how to access the waypoint data
-    // if let WaypointKind::Waypoint {
-    //     waypoint,
-    //     system,
-    //     sector,
-    // } = agent.data.headquarters
-    // {
-    //     println!("{}, {}, {}", waypoint, system, sector);
-    // }
-
-    // println!("{:?}", agent.data.headquarters);
+    println!("{:?}", agent.data.headquarters);
+    println!("{:?}", agent.data.headquarters.waypoint);
+    println!("{:?}", agent.data.headquarters.system);
+    println!("{:?}", agent.data.headquarters.sector);
     // println!("{:?}", head.sector);
 
     // let waypoints = space_traders

@@ -3,6 +3,7 @@ pub mod requests;
 pub mod responses;
 mod tests;
 
+use chrono::format;
 use requests::{
     DeliverCargoToContract, ExtractResources, InstallMount, JettisonCargo, JumpShip, NavigateShip,
     PatchShipNav, PurchaseCargo, PurchaseShip, RegisterNewAgent, RemoveMount, Requests, SellCargo,
@@ -805,24 +806,38 @@ pub struct ChannelMessage {
     oneshot: oneshot::Sender<String>,
 }
 
-// Waypoint handlers
-#[derive(Debug, Clone)]
-pub enum WaypointKind {
-    Waypoint {
-        waypoint: String,
-        system: String,
-        sector: String,
-    },
-    System {
-        system: String,
-        sector: String,
-    },
-    Sector {
-        sector: String,
-    },
+// Waypoint handlers //
+#[derive(Clone, Debug)]
+pub struct Waypoint {
+    pub waypoint: String,
+    pub system: String,
+    pub sector: String,
 }
-impl<'de> Deserialize<'de> for WaypointKind {
-    fn deserialize<D>(deserializer: D) -> Result<WaypointKind, D::Error>
+impl Waypoint {
+    fn waypoint(&self) -> Self {
+        let split: Vec<&str> = self.waypoint.split('-').collect();
+        Self {
+            waypoint: self.waypoint.clone(),
+            system: format!("{}-{}", split[0], split[1]),
+            sector: split[0].to_string(),
+        }
+    }
+    fn system(&self) -> System {
+        let split: Vec<&str> = self.waypoint.split('-').collect();
+        System {
+            system: self.system.clone(),
+            sector: split[0].to_string(),
+        }
+    }
+    fn sector(&self) -> Sector {
+        let split: Vec<&str> = self.waypoint.split('-').collect();
+        Sector {
+            sector: split[0].to_string(),
+        }
+    }
+}
+impl<'de> Deserialize<'de> for Waypoint {
+    fn deserialize<D>(deserializer: D) -> Result<Waypoint, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -830,18 +845,9 @@ impl<'de> Deserialize<'de> for WaypointKind {
         if s.contains('-') {
             let waypoint_split: Vec<&str> = s.split('-').collect();
             if waypoint_split.len() == 3 {
-                Ok(WaypointKind::Waypoint {
-                    sector: waypoint_split[0].to_string(),
-                    system: format!("{}-{}", waypoint_split[0], waypoint_split[1]),
+                Ok(Waypoint {
                     waypoint: s.to_string(),
-                })
-            } else if waypoint_split.len() == 2 {
-                Ok(WaypointKind::System {
-                    sector: waypoint_split[0].to_string(),
                     system: format!("{}-{}", waypoint_split[0], waypoint_split[1]),
-                })
-            } else if waypoint_split.len() == 1 {
-                Ok(WaypointKind::Sector {
                     sector: waypoint_split[0].to_string(),
                 })
             } else {
@@ -850,6 +856,83 @@ impl<'de> Deserialize<'de> for WaypointKind {
                     &"a floating point number as a string",
                 ))
             }
+        } else {
+            Err(D::Error::invalid_value(
+                Unexpected::Str(s),
+                &"a floating point number as a string",
+            ))
+        }
+    }
+}
+#[derive(Clone, Debug)]
+pub struct System {
+    pub system: String,
+    pub sector: String,
+}
+impl System {
+    fn system(&self) -> Self {
+        let split: Vec<&str> = self.system.split('-').collect();
+        Self {
+            system: self.system.clone(),
+            sector: split[0].to_string(),
+        }
+    }
+    fn sector(&self) -> Sector {
+        let split: Vec<&str> = self.system.split('-').collect();
+        Sector {
+            sector: split[0].to_string(),
+        }
+    }
+}
+impl<'de> Deserialize<'de> for System {
+    fn deserialize<D>(deserializer: D) -> Result<System, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        if s.contains('-') {
+            let split: Vec<&str> = s.split('-').collect();
+            if split.len() == 2 {
+                Ok(System {
+                    sector: split[0].to_string(),
+                    system: format!("{}-{}", split[0], split[1]),
+                })
+            } else {
+                Err(D::Error::invalid_value(
+                    Unexpected::Str(s),
+                    &"a floating point number as a string",
+                ))
+            }
+        } else {
+            Err(D::Error::invalid_value(
+                Unexpected::Str(s),
+                &"a floating point number as a string",
+            ))
+        }
+    }
+}
+#[derive(Clone, Debug)]
+pub struct Sector {
+    pub sector: String,
+}
+impl Sector {
+    fn sector(&self) -> Self {
+        Self {
+            sector: self.sector.clone(),
+        }
+    }
+}
+impl<'de> Deserialize<'de> for Sector {
+    fn deserialize<D>(deserializer: D) -> Result<Sector, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        let split: Vec<&str> = s.split('-').collect();
+        if split.len() == 1 {
+            Ok(Sector {
+                sector: split[0].to_string(),
+            })
         } else {
             Err(D::Error::invalid_value(
                 Unexpected::Str(s),
