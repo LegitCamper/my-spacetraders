@@ -270,10 +270,18 @@ impl SpaceTraders {
     }
 
     // Systems
-    pub async fn list_systems(&self) -> systems::Systems {
+    pub async fn list_systems(&self, page: Option<u32>) -> systems::Systems {
+        let page_parameter = match page {
+            Some(page) => page,
+            None => 1,
+        };
         serde_json::from_str(
             &self
-                .make_request(Method::Get, "/systems".to_string(), None)
+                .make_request(
+                    Method::Get,
+                    format!("/systems?limit=20&page={}", page_parameter),
+                    None,
+                )
                 .await,
         )
         .unwrap()

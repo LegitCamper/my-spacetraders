@@ -61,7 +61,7 @@ async fn agent() {
 async fn list_systems() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_systems().await;
+        spacetraders.list_systems(None).await;
     }
 }
 #[tokio::test]
