@@ -204,7 +204,7 @@ pub struct GetMarketTradeGood {
     #[serde(alias = "purchasePrice")]
     pub purchase_price: f64,
     #[serde(alias = "sellPrice")]
-    pub sell_price: u32,
+    pub sell_price: f64,
 }
 
 #[derive(Deserialize, Debug)]
@@ -216,11 +216,11 @@ pub struct MarketTransaction {
     #[serde(alias = "tradeSymbol")]
     pub trade_symbol: String,
     pub r#type: enums::GetMarketType,
-    pub units: i32,
+    pub units: f64,
     #[serde(alias = "pricePerUnit")]
-    pub price_per_unit: i32,
+    pub price_per_unit: f64,
     #[serde(alias = "totalPrice")]
-    pub total_price: i32,
+    pub total_price: f64,
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
     pub timestamp: DateTime<Utc>,
 }
@@ -393,7 +393,7 @@ pub struct ShipModificationTransaction {
     #[serde(alias = "shipSymbol")]
     pub ship_symbol: String,
     #[serde(alias = "totalPrice")]
-    pub total_price: i32,
+    pub total_price: f64,
     #[serde(alias = "tradeSymbol")]
     pub trade_symbol: String,
     pub timestamp: String,
@@ -426,9 +426,9 @@ pub struct ShipMount {
 #[derive(Deserialize, Clone, Debug)]
 pub struct ShipNav {
     #[serde(alias = "systemSymbol")]
-    pub system_symbol: String,
+    pub system_symbol: SystemType,
     #[serde(alias = "waypointSymbol")]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: WaypointType,
     pub route: ShipNavRoute,
     pub status: enums::ShipNavStatus,
     #[serde(alias = "flightMode")]
@@ -521,7 +521,7 @@ pub struct ShipyardTransaction {
     pub waypoint_symbol: String,
     #[serde(alias = "shipSymbol")]
     pub ship_symbol: String,
-    pub price: i32,
+    pub price: f64,
     pub timestamp: String,
 }
 

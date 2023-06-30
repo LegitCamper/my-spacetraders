@@ -195,7 +195,7 @@ impl SpaceTraders {
             email: None,
         };
 
-        let registration = Client::new()
+        match Client::new()
             .post(&format!("{}/register", LIVEURL))
             .json(&post_message)
             .send()
@@ -203,9 +203,12 @@ impl SpaceTraders {
             .unwrap()
             .json::<responses::RegisterNewAgent>()
             .await
-            .unwrap();
-
-        SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Live).await
+        {
+            Ok(registration) => {
+                SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Live).await
+            }
+            Err(error) => panic!("eror: {}", error),
+        }
     }
 
     #[allow(dead_code)]
@@ -242,7 +245,6 @@ impl SpaceTraders {
         {
             Err(r) => {
                 eprintln!("closed: {}", r);
-                panic!("{}", self.diagnose())
             }
             Ok(s) => s,
         }

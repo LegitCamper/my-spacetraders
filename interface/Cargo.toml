@@ -9,5 +9,9 @@ edition = "2018"
 [dependencies]
 spacetraders = { path = "../spacetraders" }
 automation = { path = "../automation" }
-clap = "3.2.25"
+crossterm = { version = "0.26.1", features = [ "serde" ] }
+tui = { version = "0.19.0", default-features = false, features = ["crossterm", "serde"] }
+clap = { version = "4.3.10", features = ["derive"] }
 tokio = "1.28.2"
+simple_logger = "4.2.0"
+log = "0.4.19"

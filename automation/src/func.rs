@@ -1,10 +1,11 @@
-use super::ShipHandlerData;
+use super::{ShipError, ShipHandlerData};
 use spacetraders::{
     enums, requests,
     responses::{self, contracts, schemas},
     SpaceTraders,
 };
 
+use log::{info, trace, warn};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
@@ -15,55 +16,95 @@ use tokio::sync::{mpsc, Mutex};
 // println!("{:?}", agent.data.headquarters.sector);
 
 // mining astroid functions
-pub async fn mine_astroid(_ship: schemas::Ship, _space_traders: Arc<Mutex<SpaceTraders>>) {
-    println!("Mining");
+pub async fn mine_astroid(
+    _ship: schemas::Ship,
+    _space_traders: Arc<Mutex<SpaceTraders>>,
+    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
+) {
+    trace!("Mining Astroid");
+    // return ShipError while in transit so I can release the locks
+    // then run again whenever done flying
 }
 
 pub async fn buy_mining_ship(
-    _ship: schemas::Ship,
+    ship: schemas::Ship,
     space_traders: Arc<Mutex<SpaceTraders>>,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
-    let agent = space_traders.lock().await.agent().await;
+    trace!("Buy mining ship");
 
-    let waypoints = space_traders
-        .lock()
-        .await
-        .list_waypoints(agent.data.headquarters.to_system())
+    // aquire locks to data
+    let space_traders_unlocked = space_traders.lock().await;
+    let mut ship_handler_data_unlocked = ship_handler_data.lock().await;
+
+    let ship_details = space_traders_unlocked.get_ship(&ship.symbol).await;
+
+    let waypoints = space_traders_unlocked
+        .list_waypoints(ship_details.data.nav.system_symbol)
         .await;
 
-    for waypoint in waypoints.data.iter() {
+    'outer: for waypoint in waypoints.data.iter() {
         for r#trait in waypoint.traits.iter() {
+            // info!("fs");
             if r#trait.symbol == enums::WaypointTrait::Shipyard {
-                let shipyard = space_traders
-                    .lock()
-                    .await
+                let shipyard = space_traders_unlocked
                     .get_shipyard(waypoint.system_symbol.clone(), waypoint.symbol.clone()) // TODO: implement copy instead
                     .await;
 
                 for ship in shipyard.data.ships.iter() {
                     if ship.r#type == enums::ShipType::ShipMiningDrone {
-                        // fly ship to waypoint if not there already
-                        // for now I will assume the ship is at the waypoint
-                        // if space_traders.
-                        if ship.purchase_price < agent.data.credits {
-                            let new_ship = space_traders
-                                .lock()
-                                .await
-                                .purchase_ship(requests::PurchaseShip {
-                                    ship_type: ship.r#type,
-                                    waypoint_symbol: waypoint.symbol.clone().waypoint,
-                                })
-                                .await;
+                        if ship_details.data.nav.waypoint_symbol.waypoint
+                            == waypoint.symbol.waypoint
+                        {
+                            if ship.purchase_price < ship_handler_data_unlocked.credits {
+                                let new_ship = space_traders_unlocked
+                                    .purchase_ship(requests::PurchaseShip {
+                                        ship_type: ship.r#type,
+                                        waypoint_symbol: waypoint.symbol.clone().waypoint,
+                                    })
+                                    .await;
 
-                            channel.send(new_ship.data.ship.clone()).await.unwrap();
+                                channel.send(new_ship.data.ship.clone()).await.unwrap();
+
+                                ship_handler_data_unlocked.credits = ship_handler_data_unlocked
+                                    .credits
+                                    - new_ship.data.transaction.price;
+
+                                info!(
+                                    "buying ship, now at {} credits",
+                                    ship_handler_data_unlocked.credits
+                                );
+                                return;
+                            } else {
+                                warn!("Not enough money to buy ship");
+                                return;
+                            }
+                        } else {
+                            let ship_status = ship_details.data.nav.status;
+                            if ship_status == enums::ShipNavStatus::Docked {
+                                space_traders_unlocked
+                                    .orbit_ship(&ship_details.data.symbol)
+                                    .await;
+                                space_traders_unlocked
+                                    .navigate_ship(
+                                        &ship_details.data.symbol,
+                                        requests::NavigateShip {
+                                            waypoint_symbol: waypoint.symbol.waypoint.clone(),
+                                        },
+                                    )
+                                    .await;
+                                // this needs to wait or error. if waiting
+                                // it will hold the locks for as long as it takes
+                            }
                         }
                     }
                 }
             }
         }
     }
+    warn!("Failed to find Shipyard or suitable ship")
+    // else maybe fly to the closest system with a shipyard
 }
 
 // complete contract functions
@@ -167,17 +208,14 @@ pub async fn get_contract(space_traders: &SpaceTraders) -> Vec<contracts::schema
 //                                 waypoint_symbol: waypoint.symbol.clone(),
 //                             })
 //                             .await;
-//                         println!("{:?}", u);
 //                         break;
 //                     }
 //                 }
-//                 println!("yolo");
 //                 break;
 //             }
 //         }
 //     }
 //     if !found_shipyard {
-//         println!("Failed to find Shipyard");
 //         space_traders.diagnose();
 //     }
 //     panic!("WORKED")

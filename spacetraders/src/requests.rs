@@ -74,7 +74,7 @@ pub struct JumpShip {
 #[derive(Serialize, Debug)]
 pub struct NavigateShip {
     #[serde(rename = "waypointSymbol")]
-    pub ship_symbol: ShipType,
+    pub waypoint_symbol: String,
 }
 
 #[derive(Serialize, Debug)]

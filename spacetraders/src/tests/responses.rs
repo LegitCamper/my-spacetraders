@@ -394,7 +394,7 @@ async fn navigate_ship() {
             .navigate_ship(
                 STRING,
                 NavigateShip {
-                    ship_symbol: ShipType::ShipProbe,
+                    waypoint_symbol: STRING.to_string(),
                 },
             )
             .await;
