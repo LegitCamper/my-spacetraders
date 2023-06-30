@@ -5,7 +5,7 @@ use crate::{
         JettisonCargo, JumpShip, NavigateShip, PatchShipNav, PurchaseCargo, PurchaseShip,
         RemoveMount, SellCargo, ShipRefine, TransferCargo, WarpShip,
     },
-    Method, Sector, SpaceTraders, System, Waypoint,
+    Method, SpaceTraders, System, Waypoint,
 };
 
 use serial_test::serial;

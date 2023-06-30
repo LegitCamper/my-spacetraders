@@ -1,7 +1,5 @@
 use spacetraders::{
-    enums::ShipEngine,
     responses::{
-        contracts,
         schemas::{Contract, Ship},
     },
     SpaceTraders,
@@ -64,7 +62,7 @@ pub async fn ship_handler(
     ship: Ship,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     space_traders: Arc<Mutex<SpaceTraders>>,
-    channel: mpsc::Sender<Ship>,
+    _channel: mpsc::Sender<Ship>,
 ) {
     ship_handler_data.lock().await.ships.push(ship.clone());
 

@@ -1,4 +1,4 @@
-use crate::{enums, Sector as SectorType, System as SystemType, Waypoint as WaypointType};
+use crate::{enums, Waypoint as WaypointType};
 
 // use bson::serde_helpers::chrono_datetime_as_bson_datetime;
 use chrono::{DateTime, Utc};

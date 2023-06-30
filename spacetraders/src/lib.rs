@@ -3,7 +3,7 @@ pub mod requests;
 pub mod responses;
 mod tests;
 
-use chrono::format;
+
 use requests::{
     DeliverCargoToContract, ExtractResources, InstallMount, JettisonCargo, JumpShip, NavigateShip,
     PatchShipNav, PurchaseCargo, PurchaseShip, RegisterNewAgent, RemoveMount, Requests, SellCargo,
@@ -19,7 +19,7 @@ use reqwest::{
     Client,
 };
 use serde::{
-    de::{Error as OtherError, Expected, Unexpected, Visitor},
+    de::{Error as OtherError, Unexpected},
     Deserialize, Deserializer,
 };
 use std::collections::HashMap;

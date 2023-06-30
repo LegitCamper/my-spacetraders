@@ -1,16 +1,15 @@
 use spacetraders::{
-    enums, requests,
-    responses::{contracts, schemas, systems},
+    responses::{contracts, schemas},
     SpaceTraders,
 };
 
-use std::{collections::HashMap, sync::Arc};
-use tokio::sync::{mpsc, Mutex};
+use std::{sync::Arc};
+use tokio::sync::{Mutex};
 
 // mining astroid functions
-pub async fn mine_astroid(ship: schemas::Ship, space_traders: Arc<Mutex<SpaceTraders>>) {}
+pub async fn mine_astroid(_ship: schemas::Ship, _space_traders: Arc<Mutex<SpaceTraders>>) {}
 
-pub async fn buy_mining_ship(ship: schemas::Ship, space_traders: Arc<Mutex<SpaceTraders>>) {
+pub async fn buy_mining_ship(_ship: schemas::Ship, space_traders: Arc<Mutex<SpaceTraders>>) {
     let agent = space_traders.lock().await.agent().await;
     let headquarters = agent.data.headquarters;
 
@@ -20,12 +19,12 @@ pub async fn buy_mining_ship(ship: schemas::Ship, space_traders: Arc<Mutex<Space
     // println!("{:?}", agent.data.headquarters.system);
     // println!("{:?}", agent.data.headquarters.sector);
 
-    let waypoints = space_traders
+    let _waypoints = space_traders
         .lock()
         .await
         .list_waypoints(headquarters.to_system())
         .await;
-    let shipyard = space_traders
+    let _shipyard = space_traders
         .lock()
         .await
         .get_shipyard(headquarters.to_system(), headquarters)
