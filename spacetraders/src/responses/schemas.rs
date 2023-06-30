@@ -1,26 +1,21 @@
-use crate::{
-    enums::{self, FactionSymbols, TradeSymbol},
-    Sector as SectorType, System as SystemType, Waypoint as WaypointType,
-};
+use crate::{enums, Sector as SectorType, System as SystemType, Waypoint as WaypointType};
 
 // use bson::serde_helpers::chrono_datetime_as_bson_datetime;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer};
 
-// TODO: deserialize faction symbol to FactionSymbol enum
-
 fn skip_trade_symbol<'de, D>(de: D) -> Result<Option<enums::TradeSymbol>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Ok(TradeSymbol::deserialize(de).ok())
+    Ok(enums::TradeSymbol::deserialize(de).ok())
 }
 
 fn skip_faction_symbol<'de, D>(de: D) -> Result<Option<enums::FactionSymbols>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Ok(FactionSymbols::deserialize(de).ok())
+    Ok(enums::FactionSymbols::deserialize(de).ok())
 }
 
 #[derive(Deserialize, Debug)]

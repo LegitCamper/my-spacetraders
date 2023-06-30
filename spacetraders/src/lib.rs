@@ -169,7 +169,7 @@ impl SpaceTraders {
             channel: channel_sender,
             task: task::spawn(async move {
                 while let Some(msg) = channel_receiver.recv().await {
-                    interval.tick().await; // avoids rate limiting - waits 0
+                    interval.tick().await; // avoids rate limiting - waits 0 - need both
                     msg.oneshot
                         .send(
                             space_trader
@@ -181,7 +181,7 @@ impl SpaceTraders {
                                 .await,
                         )
                         .unwrap();
-                    interval.tick().await; // avoids rate limiting - waits 500 mil
+                    interval.tick().await; // avoids rate limiting - waits 500 millis
                 }
             }),
         }
@@ -829,13 +829,13 @@ pub struct Waypoint {
     pub sector: String,
 }
 impl Waypoint {
-    // pub fn to_waypoint(&self) -> Self {
-    //     Self {
-    //         waypoint: self.waypoint.clone(),
-    //         system: self.system.clone(),
-    //         sector: self.sector.clone(),
-    //     }
-    // }
+    pub fn to_waypoint(&self) -> Self {
+        Self {
+            waypoint: self.waypoint.clone(),
+            system: self.system.clone(),
+            sector: self.sector.clone(),
+        }
+    }
     pub fn to_system(&self) -> System {
         System {
             system: self.system.clone(),
@@ -865,14 +865,15 @@ impl<'de> Deserialize<'de> for Waypoint {
             } else {
                 Err(D::Error::invalid_value(
                     Unexpected::Str(s),
-                    &"a floating point number as a string",
+                    &"a String as Waypoint",
                 ))
             }
         } else {
-            Err(D::Error::invalid_value(
-                Unexpected::Str(s),
-                &"a floating point number as a string",
-            ))
+            Ok(Waypoint {
+                waypoint: "None".to_string(),
+                system: "None".to_string(),
+                sector: "None".to_string(),
+            })
         }
     }
 }
@@ -882,12 +883,12 @@ pub struct System {
     pub sector: String,
 }
 impl System {
-    // pub fn to_system(&self) -> Self {
-    //     Self {
-    //         system: self.system.clone(),
-    //         sector: self.sector.clone(),
-    //     }
-    // }
+    pub fn to_system(&self) -> Self {
+        Self {
+            system: self.system.clone(),
+            sector: self.sector.clone(),
+        }
+    }
     pub fn to_sector(&self) -> Sector {
         Sector {
             sector: self.sector.clone(),
@@ -910,14 +911,14 @@ impl<'de> Deserialize<'de> for System {
             } else {
                 Err(D::Error::invalid_value(
                     Unexpected::Str(s),
-                    &"a floating point number as a string",
+                    &"a String as System",
                 ))
             }
         } else {
-            Err(D::Error::invalid_value(
-                Unexpected::Str(s),
-                &"a floating point number as a string",
-            ))
+            Ok(System {
+                system: "None".to_string(),
+                sector: "None".to_string(),
+            })
         }
     }
 }
@@ -926,11 +927,11 @@ pub struct Sector {
     pub sector: String,
 }
 impl Sector {
-    // fn to_sector(&self) -> Self {
-    //     Self {
-    //         sector: self.sector.clone(),
-    //     }
-    // }
+    fn to_sector(&self) -> Self {
+        Self {
+            sector: self.sector.clone(),
+        }
+    }
 }
 impl<'de> Deserialize<'de> for Sector {
     fn deserialize<D>(deserializer: D) -> Result<Sector, D::Error>
@@ -938,16 +939,22 @@ impl<'de> Deserialize<'de> for Sector {
         D: Deserializer<'de>,
     {
         let s: &str = Deserialize::deserialize(deserializer)?;
-        let split: Vec<&str> = s.split('-').collect();
-        if split.len() == 1 {
-            Ok(Sector {
-                sector: split[0].to_string(),
-            })
+        if s.contains('-') {
+            let split: Vec<&str> = s.split('-').collect();
+            if split.len() == 1 {
+                Ok(Sector {
+                    sector: split[0].to_string(),
+                })
+            } else {
+                Err(D::Error::invalid_value(
+                    Unexpected::Str(s),
+                    &"a String as Sector",
+                ))
+            }
         } else {
-            Err(D::Error::invalid_value(
-                Unexpected::Str(s),
-                &"a floating point number as a string",
-            ))
+            Ok(Sector {
+                sector: "None".to_string(),
+            })
         }
     }
 }

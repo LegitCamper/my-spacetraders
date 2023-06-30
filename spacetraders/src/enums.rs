@@ -91,6 +91,8 @@ pub enum WaypointType {
     GravityWell,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged,
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
@@ -391,6 +393,8 @@ pub enum ShipCrewRotation {
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug, Rand)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FactionSymbols {
+    #[default]
+    Cosmic,
     Void,
     Galactic,
     Quantum,
@@ -409,9 +413,8 @@ pub enum FactionSymbols {
     Ancients,
     Shadow,
     Ethereal,
-    #[default]
     #[serde(untagged)]
-    Cosmic,
+    Untagged,
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]

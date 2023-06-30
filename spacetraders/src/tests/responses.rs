@@ -52,7 +52,7 @@ async fn get_new_registration() {
 async fn agent() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.agent().await;
+        print!("{:?}", spacetraders.agent().await);
     }
 }
 
