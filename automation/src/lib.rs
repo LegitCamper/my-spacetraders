@@ -1,7 +1,5 @@
 use spacetraders::{
-    responses::{
-        schemas::{Contract, Ship},
-    },
+    responses::schemas::{Contract, Ship},
     SpaceTraders,
 };
 mod func;
@@ -17,6 +15,7 @@ pub struct ShipHandlerData {
     pub ships: Vec<Ship>,
     pub contracts: HashMap<String, Contract>,
     pub handles: Vec<task::JoinHandle<()>>,
+    // TODO: maybe havve a creds section here to prevent race conditions that make transactions fail
 }
 
 pub fn start_ship_handler(
@@ -62,16 +61,22 @@ pub async fn ship_handler(
     ship: Ship,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     space_traders: Arc<Mutex<SpaceTraders>>,
-    _channel: mpsc::Sender<Ship>,
+    channel: mpsc::Sender<Ship>,
 ) {
-    ship_handler_data.lock().await.ships.push(ship.clone());
+    ship_handler_data.lock().await.ships.push(ship.clone()); // adds itself to inventory
 
     // println!("{:?}", space_traders.lock().await.agent().await);
     // println!("{:?}", ship_handler_data.lock().await.ships);
 
     // mine astroids
-    // func::mine_astroid(ship, space_traders).await;
-    func::buy_mining_ship(ship, space_traders).await;
+    func::buy_mining_ship(
+        ship.clone(),
+        space_traders.clone(),
+        ship_handler_data,
+        channel,
+    )
+    .await;
+    func::mine_astroid(ship.clone(), space_traders.clone()).await;
 
     // do contracts
 

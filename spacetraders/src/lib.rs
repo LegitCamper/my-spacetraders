@@ -3,7 +3,6 @@ pub mod requests;
 pub mod responses;
 mod tests;
 
-
 use requests::{
     DeliverCargoToContract, ExtractResources, InstallMount, JettisonCargo, JumpShip, NavigateShip,
     PatchShipNav, PurchaseCargo, PurchaseShip, RegisterNewAgent, RemoveMount, Requests, SellCargo,

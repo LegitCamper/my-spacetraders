@@ -1,4 +1,4 @@
-use crate::{enums, Waypoint as WaypointType};
+use crate::{enums, System as SystemType, Waypoint as WaypointType};
 
 // use bson::serde_helpers::chrono_datetime_as_bson_datetime;
 use chrono::{DateTime, Utc};
@@ -34,7 +34,7 @@ pub struct Agent {
 pub struct Chart {
     #[serde(alias = "waypointSymbol")]
     #[serde(default)]
-    pub waypoint_symbol: String,
+    pub waypoint_symbol: String, // WaypointType,
     #[serde(alias = "submittedBy")]
     #[serde(default)]
     pub submitted_by: String,
@@ -202,7 +202,7 @@ pub struct GetMarketTradeGood {
     pub trade_volume: u32,
     pub supply: enums::GetMarketSupplyType,
     #[serde(alias = "purchasePrice")]
-    pub purchase_price: i32,
+    pub purchase_price: f64,
     #[serde(alias = "sellPrice")]
     pub sell_price: u32,
 }
@@ -507,7 +507,7 @@ pub struct ShipyardShip {
     pub name: String,
     // description: String,
     #[serde(alias = "purchasePrice")]
-    pub purchase_price: i32,
+    pub purchase_price: f64,
     pub frame: ShipFrame,
     pub reactor: ShipReactor,
     pub engine: ShipEngine,
@@ -576,8 +576,8 @@ pub struct TradeGoods {
 #[derive(Deserialize, Debug)]
 pub struct Waypoint {
     #[serde(alias = "systemSymbol")]
-    pub system_symbol: String,
-    pub symbol: String,
+    pub system_symbol: SystemType,
+    pub symbol: WaypointType,
     pub r#type: enums::WaypointType,
     pub x: i32,
     pub y: i32,

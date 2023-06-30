@@ -1,48 +1,69 @@
+use super::ShipHandlerData;
 use spacetraders::{
-    responses::{contracts, schemas},
+    enums, requests,
+    responses::{self, contracts, schemas},
     SpaceTraders,
 };
 
-use std::{sync::Arc};
-use tokio::sync::{Mutex};
+use std::sync::Arc;
+use tokio::sync::{mpsc, Mutex};
+
+// this is how you serialize the waypoints
+// println!("{:?}", agent.data.headquarters);
+// println!("{:?}", agent.data.headquarters.waypoint);
+// println!("{:?}", agent.data.headquarters.system);
+// println!("{:?}", agent.data.headquarters.sector);
 
 // mining astroid functions
-pub async fn mine_astroid(_ship: schemas::Ship, _space_traders: Arc<Mutex<SpaceTraders>>) {}
+pub async fn mine_astroid(_ship: schemas::Ship, _space_traders: Arc<Mutex<SpaceTraders>>) {
+    println!("Mining");
+}
 
-pub async fn buy_mining_ship(_ship: schemas::Ship, space_traders: Arc<Mutex<SpaceTraders>>) {
+pub async fn buy_mining_ship(
+    _ship: schemas::Ship,
+    space_traders: Arc<Mutex<SpaceTraders>>,
+    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
+    channel: mpsc::Sender<responses::schemas::Ship>,
+) {
     let agent = space_traders.lock().await.agent().await;
-    let headquarters = agent.data.headquarters;
 
-    // this is how you serialize the waypoints
-    // println!("{:?}", agent.data.headquarters);
-    // println!("{:?}", agent.data.headquarters.waypoint);
-    // println!("{:?}", agent.data.headquarters.system);
-    // println!("{:?}", agent.data.headquarters.sector);
-
-    let _waypoints = space_traders
+    let waypoints = space_traders
         .lock()
         .await
-        .list_waypoints(headquarters.to_system())
-        .await;
-    let _shipyard = space_traders
-        .lock()
-        .await
-        .get_shipyard(headquarters.to_system(), headquarters)
+        .list_waypoints(agent.data.headquarters.to_system())
         .await;
 
-    // for waypoint in waypoints.data.iter() {
-    //     for r#trait in waypoint.traits.iter() {
-    //         if r#trait.symbol == enums::WaypointTrait::Shipyard {
-    //             for ships in shipyard.data.ship_types.iter() {
-    //                 // if ships.contains(&enums::ShipType::ShipMiningDrone) {
-    //                 //     // for ship in
-    //                 // }
-    //                 println!("{:#?}", ships);
-    //             }
-    //         }
-    //     }
-    // }
-    // println!("{:#?}", waypoints);
+    for waypoint in waypoints.data.iter() {
+        for r#trait in waypoint.traits.iter() {
+            if r#trait.symbol == enums::WaypointTrait::Shipyard {
+                let shipyard = space_traders
+                    .lock()
+                    .await
+                    .get_shipyard(waypoint.system_symbol.clone(), waypoint.symbol.clone()) // TODO: implement copy instead
+                    .await;
+
+                for ship in shipyard.data.ships.iter() {
+                    if ship.r#type == enums::ShipType::ShipMiningDrone {
+                        // fly ship to waypoint if not there already
+                        // for now I will assume the ship is at the waypoint
+                        // if space_traders.
+                        if ship.purchase_price < agent.data.credits {
+                            let new_ship = space_traders
+                                .lock()
+                                .await
+                                .purchase_ship(requests::PurchaseShip {
+                                    ship_type: ship.r#type,
+                                    waypoint_symbol: waypoint.symbol.clone().waypoint,
+                                })
+                                .await;
+
+                            channel.send(new_ship.data.ship.clone()).await.unwrap();
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // complete contract functions
