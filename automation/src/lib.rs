@@ -1,5 +1,8 @@
 use spacetraders::{
-    responses::schemas::{Contract, Ship},
+    responses::{
+        schemas::{self, Contract, Ship},
+        systems,
+    },
     SpaceTraders,
 };
 mod func;
@@ -21,6 +24,7 @@ pub struct ShipHandlerData {
     pub contracts: HashMap<String, Contract>,
     pub handles: Vec<task::JoinHandle<()>>,
     pub credits: f64,
+    pub systems_db: HashMap<String, schemas::System>,
 }
 
 pub fn start_ship_handler(
@@ -60,7 +64,7 @@ pub fn start_ship_handler(
             let new_space_traders = Arc::clone(&space_traders);
             let new_channel = tx.clone();
 
-            info!("Starting new task for {}", msg.symbol);
+            info!("Starting new task for ship: {}", msg.symbol);
             let join_handle: task::JoinHandle<()> = task::spawn(async move {
                 loop {
                     ship_handler(
@@ -116,4 +120,38 @@ pub async fn ship_handler(
     // if !have_correct_ship {
     // func::buy_ship(&spacetraders);
     // }
+}
+
+pub async fn build_system_db(
+    space_traders: Arc<Mutex<SpaceTraders>>,
+) -> HashMap<String, schemas::System> {
+    trace!("Building system DB");
+
+    // using the status endpoint find the last day the server was reset and
+    // regen the file if been reset since then
+
+    // aquire locks
+    let space_traders_unlocked = space_traders.lock().await;
+
+    let list_systems_meta = space_traders_unlocked.list_systems(None).await;
+    info!(
+        "There are {} systems - Building will take ~{} minute(s)",
+        list_systems_meta.meta.total, // I use a static 20 per page,
+        (list_systems_meta.meta.total / 40) / 60
+    );
+
+    let mut systems: HashMap<String, schemas::System> = HashMap::new();
+
+    for page in 1..((list_systems_meta.meta.total / 20) + 1) {
+        for system in space_traders_unlocked
+            .list_systems(Some(page))
+            .await
+            .data
+            .iter()
+        {
+            systems.insert(system.symbol.clone(), system.clone());
+        }
+    }
+    info!("{} systems in db", systems.len());
+    systems
 }

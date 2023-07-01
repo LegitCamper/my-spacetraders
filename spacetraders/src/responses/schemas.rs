@@ -540,7 +540,7 @@ pub struct SurveyDeposit {
     pub symbol: String, // maybe change to enum TradeSymbol
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct System {
     pub symbol: String,
     #[serde(alias = "sectorSymbol")]
@@ -552,13 +552,13 @@ pub struct System {
     pub factions: Vec<SystemFaction>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct SystemFaction {
     #[serde(deserialize_with = "skip_faction_symbol")]
     pub symbol: Option<enums::FactionSymbols>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct SystemWaypoint {
     pub symbol: String,
     pub r#type: enums::WaypointType,

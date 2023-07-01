@@ -1,5 +1,5 @@
 use automation::{self, start_ship_handler, ShipHandlerData};
-use spacetraders::{self, SpaceTraders};
+use spacetraders::{self, responses::schemas, SpaceTraders};
 mod tui;
 
 use clap::Parser;
@@ -26,17 +26,18 @@ async fn start_automation(
         None => Arc::new(Mutex::new(spacetraders::SpaceTraders::default().await)),
     };
 
+    let credits = space_traders.lock().await.agent().await.data.credits;
+    let systems_db = automation::build_system_db(space_traders.clone()).await;
     let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
         ships: vec![],
         contracts: HashMap::new(),
         handles: vec![],
-        credits: space_traders.lock().await.agent().await.data.credits,
+        credits,
+        systems_db,
     }));
 
-    let automation_contracts = Arc::clone(&ship_handler_data);
-    let automation_spacetraders = Arc::clone(&space_traders);
     let ship_handler: task::JoinHandle<()> =
-        start_ship_handler(automation_spacetraders, automation_contracts);
+        start_ship_handler(space_traders.clone(), ship_handler_data.clone());
 
     (
         space_traders.clone(),

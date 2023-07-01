@@ -11,6 +11,7 @@ use requests::{
 use responses::{agents, contracts, factions, fleet, systems};
 
 use core::panic;
+use log::error;
 use rand::Rng;
 use random_string::generate;
 use reqwest::{
@@ -244,7 +245,7 @@ impl SpaceTraders {
             .await
         {
             Err(r) => {
-                eprintln!("closed: {}", r);
+                error!("closed: {}", r);
             }
             Ok(s) => s,
         }
@@ -253,7 +254,7 @@ impl SpaceTraders {
         match oneshot_receiver.await {
             Ok(res) => res,
             Err(err) => {
-                eprintln!("Interface failed to send back a correct response: {}", err);
+                error!("Interface failed to send back a correct response: {}", err);
                 panic!("{}", self.diagnose());
             }
         }
@@ -271,15 +272,15 @@ impl SpaceTraders {
 
     // Systems
     pub async fn list_systems(&self, page: Option<u32>) -> systems::Systems {
-        let page_parameter = match page {
-            Some(page) => page,
+        let page_num = match page {
+            Some(page_num) => page_num,
             None => 1,
         };
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Get,
-                    format!("/systems?limit=20&page={}", page_parameter),
+                    format!("/systems?limit=20&page={}", page_num),
                     None,
                 )
                 .await,

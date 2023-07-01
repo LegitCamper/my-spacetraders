@@ -6,6 +6,7 @@ use spacetraders::{
 };
 
 use log::{info, trace, warn};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 

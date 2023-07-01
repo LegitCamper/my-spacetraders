@@ -1448,6 +1448,7 @@ dependencies = [
  "chrono",
  "convert_case",
  "get-size",
+ "log",
  "rand 0.5.6",
  "rand_derive",
  "random-string",
