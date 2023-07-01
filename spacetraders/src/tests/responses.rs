@@ -49,6 +49,15 @@ async fn get_new_registration() {
 
 #[tokio::test]
 #[serial]
+async fn get_status() {
+    let spacetraders = SpaceTraders::testing().await;
+    for _ in 0..TIMES_TO_RUN {
+        print!("{:?}", spacetraders.get_status().await);
+    }
+}
+
+#[tokio::test]
+#[serial]
 async fn agent() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {

@@ -8,7 +8,9 @@ use requests::{
     PatchShipNav, PurchaseCargo, PurchaseShip, RegisterNewAgent, RemoveMount, Requests, SellCargo,
     ShipRefine, TransferCargo, WarpShip,
 };
-use responses::{agents, contracts, factions, fleet, systems};
+use responses::{
+    GetStatus, {agents, contracts, factions, fleet, systems},
+};
 
 use core::panic;
 use log::error;
@@ -208,7 +210,7 @@ impl SpaceTraders {
             Ok(registration) => {
                 SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Live).await
             }
-            Err(error) => panic!("eror: {}", error),
+            Err(error) => panic!("error: {}", error),
         }
     }
 
@@ -258,6 +260,11 @@ impl SpaceTraders {
                 panic!("{}", self.diagnose());
             }
         }
+    }
+
+    // Status
+    pub async fn get_status(&self) -> GetStatus {
+        serde_json::from_str(&self.make_request(Method::Get, "".to_string(), None).await).unwrap()
     }
 
     // Agents

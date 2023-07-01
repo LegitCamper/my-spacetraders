@@ -7,8 +7,14 @@ use spacetraders::{
 };
 mod func;
 
+use chrono::{DateTime, Utc};
 use log::{info, trace, warn};
-use std::{collections::HashMap, sync::Arc};
+use serde::{Deserialize, Serialize};
+use std::{
+    fs::{read_to_string, remove_file, File},
+    path::Path,
+    {collections::HashMap, sync::Arc},
+};
 use tokio::{
     sync::{mpsc, Mutex},
     task,
@@ -122,36 +128,77 @@ pub async fn ship_handler(
     // }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct SystemDB {
+    date: DateTime<Utc>,
+    data: HashMap<String, schemas::System>,
+}
+
 pub async fn build_system_db(
     space_traders: Arc<Mutex<SpaceTraders>>,
 ) -> HashMap<String, schemas::System> {
     trace!("Building system DB");
 
-    // using the status endpoint find the last day the server was reset and
-    // regen the file if been reset since then
-
     // aquire locks
     let space_traders_unlocked = space_traders.lock().await;
 
-    let list_systems_meta = space_traders_unlocked.list_systems(None).await;
-    info!(
-        "There are {} systems - Building will take ~{} minute(s)",
-        list_systems_meta.meta.total, // I use a static 20 per page,
-        (list_systems_meta.meta.total / 40) / 60
-    );
+    if Path::new("systemsDB.json").is_file() {
+        let systems: SystemDB =
+            serde_json::from_str(&read_to_string("systemsDB.json").unwrap()).unwrap();
 
-    let mut systems: HashMap<String, schemas::System> = HashMap::new();
+        if systems.date < space_traders_unlocked.get_status().await.reset_date {
+            info!("SystemDB exists, but is outdated");
+            let num_systems = space_traders_unlocked.get_status().await.stats.systems;
+            info!(
+                "There are {} systems - Building will take ~{} minute(s)",
+                num_systems,
+                (num_systems / 40) / 60
+            );
 
-    for page in 1..((list_systems_meta.meta.total / 20) + 1) {
-        for system in space_traders_unlocked
-            .list_systems(Some(page))
-            .await
-            .data
-            .iter()
-        {
-            systems.insert(system.symbol.clone(), system.clone());
+            let mut systems: HashMap<String, schemas::System> = HashMap::new();
+
+            for page in 1..((num_systems / 20) + 1) {
+                for system in space_traders_unlocked
+                    .list_systems(Some(page))
+                    .await
+                    .data
+                    .iter()
+                {
+                    systems.insert(system.symbol.clone(), system.clone());
+                }
+            }
+
+            remove_file("systemsDB.json").unwrap();
+
+            serde_json::to_writer_pretty(&File::create("systemsDB.json").unwrap(), &systems)
+                .unwrap();
         }
+
+        info!("{} systems in db", systems.data.len());
+        systems.data
+    } else {
+        info!("SystemDB does not exist - building ");
+        // let num_systems = space_traders_unlocked.get_status().await.stats.systems; // TODO: this currently does not work, but should replace below
+        let num_systems = space_traders_unlocked.list_systems(None).await.meta.total;
+        info!(
+            "There are {} systems - Building will take ~{} minute(s)",
+            num_systems,
+            (num_systems / 40) / 60
+        );
+
+        let mut systems: HashMap<String, schemas::System> = HashMap::new();
+
+        for page in 1..((num_systems / 20) + 1) {
+            for system in space_traders_unlocked
+                .list_systems(Some(page))
+                .await
+                .data
+                .iter()
+            {
+                systems.insert(system.symbol.clone(), system.clone());
+            }
+        }
+        info!("{} systems in db", systems.len());
+        systems
     }
-    info!("{} systems in db", systems.len());
-    systems
 }

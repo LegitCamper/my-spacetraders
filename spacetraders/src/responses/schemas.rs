@@ -2,7 +2,7 @@ use crate::{enums, System as SystemType, Waypoint as WaypointType};
 
 // use bson::serde_helpers::chrono_datetime_as_bson_datetime;
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 fn skip_trade_symbol<'de, D>(de: D) -> Result<Option<enums::TradeSymbol>, D::Error>
 where
@@ -540,7 +540,7 @@ pub struct SurveyDeposit {
     pub symbol: String, // maybe change to enum TradeSymbol
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct System {
     pub symbol: String,
     #[serde(alias = "sectorSymbol")]
@@ -552,13 +552,13 @@ pub struct System {
     pub factions: Vec<SystemFaction>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct SystemFaction {
     #[serde(deserialize_with = "skip_faction_symbol")]
     pub symbol: Option<enums::FactionSymbols>,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct SystemWaypoint {
     pub symbol: String,
     pub r#type: enums::WaypointType,
