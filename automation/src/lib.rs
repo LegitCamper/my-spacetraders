@@ -144,7 +144,13 @@ pub async fn build_system_db(
 
     if Path::new("systemsDB.json").is_file() {
         let systems: SystemDB =
-            serde_json::from_str(&read_to_string("systemsDB.json").unwrap()).unwrap();
+            match serde_json::from_str(&read_to_string("systemsDB.json").unwrap()) {
+                Err(error) => {
+                    remove_file("systemsDB.json").unwrap();
+                    panic!("{}", error);
+                }
+                Ok(_) => serde_json::from_str(&read_to_string("systemsDB.json").unwrap()).unwrap(),
+            };
 
         if systems.date < space_traders_unlocked.get_status().await.reset_date {
             info!("SystemDB exists, but is outdated");
@@ -168,8 +174,8 @@ pub async fn build_system_db(
                 }
             }
 
-            remove_file("systemsDB.json").unwrap();
-
+            info!("Writing new systems to systemsDB.json");
+            // remove_file("systemsDB.json").unwrap();
             serde_json::to_writer_pretty(&File::create("systemsDB.json").unwrap(), &systems)
                 .unwrap();
         }
@@ -198,6 +204,11 @@ pub async fn build_system_db(
                 systems.insert(system.symbol.clone(), system.clone());
             }
         }
+
+        info!("Writing new systems to systemsDB.json");
+        // remove_file("systemsDB.json").unwrap();
+        serde_json::to_writer_pretty(&File::create("systemsDB.json").unwrap(), &systems).unwrap();
+
         info!("{} systems in db", systems.len());
         systems
     }
