@@ -1,1 +1,1 @@
-# my-spacetraders ![Generated Button](https://github.com/LegitCamper/my-spacetraders/blob/image-data/output/badge.svg)
+### my-spacetraders [![Rust](https://github.com/LegitCamper/my-spacetraders/actions/workflows/rust.yml/badge.svg)](https://github.com/LegitCamper/my-spacetraders/actions/workflows/rust.yml)
