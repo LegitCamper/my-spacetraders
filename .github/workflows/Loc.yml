@@ -1,33 +1,15 @@
 on: [push]
-name: Get Loc
+name: 'Lines of Code Badge'
 
 jobs:
   loc-job:
     runs-on: ubuntu-latest
-    name: Test Run
+    name: 'Lines of Code Badge'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-
-      - name: Launch the local action
-        uses: ./ # Uses an action in the root directory
+      - name: Make Code Badge
+        uses: shadowmoose/GHA-LoC-Badge@1.0.0
         id: badge
         with:
           debug: true
           directory: ./
           badge: ./output/badge.svg
-          ignore: 'README'
-
-      - name: Print the output
-        run: |
-          echo "Scanned: ${{ steps.badge.outputs.counted_files }}";
-          echo "Line Count: ${{ steps.badge.outputs.total_lines }}";
-
-      - name: Deploy to image-data branch
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          publish_dir: ./output
-          publish_branch: image-data
-          github_token: ${{ secrets.GH_TOKEN }}
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
