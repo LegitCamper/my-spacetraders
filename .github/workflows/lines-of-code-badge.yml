@@ -14,8 +14,3 @@ jobs:
           directory: ./
           badge: ./output/badge.svg
           patterns: '*.rs'
-          publish_branch: image-data
-          github_token: ${{ secrets.GH_TOKEN }}
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-
