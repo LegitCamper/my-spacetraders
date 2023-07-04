@@ -1,1 +1,1 @@
-### my-spacetraders [![Rust](https://github.com/LegitCamper/my-spacetraders/actions/workflows/rust.yml/badge.svg)](https://github.com/LegitCamper/my-spacetraders/actions/workflows/rust.yml)
+### my-spacetraders [![Rust](https://github.com/LegitCamper/my-spacetraders/actions/workflows/rust.yml/badge.svg)](https://github.com/LegitCamper/my-spacetraders/actions/workflows/rust.yml) [![Lines of Code](https://github.com/LegitCamper/my-spacetraders/blob/image-data/badge.svg)](https://github.com/LegitCamper/my-spacetraders/blob/image-data/badge.svg)
