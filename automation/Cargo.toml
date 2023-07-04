@@ -13,3 +13,4 @@ log = "0.4.19"
 serde = "1.0.164"
 serde_json = { version = "1.0.99", fetures = ["std"] }
 tokio = "1.28.2"
+async-recursion = "1.0.4"

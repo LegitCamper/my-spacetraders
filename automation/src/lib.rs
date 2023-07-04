@@ -7,6 +7,7 @@ use spacetraders::{
 };
 mod func;
 
+use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};
 use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -134,6 +135,7 @@ struct SystemDB {
     data: HashMap<String, schemas::System>,
 }
 
+#[async_recursion]
 pub async fn build_system_db(
     space_traders: Arc<Mutex<SpaceTraders>>,
 ) -> HashMap<String, schemas::System> {
@@ -144,43 +146,27 @@ pub async fn build_system_db(
 
     if Path::new("systemsDB.json").is_file() {
         let systems: SystemDB =
-            match serde_json::from_str(&read_to_string("systemsDB.json").unwrap()) {
-                Err(error) => {
+            match serde_json::from_str::<SystemDB>(&read_to_string("systemsDB.json").unwrap()) {
+                Err(_) => {
+                    info!("removing currupted systemDB");
+
                     remove_file("systemsDB.json").unwrap();
-                    panic!("{}", error);
+                    build_system_db(space_traders.clone()).await;
+                    serde_json::from_str(&read_to_string("systemsDB.json").unwrap()).unwrap()
                 }
-                Ok(_) => serde_json::from_str(&read_to_string("systemsDB.json").unwrap()).unwrap(),
+                Ok(data) => {
+                    info!("systemDB integrity check good");
+
+                    if data.date < space_traders_unlocked.get_status().await.reset_date {
+                        info!("SystemDB is outdated");
+                        remove_file("systemsDB.json").unwrap();
+                        build_system_db(space_traders.clone()).await;
+                    }
+
+                    data
+                }
             };
 
-        if systems.date < space_traders_unlocked.get_status().await.reset_date {
-            info!("SystemDB exists, but is outdated");
-            let num_systems = space_traders_unlocked.get_status().await.stats.systems;
-            info!(
-                "There are {} systems - Building will take ~{} minute(s)",
-                num_systems,
-                (num_systems / 40) / 60
-            );
-
-            let mut systems: HashMap<String, schemas::System> = HashMap::new();
-
-            for page in 1..((num_systems / 20) + 1) {
-                for system in space_traders_unlocked
-                    .list_systems(Some(page))
-                    .await
-                    .data
-                    .iter()
-                {
-                    systems.insert(system.symbol.clone(), system.clone());
-                }
-            }
-
-            info!("Writing new systems to systemsDB.json");
-            // remove_file("systemsDB.json").unwrap();
-            serde_json::to_writer_pretty(&File::create("systemsDB.json").unwrap(), &systems)
-                .unwrap();
-        }
-
-        info!("{} systems in db", systems.data.len());
         systems.data
     } else {
         info!("SystemDB does not exist - building ");
