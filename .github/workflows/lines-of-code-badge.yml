@@ -16,7 +16,8 @@ jobs:
           debug: true
           directory: ./
           badge: ./output/badge.svg
-          patterns: '*.rs'
+          # patterns: '*.rs'
+          ignore: 'README'
           
       - name: Print the output
         run: |
