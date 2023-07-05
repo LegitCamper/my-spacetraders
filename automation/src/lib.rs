@@ -160,7 +160,7 @@ pub async fn build_system_db(
                     if data.date < space_traders_unlocked.get_status().await.reset_date {
                         info!("SystemDB is outdated");
                         remove_file("systemsDB.json").unwrap();
-                        build_system_db(space_traders.clone()).await;
+                        return build_system_db(space_traders.clone()).await;
                     }
 
                     data
@@ -175,7 +175,7 @@ pub async fn build_system_db(
         info!(
             "There are {} systems - Building will take ~{} minute(s)",
             num_systems,
-            (num_systems / 40) / 60
+            num_systems / 2400 // 20 per page every 500 milliseconds / 60 min
         );
 
         let mut systems: HashMap<String, schemas::System> = HashMap::new();
@@ -193,7 +193,14 @@ pub async fn build_system_db(
 
         info!("Writing new systems to systemsDB.json");
         // remove_file("systemsDB.json").unwrap();
-        serde_json::to_writer_pretty(&File::create("systemsDB.json").unwrap(), &systems).unwrap();
+        serde_json::to_writer_pretty(
+            &File::create("systemsDB.json").unwrap(),
+            &SystemDB {
+                date: chrono::offset::Utc::now(),
+                data: systems.clone(),
+            },
+        )
+        .unwrap();
 
         info!("{} systems in db", systems.len());
         systems

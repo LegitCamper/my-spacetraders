@@ -5,16 +5,32 @@ use spacetraders::{
     SpaceTraders,
 };
 
+use async_recursion::async_recursion;
+use chrono::{offset, DateTime, Local, Utc};
 use log::{info, trace, warn};
-use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
+use std::{collections::HashMap, time};
+use tokio::{
+    sync::{mpsc, Mutex},
+    time::sleep,
+};
 
 // this is how you serialize the waypoints
 // println!("{:?}", agent.data.headquarters);
 // println!("{:?}", agent.data.headquarters.waypoint);
 // println!("{:?}", agent.data.headquarters.system);
 // println!("{:?}", agent.data.headquarters.sector);
+
+pub async fn wait_duration(time_to_stop: DateTime<Utc>) {
+    let local_time_to_stop: DateTime<Local> = time_to_stop.into();
+    let local_time_now: DateTime<Local> = offset::Utc::now().into();
+    let duration: chrono::Duration = local_time_now - local_time_to_stop;
+
+    sleep(tokio::time::Duration::from_millis(
+        (duration.num_milliseconds() + 1).try_into().unwrap(),
+    ))
+    .await;
+}
 
 // mining astroid functions
 pub async fn mine_astroid(
@@ -27,6 +43,7 @@ pub async fn mine_astroid(
     // then run again whenever done flying
 }
 
+#[async_recursion]
 pub async fn buy_mining_ship(
     ship: schemas::Ship,
     space_traders: Arc<Mutex<SpaceTraders>>,
@@ -39,13 +56,16 @@ pub async fn buy_mining_ship(
     let space_traders_unlocked = space_traders.lock().await;
     let mut ship_handler_data_unlocked = ship_handler_data.lock().await;
 
+    let mut need_to_wait = false;
+    let mut time_to_wait: DateTime<Utc> = offset::Local::now().into();
+
     let ship_details = space_traders_unlocked.get_ship(&ship.symbol).await;
 
     let waypoints = space_traders_unlocked
         .list_waypoints(ship_details.data.nav.system_symbol)
         .await;
 
-    'outer: for waypoint in waypoints.data.iter() {
+    for waypoint in waypoints.data.iter() {
         for r#trait in waypoint.traits.iter() {
             // info!("fs");
             if r#trait.symbol == enums::WaypointTrait::Shipyard {
@@ -82,30 +102,46 @@ pub async fn buy_mining_ship(
                                 return;
                             }
                         } else {
+                            // there is also a case where the ship is in transit and neither docked or there
                             let ship_status = ship_details.data.nav.status;
                             if ship_status == enums::ShipNavStatus::Docked {
                                 space_traders_unlocked
                                     .orbit_ship(&ship_details.data.symbol)
                                     .await;
-                                space_traders_unlocked
-                                    .navigate_ship(
-                                        &ship_details.data.symbol,
-                                        requests::NavigateShip {
-                                            waypoint_symbol: waypoint.symbol.waypoint.clone(),
-                                        },
-                                    )
-                                    .await;
-                                // this needs to wait or error. if waiting
-                                // it will hold the locks for as long as it takes
                             }
+                            let time_to_stop = space_traders_unlocked
+                                .navigate_ship(
+                                    &ship_details.data.symbol,
+                                    requests::NavigateShip {
+                                        waypoint_symbol: waypoint.symbol.waypoint.clone(),
+                                    },
+                                )
+                                .await;
+
+                            info!(
+                                "Moving ship - going to sleep for {} milliseconds",
+                                time_to_stop.data.nav.route.arrival
+                            );
+
+                            need_to_wait = true;
+                            time_to_wait = time_to_stop.data.nav.route.arrival;
+                            break;
                         }
                     }
                 }
             }
         }
     }
-    warn!("Failed to find Shipyard or suitable ship")
-    // else maybe fly to the closest system with a shipyard
+
+    if need_to_wait {
+        drop(space_traders_unlocked);
+        drop(ship_handler_data_unlocked);
+        wait_duration(time_to_wait).await;
+        buy_mining_ship(ship, space_traders, ship_handler_data, channel).await
+    } else {
+        // else maybe fly to the closest system with a shipyard - TODO: Pathfinding
+        warn!("Failed to find Shipyard or suitable ship")
+    }
 }
 
 // complete contract functions
