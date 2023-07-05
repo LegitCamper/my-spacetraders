@@ -170,8 +170,8 @@ impl SpaceTraders {
             interface: space_trader.clone(),
             channel: channel_sender,
             task: task::spawn(async move {
+                interval.tick().await; // avoids rate limiting - waits 0 - need both
                 while let Some(msg) = channel_receiver.recv().await {
-                    interval.tick().await; // avoids rate limiting - waits 0 - need both
                     msg.oneshot
                         .send(
                             space_trader
