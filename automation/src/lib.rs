@@ -8,9 +8,9 @@ use spacetraders::{
 mod func;
 
 use async_recursion::async_recursion;
-use chrono::{DateTime, Utc};
+use chrono::{offset, serde::ts_milliseconds, DateTime, NaiveDateTime, Utc};
 use log::{info, trace, warn};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use std::{
     fs::{read_to_string, remove_file, File},
     path::Path,
@@ -131,9 +131,22 @@ pub async fn ship_handler(
 
 #[derive(Debug, Serialize, Deserialize)]
 struct SystemDB {
+    #[serde(with = "ts_milliseconds")]
     date: DateTime<Utc>,
     data: HashMap<String, schemas::System>,
 }
+// pub fn serialize_dt<S>(dt: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error>
+// where
+//     S: Serializer,
+// {
+//     if let Some(dt) = dt {
+//         dt.timestamp_millis().to_string().serialize(serializer)
+//     } else {
+//         todo!()
+//     }
+// }
+
+const SYSTEMDB_FILE: &str = "systemDB.json";
 
 #[async_recursion]
 pub async fn build_system_db(
@@ -144,22 +157,23 @@ pub async fn build_system_db(
     // aquire locks
     let space_traders_unlocked = space_traders.lock().await;
 
-    if Path::new("systemsDB.json").is_file() {
+    if Path::new(SYSTEMDB_FILE).is_file() {
         let systems: SystemDB =
-            match serde_json::from_str::<SystemDB>(&read_to_string("systemsDB.json").unwrap()) {
+            match serde_json::from_str::<SystemDB>(&read_to_string(SYSTEMDB_FILE).unwrap()) {
                 Err(_) => {
                     info!("removing currupted systemDB");
 
-                    remove_file("systemsDB.json").unwrap();
-                    build_system_db(space_traders.clone()).await;
-                    serde_json::from_str(&read_to_string("systemsDB.json").unwrap()).unwrap()
+                    remove_file(SYSTEMDB_FILE).unwrap();
+                    drop(space_traders_unlocked); // remove locks
+                    return build_system_db(space_traders.clone()).await;
                 }
                 Ok(data) => {
-                    info!("systemDB integrity check good");
+                    info!("{} integrity check good", SYSTEMDB_FILE);
+                    // let data_date: DateTime<Utc> = DateTime::from_utc(data.date, offset::Utc);
 
                     if data.date < space_traders_unlocked.get_status().await.reset_date {
-                        info!("SystemDB is outdated");
-                        remove_file("systemsDB.json").unwrap();
+                        info!("{} is outdated", SYSTEMDB_FILE);
+                        remove_file(SYSTEMDB_FILE).unwrap();
                         return build_system_db(space_traders.clone()).await;
                     }
 
@@ -169,13 +183,13 @@ pub async fn build_system_db(
 
         systems.data
     } else {
-        info!("SystemDB does not exist - building ");
+        info!("{} does not exist - building ", SYSTEMDB_FILE);
         // let num_systems = space_traders_unlocked.get_status().await.stats.systems; // TODO: this currently does not work, but should replace below
         let num_systems = space_traders_unlocked.list_systems(None).await.meta.total;
         info!(
-            "There are {} systems - Building will take ~{} minute(s)",
+            "There are ~{} systems - Building will take ~{} minute(s)",
             num_systems,
-            num_systems / 2400 // 20 per page every 500 milliseconds / 60 min
+            num_systems / 2400 // = 20 per page every 500 milliseconds / 60 min
         );
 
         let mut systems: HashMap<String, schemas::System> = HashMap::new();
@@ -191,10 +205,10 @@ pub async fn build_system_db(
             }
         }
 
-        info!("Writing new systems to systemsDB.json");
+        info!("Writing new systems to {}", SYSTEMDB_FILE);
         // remove_file("systemsDB.json").unwrap();
         serde_json::to_writer_pretty(
-            &File::create("systemsDB.json").unwrap(),
+            &File::create(SYSTEMDB_FILE).unwrap(),
             &SystemDB {
                 date: chrono::offset::Utc::now(),
                 data: systems.clone(),

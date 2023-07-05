@@ -28,7 +28,6 @@ async fn start_automation(
 
     let credits = space_traders.lock().await.agent().await.data.credits;
     let systems_db = automation::build_system_db(space_traders.clone()).await;
-    println!("{:?}", systems_db);
     let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
         ships: vec![],
         contracts: HashMap::new(),
