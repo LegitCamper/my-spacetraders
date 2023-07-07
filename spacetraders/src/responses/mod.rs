@@ -5,8 +5,10 @@ pub mod fleet;
 pub mod schemas;
 pub mod systems;
 
-use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use crate::{spacetraders_date_format, spacetraders_datetime_format};
+
+use chrono::{offset::Utc, DateTime};
+use serde::{Deserialize, Deserializer};
 
 // currently fails tests because it trys "string" :facepalm:
 #[derive(Deserialize, Debug)]
@@ -14,6 +16,7 @@ pub struct GetStatus {
     pub status: String,
     pub version: String,
     #[serde(alias = "resetDate")]
+    #[serde(with = "spacetraders_date_format")]
     pub reset_date: DateTime<Utc>,
     // pub description: String,
     pub stats: GetStatusStats,
@@ -52,7 +55,7 @@ pub struct GetStatusLeaderboardsMostSubmittedCharts {
 }
 #[derive(Deserialize, Debug)]
 pub struct GetStatusServerResets {
-    // #[serde(with = "my_date_format")]
+    #[serde(with = "spacetraders_datetime_format")]
     pub next: DateTime<Utc>,
     pub frequency: String,
 }
@@ -88,42 +91,4 @@ pub struct Error {
 pub struct ErrorData {
     pub code: u32,
     pub message: String,
-}
-
-pub mod my_date_format {
-    use chrono::{DateTime, TimeZone, Utc};
-    use serde::{self, Deserialize, Deserializer, Serializer};
-
-    const FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
-
-    // The signature of a serialize_with function must follow the pattern:
-    //
-    //    fn serialize<S>(&T, S) -> Result<S::Ok, S::Error>
-    //    where
-    //        S: Serializer
-    //
-    // although it may also be generic over the input types T.
-    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let s = format!("{}", date.format(FORMAT));
-        serializer.serialize_str(&s)
-    }
-
-    // The signature of a deserialize_with function must follow the pattern:
-    //
-    //    fn deserialize<'de, D>(D) -> Result<T, D::Error>
-    //    where
-    //        D: Deserializer<'de>
-    //
-    // although it may also be generic over the output types T.
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        Utc.datetime_from_str(&s, FORMAT)
-            .map_err(serde::de::Error::custom)
-    }
 }

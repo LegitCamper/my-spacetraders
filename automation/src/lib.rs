@@ -135,16 +135,6 @@ struct SystemDB {
     date: DateTime<Utc>,
     data: HashMap<String, schemas::System>,
 }
-// pub fn serialize_dt<S>(dt: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error>
-// where
-//     S: Serializer,
-// {
-//     if let Some(dt) = dt {
-//         dt.timestamp_millis().to_string().serialize(serializer)
-//     } else {
-//         todo!()
-//     }
-// }
 
 const SYSTEMDB_FILE: &str = "systemDB.json";
 
@@ -169,7 +159,6 @@ pub async fn build_system_db(
                 }
                 Ok(data) => {
                     info!("{} integrity check good", SYSTEMDB_FILE);
-                    // let data_date: DateTime<Utc> = DateTime::from_utc(data.date, offset::Utc);
 
                     if data.date < space_traders_unlocked.get_status().await.reset_date {
                         info!("{} is outdated", SYSTEMDB_FILE);
@@ -204,9 +193,8 @@ pub async fn build_system_db(
                 systems.insert(system.symbol.clone(), system.clone());
             }
         }
-
         info!("Writing new systems to {}", SYSTEMDB_FILE);
-        // remove_file("systemsDB.json").unwrap();
+
         serde_json::to_writer_pretty(
             &File::create(SYSTEMDB_FILE).unwrap(),
             &SystemDB {

@@ -1,4 +1,4 @@
-use crate::{enums, System as SystemType, Waypoint as WaypointType};
+use crate::{enums, spacetraders_date_format, System as SystemType, Waypoint as WaypointType};
 
 // use bson::serde_helpers::chrono_datetime_as_bson_datetime;
 use chrono::{DateTime, Utc};
@@ -41,6 +41,7 @@ pub struct Chart {
     #[serde(alias = "submittedOn")]
     #[serde(default)]
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    // #[serde(with = "spacetraders_date_format")]
     pub submitted_on: DateTime<Utc>,
 }
 
@@ -73,6 +74,7 @@ pub struct Contract {
     #[serde(default)]
     #[serde(alias = "deadlineToAccept")]
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    // #[serde(with = "spacetraders_date_format")]
     pub deadline_to_accept: DateTime<Utc>,
 }
 
@@ -100,6 +102,7 @@ pub struct ContractPayment {
 #[derive(Deserialize, Clone, Debug)]
 pub struct ContractTerms {
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    // #[serde(with = "spacetraders_date_format")]
     pub deadline: DateTime<Utc>,
     pub payment: ContractPayment,
     #[serde(default)]
@@ -115,7 +118,7 @@ pub struct Cooldown {
     #[serde(alias = "remainingSeconds")]
     pub remaining_seconds: u32,
     #[serde(default)]
-    // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    // #[serde(with = "spacetraders_date_format")]
     pub expiration: DateTime<Utc>,
 }
 
@@ -222,6 +225,7 @@ pub struct MarketTransaction {
     #[serde(alias = "totalPrice")]
     pub total_price: f64,
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    // #[serde(with = "spacetraders_date_format")]
     pub timestamp: DateTime<Utc>,
 }
 
@@ -383,6 +387,7 @@ pub struct ShipFuel {
 pub struct ShipFuelConsumed {
     pub amount: u32,
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    // #[serde(with = "spacetraders_date_format")]
     pub timestamp: DateTime<Utc>,
 }
 
@@ -441,8 +446,10 @@ pub struct ShipNavRoute {
     pub departure: ShipNavRouteWaypoint,
     #[serde(alias = "departureTime")]
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    // #[serde(with = "spacetraders_date_format")]
     pub departure_time: DateTime<Utc>,
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    // #[serde(with = "spacetraders_date_format")]
     pub arrival: DateTime<Utc>,
 }
 #[derive(Deserialize, Clone, Debug)]
@@ -531,6 +538,7 @@ pub struct Survey {
     pub symbol: String,
     pub deposits: Vec<SurveyDeposit>,
     // #[serde(with = "chrono_datetime_as_bson_datetime")]
+    // #[serde(with = "spacetraders_date_format")]
     pub expiration: DateTime<Utc>,
     pub size: enums::DepositSize,
 }
