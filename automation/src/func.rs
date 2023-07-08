@@ -22,6 +22,11 @@ use tokio::{
 // println!("{:?}", agent.data.headquarters.sector);
 
 pub async fn wait_duration(time_to_stop: DateTime<Utc>) {
+    info!(
+        "Moving ship - going to sleep for {} seconds", // TODO: maybe log what ship is sleeping
+        (time_to_stop.timestamp_millis() - offset::Utc::now().timestamp_millis()) / 1000
+    );
+
     let local_time_to_stop: DateTime<Local> = time_to_stop.into();
     let local_time_now: DateTime<Local> = offset::Utc::now().into();
     let duration: chrono::Duration = local_time_now - local_time_to_stop;
@@ -117,13 +122,6 @@ pub async fn buy_mining_ship(
                                     },
                                 )
                                 .await;
-
-                            info!(
-                                "Moving ship - going to sleep for {} seconds",
-                                (time_to_stop.data.nav.route.arrival.timestamp_millis()
-                                    - offset::Utc::now().timestamp_millis())
-                                    / 1000
-                            );
 
                             need_to_wait = true;
                             time_to_wait = time_to_stop.data.nav.route.arrival;
