@@ -143,11 +143,10 @@ pub enum ShipRole {
     Command,
     Carrier,
     Patrol,
+    #[default]
     Satellite,
     Explorer,
     Refinery,
-    #[default]
-    Default,
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
