@@ -9,7 +9,7 @@ use requests::{
     ShipRefine, TransferCargo, WarpShip,
 };
 use responses::{
-    GetStatus, {agents, contracts, factions, fleet, systems},
+    error_429, GetStatus, {agents, contracts, factions, fleet, systems},
 };
 
 use async_recursion::async_recursion;
@@ -21,11 +21,16 @@ use reqwest::{
     header::{HeaderValue, AUTHORIZATION, CONTENT_LENGTH},
     Client,
 };
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::{
     de::{Error as OtherError, Unexpected},
     Deserialize, Deserializer,
 };
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{atomic::AtomicBool, Arc},
+};
 use tokio::{
     sync::{mpsc, oneshot},
     task,
@@ -58,9 +63,10 @@ pub enum SpaceTradersEnv {
 #[derive(Debug, Clone)]
 pub struct SpaceTradersInterface {
     token: String,
-    pub client: Client,
+    pub client: ClientWithMiddleware,
     pub url: String,
     pub enviroment: SpaceTradersEnv,
+    has_errored: Arc<AtomicBool>,
 }
 
 impl SpaceTradersInterface {
@@ -70,11 +76,16 @@ impl SpaceTradersInterface {
             SpaceTradersEnv::Mock => MOCKURL,
         };
 
+        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
+
         SpaceTradersInterface {
             token,
-            client: Client::new(),
+            client: ClientBuilder::new(reqwest::Client::new())
+                .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+                .build(),
             url: String::from(url),
             enviroment,
+            has_errored: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -89,6 +100,7 @@ impl SpaceTradersInterface {
         Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
 
+    #[async_recursion]
     async fn make_reqwest(&self, method: Method, url: &str, data: Option<Requests>) -> String {
         let mut client = match method {
             Method::Get => self.client.get(self.get_url(url)),
@@ -107,6 +119,7 @@ impl SpaceTradersInterface {
             ),
         };
 
+        let data_clone: Option<Requests>;
         client = match data {
             Some(dataenum) => match dataenum {
                 Requests::RegisterNewAgent(json) => client.json(&json),
@@ -131,6 +144,9 @@ impl SpaceTradersInterface {
         let response = client.send().await.unwrap();
         if response.status().is_success() {
             response.text().await.unwrap()
+        // } else if response.status().as_u16() == 429 {
+        // let time_to_sleep: error_429 = response.json().await.unwrap();
+        // self.make_reqwest(method, url, data).await
         } else {
             panic!(
                 "status: {:?}, error: {}",
@@ -257,6 +273,7 @@ impl SpaceTraders {
         match oneshot_receiver.await {
             Ok(res) => res,
             Err(err) => {
+                // TODO: implement error check to make sure I dont error 100 times
                 error!("Interface failed to send back a correct response: {}", err);
                 panic!("{}", self.diagnose());
             }

@@ -92,3 +92,9 @@ pub struct ErrorData {
     pub code: u32,
     pub message: String,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct error_429 {
+    #[serde(alias = "retryAfter")]
+    retry_after: f32,
+}
