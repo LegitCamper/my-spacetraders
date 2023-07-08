@@ -12,8 +12,9 @@ use responses::{
     GetStatus, {agents, contracts, factions, fleet, systems},
 };
 
+use async_recursion::async_recursion;
 use core::panic;
-use log::error;
+use log::{error, warn};
 use rand::Rng;
 use random_string::generate;
 use reqwest::{
@@ -170,7 +171,7 @@ impl SpaceTraders {
             interface: space_trader.clone(),
             channel: channel_sender,
             task: task::spawn(async move {
-                interval.tick().await; // avoids rate limiting - waits 0 - need both
+                interval.tick().await; // inits tick
                 while let Some(msg) = channel_receiver.recv().await {
                     msg.oneshot
                         .send(
@@ -210,7 +211,7 @@ impl SpaceTraders {
             Ok(registration) => {
                 SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Live).await
             }
-            Err(error) => panic!("error: {}", error),
+            Err(error) => panic!("{}\nTransitive error occured - please re-run", error),
         }
     }
 
