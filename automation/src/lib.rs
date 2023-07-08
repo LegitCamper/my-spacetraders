@@ -27,6 +27,7 @@ pub enum ShipError {
 
 #[derive(Debug)]
 pub struct ShipHandlerData {
+    pub spacetraders: SpaceTraders,
     pub ships: Vec<Ship>,
     pub contracts: HashMap<String, Contract>,
     pub handles: Vec<task::JoinHandle<()>>,
@@ -34,20 +35,22 @@ pub struct ShipHandlerData {
     pub systems_db: HashMap<String, schemas::System>,
 }
 
-pub fn start_ship_handler(
-    space_traders: Arc<Mutex<SpaceTraders>>,
-    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
-) -> task::JoinHandle<()> {
+pub fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandlerData>>) -> task::JoinHandle<()> {
     trace!("Start Ship Handler");
     task::spawn(async move {
         let (tx, mut rx) = mpsc::channel(100);
 
-        let start_ships = space_traders.lock().await.list_ships().await.data;
+        let start_ships = ship_handler_data
+            .lock()
+            .await
+            .spacetraders
+            .list_ships()
+            .await
+            .data;
 
         // start initial ships in their own task
         for ship in start_ships.into_iter() {
             let new_ship_handler_data = Arc::clone(&ship_handler_data);
-            let new_space_traders = Arc::clone(&space_traders);
             let new_channel = tx.clone();
 
             info!("Starting new task for ship: {}", ship.symbol);
@@ -56,7 +59,6 @@ pub fn start_ship_handler(
                     ship_handler(
                         ship.clone(),
                         new_ship_handler_data.clone(),
-                        new_space_traders.clone(),
                         new_channel.clone(),
                     )
                     .await
@@ -68,7 +70,6 @@ pub fn start_ship_handler(
         // listens for new ship purchases and spawns new task to deal with them
         while let Some(msg) = rx.recv().await {
             let new_ship_handler_data = Arc::clone(&ship_handler_data);
-            let new_space_traders = Arc::clone(&space_traders);
             let new_channel = tx.clone();
 
             info!("Starting new task for ship: {}", msg.symbol);
@@ -77,7 +78,6 @@ pub fn start_ship_handler(
                     ship_handler(
                         msg.clone(),
                         new_ship_handler_data.clone(),
-                        new_space_traders.clone(),
                         new_channel.clone(),
                     )
                     .await
@@ -91,26 +91,14 @@ pub fn start_ship_handler(
 pub async fn ship_handler(
     ship: Ship,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
-    space_traders: Arc<Mutex<SpaceTraders>>,
     channel: mpsc::Sender<Ship>,
 ) {
     trace!("Ship Handler");
     ship_handler_data.lock().await.ships.push(ship.clone()); // adds itself to ship_handler_data
 
     // mine astroids
-    func::buy_mining_ship(
-        ship.clone(),
-        space_traders.clone(),
-        ship_handler_data.clone(),
-        channel,
-    )
-    .await;
-    func::mine_astroid(
-        ship.clone(),
-        space_traders.clone(),
-        ship_handler_data.clone(),
-    )
-    .await;
+    func::buy_mining_ship(ship.clone(), ship_handler_data.clone(), channel).await;
+    func::mine_astroid(ship.clone(), ship_handler_data.clone()).await;
 
     // do contracts
 
@@ -139,13 +127,8 @@ struct SystemDB {
 const SYSTEMDB_FILE: &str = "systemDB.json";
 
 #[async_recursion]
-pub async fn build_system_db(
-    space_traders: Arc<Mutex<SpaceTraders>>,
-) -> HashMap<String, schemas::System> {
+pub async fn build_system_db(space_traders: &SpaceTraders) -> HashMap<String, schemas::System> {
     trace!("Building system DB");
-
-    // aquire locks
-    let space_traders_unlocked = space_traders.lock().await;
 
     if Path::new(SYSTEMDB_FILE).is_file() {
         let systems: SystemDB =
@@ -154,16 +137,15 @@ pub async fn build_system_db(
                     info!("removing currupted systemDB");
 
                     remove_file(SYSTEMDB_FILE).unwrap();
-                    drop(space_traders_unlocked); // remove locks
-                    return build_system_db(space_traders.clone()).await;
+                    return build_system_db(space_traders).await;
                 }
                 Ok(data) => {
                     info!("{} integrity check good", SYSTEMDB_FILE);
 
-                    if data.date < space_traders_unlocked.get_status().await.reset_date {
+                    if data.date < space_traders.get_status().await.reset_date {
                         info!("{} is outdated", SYSTEMDB_FILE);
                         remove_file(SYSTEMDB_FILE).unwrap();
-                        return build_system_db(space_traders.clone()).await;
+                        return build_system_db(space_traders).await;
                     }
 
                     data
@@ -174,7 +156,7 @@ pub async fn build_system_db(
     } else {
         info!("{} does not exist - building ", SYSTEMDB_FILE);
         // let num_systems = space_traders_unlocked.get_status().await.stats.systems; // TODO: this currently does not work, but should replace below
-        let num_systems = space_traders_unlocked.list_systems(None).await.meta.total;
+        let num_systems = space_traders.list_systems(None).await.meta.total;
         info!(
             "There are ~{} systems - Building will take ~{} minute(s)",
             num_systems,
@@ -184,12 +166,7 @@ pub async fn build_system_db(
         let mut systems: HashMap<String, schemas::System> = HashMap::new();
 
         for page in 1..((num_systems / 20) + 1) {
-            for system in space_traders_unlocked
-                .list_systems(Some(page))
-                .await
-                .data
-                .iter()
-            {
+            for system in space_traders.list_systems(Some(page)).await.data.iter() {
                 systems.insert(system.symbol.clone(), system.clone());
             }
         }

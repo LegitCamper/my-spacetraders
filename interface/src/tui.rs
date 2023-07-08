@@ -46,8 +46,7 @@ impl From<MenuItem> for usize {
 }
 
 pub fn start(
-    space_traders: Arc<Mutex<SpaceTraders>>,
-    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
+    _ship_handler_data: Arc<Mutex<ShipHandlerData>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     enable_raw_mode().expect("can run in raw mode");
     Ok(())

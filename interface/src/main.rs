@@ -11,24 +11,19 @@ use tokio::{
     task::{self, JoinHandle},
 };
 
-async fn start_automation(
-    token: Option<String>,
-) -> (
-    Arc<Mutex<SpaceTraders>>,
-    Arc<Mutex<ShipHandlerData>>,
-    JoinHandle<()>,
-) {
+async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>, JoinHandle<()>) {
     trace!("Starting automation");
-    let space_traders: Arc<Mutex<SpaceTraders>> = match token {
-        Some(token) => Arc::new(Mutex::new(
-            spacetraders::SpaceTraders::new(&token, spacetraders::SpaceTradersEnv::Live).await,
-        )),
-        None => Arc::new(Mutex::new(spacetraders::SpaceTraders::default().await)),
+    let space_traders: SpaceTraders = match token {
+        Some(token) => {
+            spacetraders::SpaceTraders::new(&token, spacetraders::SpaceTradersEnv::Live).await
+        }
+        None => spacetraders::SpaceTraders::default().await,
     };
 
-    let credits = space_traders.lock().await.agent().await.data.credits;
-    let systems_db = automation::build_system_db(space_traders.clone()).await;
+    let credits = space_traders.agent().await.data.credits;
+    let systems_db = automation::build_system_db(&space_traders).await;
     let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
+        spacetraders: space_traders,
         ships: vec![],
         contracts: HashMap::new(),
         handles: vec![],
@@ -36,14 +31,9 @@ async fn start_automation(
         systems_db,
     }));
 
-    let ship_handler: task::JoinHandle<()> =
-        start_ship_handler(space_traders.clone(), ship_handler_data.clone());
+    let ship_handler: task::JoinHandle<()> = start_ship_handler(ship_handler_data.clone());
 
-    (
-        space_traders.clone(),
-        ship_handler_data.clone(),
-        ship_handler,
-    )
+    (ship_handler_data.clone(), ship_handler)
 }
 
 #[derive(Parser, Debug)]
@@ -78,12 +68,12 @@ async fn main() {
 
     match args.automation {
         true => {
-            let (space_traders, ship_hander_data, ship_handler_handle) = match args.token {
+            let (ship_hander_data, ship_handler_handle) = match args.token {
                 None => start_automation(None).await,
                 Some(token) => start_automation(Some(token)).await,
             };
             match args.interactive {
-                true => tui::start(space_traders, ship_hander_data).unwrap(),
+                true => tui::start(ship_hander_data).unwrap(),
                 false => (), // runs in cli/headless mode
             }
             ship_handler_handle.await.unwrap();
