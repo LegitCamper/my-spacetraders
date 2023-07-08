@@ -119,8 +119,10 @@ pub async fn buy_mining_ship(
                                 .await;
 
                             info!(
-                                "Moving ship - going to sleep for {} milliseconds",
-                                time_to_stop.data.nav.route.arrival
+                                "Moving ship - going to sleep for {} seconds",
+                                (time_to_stop.data.nav.route.arrival.timestamp_millis()
+                                    - offset::Utc::now().timestamp_millis())
+                                    / 1000
                             );
 
                             need_to_wait = true;
