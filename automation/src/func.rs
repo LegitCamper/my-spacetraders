@@ -43,9 +43,9 @@ pub async fn travel(
     ship: schemas::Ship,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     waypoint: Waypoint,
-    channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
     trace!("travel");
+
     let ship_details = ship_handler_data
         .lock()
         .await
@@ -53,8 +53,8 @@ pub async fn travel(
         .get_ship(&ship.symbol)
         .await;
 
-    if ship_details.data.nav.waypoint_symbol.waypoint == waypoint.waypoint {
-    } else {
+    // TODO: refuel before traveling
+    if ship_details.data.nav.waypoint_symbol.waypoint != waypoint.waypoint {
         // there is also a case where the ship is in transit and neither docked or there
         let ship_status = ship_details.data.nav.status;
         if ship_status == enums::ShipNavStatus::Docked {
@@ -65,6 +65,7 @@ pub async fn travel(
                 .orbit_ship(&ship_details.data.symbol)
                 .await;
         }
+        //TODO: consider fuel types here
         let time_to_stop = ship_handler_data
             .lock()
             .await
@@ -84,11 +85,109 @@ pub async fn travel(
 // mining astroid functions
 pub async fn mine_astroid(ship: schemas::Ship, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
     trace!("Mining Astroid");
+
+    let ship_details = ship_handler_data
+        .lock()
+        .await
+        .spacetraders
+        .get_ship(&ship.symbol)
+        .await;
+
+    let waypoints = ship_handler_data
+        .lock()
+        .await
+        .spacetraders
+        .list_waypoints(ship_details.data.nav.system_symbol)
+        .await;
+
+    for waypoint in waypoints.data.iter() {
+        if waypoint.r#type == enums::WaypointType::AsteroidField {
+            travel(
+                ship.clone(),
+                ship_handler_data.clone(),
+                waypoint.symbol.clone(),
+            )
+            .await;
+
+            ship_handler_data
+                .lock()
+                .await
+                .spacetraders
+                .orbit_ship(&ship.symbol)
+                .await;
+
+            info!("Starting mining astroid");
+
+            // check if ship can survey and do survey before mining
+            ship_handler_data
+                .lock()
+                .await
+                .spacetraders
+                .extract_resources(&ship.symbol, None)
+                .await;
+
+            for waypoint in waypoints.data.iter() {
+                for r#trait in waypoint.traits.iter() {
+                    if r#trait.symbol == enums::WaypointTrait::Marketplace {
+                        travel(
+                            ship.clone(),
+                            ship_handler_data.clone(),
+                            waypoint.symbol.clone(),
+                        )
+                        .await;
+
+                        ship_handler_data
+                            .lock()
+                            .await
+                            .spacetraders
+                            .dock_ship(&ship.symbol)
+                            .await;
+
+                        // aquire locks
+                        let mut ship_handler_data_unlocked = ship_handler_data.lock().await;
+
+                        // TODO: make sure not to sell goods used for contracts
+                        // TODO: also make sure I can sell that good here
+                        let cargo = ship_handler_data_unlocked
+                            .spacetraders
+                            .get_ship_cargo(&ship.symbol)
+                            .await;
+
+                        for item in cargo.data.inventory.iter() {
+                            info!(
+                                "{} is selling {} {:?}",
+                                ship.symbol, item.units, item.symbol
+                            );
+
+                            let transaction = ship_handler_data_unlocked
+                                .spacetraders
+                                .sell_cargo(
+                                    &ship.symbol,
+                                    requests::SellCargo {
+                                        symbol: item.symbol.clone(),
+                                        units: item.units,
+                                    },
+                                )
+                                .await;
+
+                            ship_handler_data_unlocked.credits = ship_handler_data_unlocked.credits
+                                + transaction.data.transaction.units
+                        }
+                        return; // lock should be released here
+                    }
+                }
+            }
+        }
+    }
+
+    // else maybe fly to the closest system with a shipyard - TODO: Pathfinding
+    warn!("Failed to find asteroid");
 }
 
-pub async fn buy_mining_ship(
+pub async fn buy_ship(
     ship: schemas::Ship,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
+    ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
     trace!("Buy mining ship");
@@ -110,13 +209,7 @@ pub async fn buy_mining_ship(
     'outer: for waypoint in waypoints.data.iter() {
         for r#trait in waypoint.traits.iter() {
             if r#trait.symbol == enums::WaypointTrait::Shipyard {
-                travel(
-                    ship,
-                    ship_handler_data.clone(),
-                    waypoint.symbol.clone(),
-                    channel.clone(),
-                )
-                .await;
+                travel(ship, ship_handler_data.clone(), waypoint.symbol.clone()).await;
 
                 let mut ship_handler_data_unlocked = ship_handler_data.lock().await;
 
@@ -126,29 +219,32 @@ pub async fn buy_mining_ship(
                     .await;
 
                 for ship in shipyard.data.ships.iter() {
-                    if ship.r#type == enums::ShipType::ShipMiningDrone {
-                        if ship.purchase_price < ship_handler_data_unlocked.credits {
-                            let new_ship = ship_handler_data_unlocked
-                                .spacetraders
-                                .purchase_ship(requests::PurchaseShip {
-                                    ship_type: ship.r#type,
-                                    waypoint_symbol: waypoint.symbol.clone().waypoint,
-                                })
-                                .await;
+                    for ship_type in ship_types {
+                        if ship.r#type == ship_type.to_owned() {
+                            if ship.purchase_price < ship_handler_data_unlocked.credits {
+                                let new_ship = ship_handler_data_unlocked
+                                    .spacetraders
+                                    .purchase_ship(requests::PurchaseShip {
+                                        ship_type: ship.r#type,
+                                        waypoint_symbol: waypoint.symbol.clone().waypoint,
+                                    })
+                                    .await;
 
-                            channel.send(new_ship.data.ship.clone()).await.unwrap();
+                                channel.send(new_ship.data.ship.clone()).await.unwrap();
 
-                            ship_handler_data_unlocked.credits = ship_handler_data_unlocked.credits
-                                - new_ship.data.transaction.price;
+                                ship_handler_data_unlocked.credits = ship_handler_data_unlocked
+                                    .credits
+                                    - new_ship.data.transaction.price;
 
-                            info!(
-                                "buying ship, now at {} credits",
-                                ship_handler_data_unlocked.credits
-                            );
-                            return;
-                        } else {
-                            warn!("Not enough money to buy ship");
-                            return;
+                                info!(
+                                    "buying ship, now at {} credits",
+                                    ship_handler_data_unlocked.credits
+                                );
+                                return;
+                            } else {
+                                warn!("Not enough money to buy ship");
+                                return;
+                            }
                         }
                     }
                 }
