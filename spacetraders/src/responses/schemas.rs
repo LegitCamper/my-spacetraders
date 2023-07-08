@@ -328,7 +328,7 @@ pub struct ShipCargo {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct ShipCargoItem {
-    pub symbol: String,
+    pub symbol: enums::TradeSymbol,
     pub name: String,
     // description: String,
     pub units: i32,

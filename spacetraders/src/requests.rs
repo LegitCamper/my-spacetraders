@@ -62,7 +62,7 @@ pub struct ExtractResourcesSurveyDeposits {
 #[derive(Serialize, Debug)]
 pub struct JettisonCargo {
     pub symbol: TradeSymbol,
-    pub units: u32,
+    pub units: i32,
 }
 
 #[derive(Serialize, Debug)]
@@ -92,20 +92,20 @@ pub struct WarpShip {
 #[derive(Serialize, Debug)]
 pub struct SellCargo {
     pub symbol: TradeSymbol,
-    pub units: u32,
+    pub units: i32,
 }
 
 #[derive(Serialize, Debug)]
 pub struct PurchaseCargo {
     pub symbol: TradeSymbol,
-    pub units: u32,
+    pub units: i32,
 }
 
 #[derive(Serialize, Debug)]
 pub struct TransferCargo {
     #[serde(rename = "tradeSymbol")]
     pub trade_symbol: TradeSymbol,
-    pub units: u32,
+    pub units: i32,
     #[serde(rename = "shipSymbol")]
     pub ship_symbol: String,
 }

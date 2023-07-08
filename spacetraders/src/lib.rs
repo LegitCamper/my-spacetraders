@@ -587,18 +587,30 @@ impl SpaceTraders {
     pub async fn extract_resources(
         &self,
         ship_symbol: &str,
-        data: ExtractResources,
+        data: Option<ExtractResources>,
     ) -> fleet::ExtractResources {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/extract", ship_symbol),
-                    Some(Requests::ExtractResources(data)),
-                )
-                .await,
-        )
-        .unwrap()
+        match data {
+            Some(data) => serde_json::from_str(
+                &self
+                    .make_request(
+                        Method::Post,
+                        format!("/my/ships/{}/extract", ship_symbol),
+                        Some(Requests::ExtractResources(data)),
+                    )
+                    .await,
+            )
+            .unwrap(),
+            None => serde_json::from_str(
+                &self
+                    .make_request(
+                        Method::Post,
+                        format!("/my/ships/{}/extract", ship_symbol),
+                        None,
+                    )
+                    .await,
+            )
+            .unwrap(),
+        }
     }
     pub async fn jettison_cargo(
         &self,

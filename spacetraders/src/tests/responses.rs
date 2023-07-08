@@ -347,7 +347,7 @@ async fn extract_resources() {
         spacetraders
             .extract_resources(
                 STRING,
-                ExtractResources {
+                Some(ExtractResources {
                     survey: ExtractResourcesSurvey {
                         signature: STRING.into(),
                         symbol: STRING.into(),
@@ -358,7 +358,7 @@ async fn extract_resources() {
                         expiration: "2019-08-24T14:15:22Z".into(),
                         size: enums::DepositSize::Small,
                     },
-                },
+                }),
             )
             .await;
     }
