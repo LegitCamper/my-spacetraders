@@ -1,4 +1,5 @@
 use spacetraders::{
+    enums,
     responses::{
         schemas::{self, Contract, Ship},
         systems,
@@ -10,7 +11,7 @@ mod func;
 use async_recursion::async_recursion;
 use chrono::{offset, serde::ts_milliseconds, DateTime, NaiveDateTime, Utc};
 use log::{info, trace, warn};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer, __private::de::Content};
 use std::{
     fs::{read_to_string, remove_file, File},
     path::Path,
@@ -88,6 +89,14 @@ pub fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandlerData>>) -> tas
     })
 }
 
+pub enum ShipDuty {
+    Protector, // not implemented yet
+    Admin,
+    Miner,
+    Contractor,
+    Explorer,
+}
+
 pub async fn ship_handler(
     ship: Ship,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
@@ -96,9 +105,41 @@ pub async fn ship_handler(
     trace!("Ship Handler");
     ship_handler_data.lock().await.ships.push(ship.clone()); // adds itself to ship_handler_data
 
-    // mine astroids
-    func::buy_mining_ship(ship.clone(), ship_handler_data.clone(), channel).await;
-    func::mine_astroid(ship.clone(), ship_handler_data.clone()).await;
+    println!("Ship Type: {:?}", ship.registration.role);
+
+    // task each catagory of ship with its own project loop
+    let ship_duty: ShipDuty = match ship.registration.role {
+        enums::ShipRole::Fabricator => todo!(),
+        enums::ShipRole::Harvester => ShipDuty::Miner,
+        enums::ShipRole::Hauler => ShipDuty::Miner,
+        enums::ShipRole::Interceptor => ShipDuty::Protector,
+        enums::ShipRole::Excavator => ShipDuty::Miner,
+        enums::ShipRole::Transport => ShipDuty::Miner,
+        enums::ShipRole::Repair => todo!(),
+        enums::ShipRole::Surveyor => ShipDuty::Miner,
+        enums::ShipRole::Command => ShipDuty::Admin,
+        enums::ShipRole::Carrier => ShipDuty::Contractor,
+        enums::ShipRole::Patrol => ShipDuty::Protector,
+        enums::ShipRole::Satellite => ShipDuty::Admin,
+        enums::ShipRole::Explorer => ShipDuty::Explorer,
+        enums::ShipRole::Refinery => ShipDuty::Miner,
+    };
+
+    match ship_duty {
+        ShipDuty::Admin => {
+            func::buy_ship(
+                ship.clone(),
+                ship_handler_data.clone(),
+                &[enums::ShipType::ShipMiningDrone],
+                channel,
+            )
+            .await
+        }
+        ShipDuty::Miner => func::mine_astroid(ship.clone(), ship_handler_data.clone()).await,
+        ShipDuty::Contractor => todo!(),
+        ShipDuty::Explorer => todo!(),
+        ShipDuty::Protector => todo!(),
+    }
 
     // do contracts
 
