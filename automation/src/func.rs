@@ -7,7 +7,6 @@ use spacetraders::{
 
 // use async_recursion::async_recursion;
 use chrono::{offset, DateTime, Local, Utc};
-use itertools::Itertools;
 use log::{info, trace, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -294,47 +293,6 @@ pub async fn buy_ship(
     }
     // else maybe fly to the closest system with a shipyard - TODO: Pathfinding
     warn!("Failed to find Shipyard or suitable ship");
-}
-
-// TODO: this has to be super unoptimized. takes way to long
-fn euclidean_distance(
-    current_system: schemas::System,
-    systems: HashMap<String, schemas::System>,
-    num_returns: Option<u32>,
-) -> HashMap<u64, (i32, i32)> {
-    trace!("Euclidean Distance Caluclations");
-    let num_systems_to_return = match num_returns {
-        Some(num) => num,
-        None => 5,
-    };
-
-    let mut closest_systems: HashMap<u64, (i32, i32)> =
-        HashMap::with_capacity(num_systems_to_return.try_into().unwrap());
-    let (my_x, my_y) = (current_system.x, current_system.y);
-
-    for (_, system) in systems.iter() {
-        let (system_x, system_y) = (system.x, system.y);
-
-        let distance: f64 = ((my_x as f64 - my_y as f64).powi(2)
-            + (system_x as f64 - system_y as f64).powi(2))
-        .sqrt();
-        // giving up trying to do this with floats
-        // I am going to round and hope it works out
-        let distance: u64 = distance.round() as u64;
-
-        if closest_systems.len() < num_systems_to_return.try_into().unwrap() {
-            closest_systems.insert(distance, (system_x, system_y));
-        } else {
-            'inner: for system_distance in closest_systems.clone().keys().sorted() {
-                if distance < *system_distance || distance == *system_distance {
-                    closest_systems.remove(&distance);
-                    closest_systems.insert(distance, (system_x, system_y));
-                    break 'inner;
-                }
-            }
-        }
-    }
-    closest_systems
 }
 
 pub async fn explore(ship_handler_data: Arc<Mutex<ShipHandlerData>>) {}

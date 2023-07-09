@@ -22,13 +22,15 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
 
     let credits = space_traders.agent().await.data.credits;
     let systems_db = automation::build_system_db(&space_traders).await;
+    let euclidean_distances =
+        automation::build_euclidean_distance(systems_db, &space_traders).await;
     let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
         spacetraders: space_traders,
         ships: vec![],
         contracts: HashMap::new(),
         handles: vec![],
         credits,
-        systems_db,
+        euclidean_distances,
     }));
 
     let ship_handler: task::JoinHandle<()> = start_ship_handler(ship_handler_data.clone());
