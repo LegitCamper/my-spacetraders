@@ -122,6 +122,7 @@ version = "0.1.0"
 dependencies = [
  "async-recursion",
  "chrono",
+ "itertools",
  "log",
  "serde",
  "serde_json",
@@ -379,6 +380,12 @@ dependencies = [
  "once_cell",
  "parking_lot_core 0.9.7",
 ]
+
+[[package]]
+name = "either"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
 
 [[package]]
 name = "encoding_rs"
@@ -831,6 +838,15 @@ dependencies = [
  "hermit-abi 0.3.1",
  "rustix 0.38.1",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+dependencies = [
+ "either",
 ]
 
 [[package]]
