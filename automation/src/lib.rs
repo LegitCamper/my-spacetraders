@@ -89,44 +89,27 @@ pub fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandlerData>>) -> tas
     })
 }
 
-pub enum ShipDuty {
-    Protector, // not implemented yet
-    Admin,
-    Miner,
-    Contractor,
-    Explorer,
-}
-
 pub async fn ship_handler(
     ship: Ship,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     channel: mpsc::Sender<Ship>,
 ) {
     trace!("Ship Handler");
+
     ship_handler_data.lock().await.ships.push(ship.clone()); // adds itself to ship_handler_data
 
-    println!("Ship Type: {:?}", ship.registration.role);
-
-    // task each catagory of ship with its own project loop
-    let ship_duty: ShipDuty = match ship.registration.role {
+    match ship.registration.role {
         enums::ShipRole::Fabricator => todo!(),
-        enums::ShipRole::Harvester => ShipDuty::Miner,
-        enums::ShipRole::Hauler => ShipDuty::Miner,
-        enums::ShipRole::Interceptor => ShipDuty::Protector,
-        enums::ShipRole::Excavator => ShipDuty::Miner,
-        enums::ShipRole::Transport => ShipDuty::Miner,
+        enums::ShipRole::Harvester => todo!(),
+        enums::ShipRole::Hauler => todo!(),
+        enums::ShipRole::Interceptor => todo!(),
+        enums::ShipRole::Excavator => {
+            func::mine_astroid(ship.clone(), ship_handler_data.clone()).await
+        }
+        enums::ShipRole::Transport => todo!(),
         enums::ShipRole::Repair => todo!(),
-        enums::ShipRole::Surveyor => ShipDuty::Miner,
-        enums::ShipRole::Command => ShipDuty::Admin,
-        enums::ShipRole::Carrier => ShipDuty::Contractor,
-        enums::ShipRole::Patrol => ShipDuty::Protector,
-        enums::ShipRole::Satellite => ShipDuty::Admin,
-        enums::ShipRole::Explorer => ShipDuty::Explorer,
-        enums::ShipRole::Refinery => ShipDuty::Miner,
-    };
-
-    match ship_duty {
-        ShipDuty::Admin => {
+        enums::ShipRole::Surveyor => todo!(),
+        enums::ShipRole::Command => {
             func::buy_ship(
                 ship.clone(),
                 ship_handler_data.clone(),
@@ -135,11 +118,20 @@ pub async fn ship_handler(
             )
             .await
         }
-        ShipDuty::Miner => func::mine_astroid(ship.clone(), ship_handler_data.clone()).await,
-        ShipDuty::Contractor => todo!(),
-        ShipDuty::Explorer => todo!(),
-        ShipDuty::Protector => todo!(),
-    }
+        enums::ShipRole::Carrier => todo!(),
+        enums::ShipRole::Patrol => todo!(),
+        enums::ShipRole::Satellite => {
+            func::buy_ship(
+                ship.clone(),
+                ship_handler_data.clone(),
+                &[enums::ShipType::ShipMiningDrone],
+                channel,
+            )
+            .await
+        }
+        enums::ShipRole::Explorer => todo!(),
+        enums::ShipRole::Refinery => todo!(),
+    };
 
     // do contracts
 
