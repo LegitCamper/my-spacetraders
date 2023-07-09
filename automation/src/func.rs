@@ -5,12 +5,12 @@ use spacetraders::{
     SpaceTraders, System, Waypoint,
 };
 
-use async_recursion::async_recursion;
+// use async_recursion::async_recursion;
 use chrono::{offset, DateTime, Local, Utc};
 use itertools::Itertools;
 use log::{info, trace, warn};
-use std::{collections::HashMap, time};
-use std::{str::ParseBoolError, sync::Arc};
+use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::{
     sync::{mpsc, Mutex},
     time::{sleep, Duration},
@@ -74,6 +74,52 @@ pub async fn travel_waypoint(
             .await;
 
         wait_duration(time_to_stop.data.nav.route.arrival).await;
+    }
+}
+
+pub async fn travel_system(
+    ship: schemas::Ship,
+    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
+    waypoint: System,
+) {
+    trace!("travel");
+
+    let ship_details = ship_handler_data
+        .lock()
+        .await
+        .spacetraders
+        .get_ship(&ship.symbol)
+        .await;
+
+    // TODO: refuel before traveling
+    if ship_details.data.nav.waypoint_symbol.system != waypoint.to_system().system {
+        // there is also a case where the ship is in transit and neither docked or there
+        let ship_status = ship_details.data.nav.status;
+        if ship_status == enums::ShipNavStatus::Docked {
+            ship_handler_data
+                .lock()
+                .await
+                .spacetraders
+                .orbit_ship(&ship_details.data.symbol)
+                .await;
+        }
+
+        // depending on whether there is a warp drive or jump drive determines the endpoint to use
+        // also ensure to check if there is a jump gate
+
+        // let time_to_stop = ship_handler_data
+        //     .lock()
+        //     .await
+        //     .spacetraders
+        //     .navigate_ship(
+        //         &ship_details.data.symbol,
+        //         requests::NavigateShip {
+        //             waypoint_symbol: waypoint.waypoint.clone(),
+        //         },
+        //     )
+        //     .await;
+
+        // wait_duration(time_to_stop.data.nav.route.arrival).await;
     }
 }
 
