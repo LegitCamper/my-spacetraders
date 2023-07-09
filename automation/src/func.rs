@@ -7,19 +7,14 @@ use spacetraders::{
 
 use async_recursion::async_recursion;
 use chrono::{offset, DateTime, Local, Utc};
+use itertools::Itertools;
 use log::{info, trace, warn};
-use std::sync::Arc;
 use std::{collections::HashMap, time};
+use std::{str::ParseBoolError, sync::Arc};
 use tokio::{
     sync::{mpsc, Mutex},
     time::{sleep, Duration},
 };
-
-// this is how you serialize the waypoints
-// println!("{:?}", agent.data.headquarters);
-// println!("{:?}", agent.data.headquarters.waypoint);
-// println!("{:?}", agent.data.headquarters.system);
-// println!("{:?}", agent.data.headquarters.sector);
 
 pub async fn wait_duration(time_to_stop: DateTime<Utc>) {
     trace!("Waiting duration");
@@ -39,7 +34,7 @@ pub async fn wait_duration(time_to_stop: DateTime<Utc>) {
     .await;
 }
 
-pub async fn travel(
+pub async fn travel_waypoint(
     ship: schemas::Ship,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     waypoint: Waypoint,
@@ -82,7 +77,6 @@ pub async fn travel(
     }
 }
 
-// mining astroid functions
 pub async fn mine_astroid(ship: schemas::Ship, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
     trace!("Mining Astroid");
 
@@ -102,7 +96,7 @@ pub async fn mine_astroid(ship: schemas::Ship, ship_handler_data: Arc<Mutex<Ship
 
     for waypoint in waypoints.data.iter() {
         if waypoint.r#type == enums::WaypointType::AsteroidField {
-            travel(
+            travel_waypoint(
                 ship.clone(),
                 ship_handler_data.clone(),
                 waypoint.symbol.clone(),
@@ -129,7 +123,7 @@ pub async fn mine_astroid(ship: schemas::Ship, ship_handler_data: Arc<Mutex<Ship
             for waypoint in waypoints.data.iter() {
                 for r#trait in waypoint.traits.iter() {
                     if r#trait.symbol == enums::WaypointTrait::Marketplace {
-                        travel(
+                        travel_waypoint(
                             ship.clone(),
                             ship_handler_data.clone(),
                             waypoint.symbol.clone(),
@@ -209,7 +203,7 @@ pub async fn buy_ship(
     'outer: for waypoint in waypoints.data.iter() {
         for r#trait in waypoint.traits.iter() {
             if r#trait.symbol == enums::WaypointTrait::Shipyard {
-                travel(ship, ship_handler_data.clone(), waypoint.symbol.clone()).await;
+                travel_waypoint(ship, ship_handler_data.clone(), waypoint.symbol.clone()).await;
 
                 let mut ship_handler_data_unlocked = ship_handler_data.lock().await;
 
@@ -256,9 +250,59 @@ pub async fn buy_ship(
     warn!("Failed to find Shipyard or suitable ship");
 }
 
-// complete contract functions
-pub async fn get_contract(space_traders: &SpaceTraders) -> Vec<contracts::schemas::Contract> {
-    let available_contracts = space_traders.list_contracts().await.data;
+// TODO: this has to be super unoptimized. takes way to long
+fn euclidean_distance(
+    current_system: schemas::System,
+    systems: HashMap<String, schemas::System>,
+    num_returns: Option<u32>,
+) -> HashMap<u64, (i32, i32)> {
+    trace!("Euclidean Distance Caluclations");
+    let num_systems_to_return = match num_returns {
+        Some(num) => num,
+        None => 5,
+    };
+
+    let mut closest_systems: HashMap<u64, (i32, i32)> =
+        HashMap::with_capacity(num_systems_to_return.try_into().unwrap());
+    let (my_x, my_y) = (current_system.x, current_system.y);
+
+    for (_, system) in systems.iter() {
+        let (system_x, system_y) = (system.x, system.y);
+
+        let distance: f64 = ((my_x as f64 - my_y as f64).powi(2)
+            + (system_x as f64 - system_y as f64).powi(2))
+        .sqrt();
+        // giving up trying to do this with floats
+        // I am going to round and hope it works out
+        let distance: u64 = distance.round() as u64;
+
+        if closest_systems.len() < num_systems_to_return.try_into().unwrap() {
+            closest_systems.insert(distance, (system_x, system_y));
+        } else {
+            'inner: for system_distance in closest_systems.clone().keys().sorted() {
+                if distance < *system_distance || distance == *system_distance {
+                    closest_systems.remove(&distance);
+                    closest_systems.insert(distance, (system_x, system_y));
+                    break 'inner;
+                }
+            }
+        }
+    }
+    closest_systems
+}
+
+pub async fn explore(ship_handler_data: Arc<Mutex<ShipHandlerData>>) {}
+
+pub async fn get_contracts(
+    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
+) -> Vec<contracts::schemas::Contract> {
+    let available_contracts = ship_handler_data
+        .lock()
+        .await
+        .spacetraders
+        .list_contracts()
+        .await
+        .data;
 
     let mut accepted_contracts: Vec<contracts::schemas::Contract> = vec![];
     for contract in available_contracts.iter() {
@@ -271,14 +315,17 @@ pub async fn get_contract(space_traders: &SpaceTraders) -> Vec<contracts::schema
         // or that gives the most rep points
         // for now just excepting the first contract for simplicity
         accepted_contracts.push(
-            space_traders
+            ship_handler_data
+                .lock()
+                .await
+                .spacetraders
                 .accept_contract(&available_contracts[0].id)
                 .await
                 .data
                 .contract,
         )
     } else if accepted_contracts.is_empty() && available_contracts.is_empty() {
-        panic!("accepted contracts is zero, but there are no contracts to accept")
+        warn!("accepted contracts is zero, but there are no contracts to accept");
     }
     accepted_contracts
 }
