@@ -9,12 +9,12 @@ use requests::{
     ShipRefine, TransferCargo, WarpShip,
 };
 use responses::{
-    error_429, GetStatus, {agents, contracts, factions, fleet, systems},
+    GetStatus, {agents, contracts, factions, fleet, systems},
 };
 
 use async_recursion::async_recursion;
 use core::panic;
-use log::{error, warn};
+use log::error;
 use rand::Rng;
 use random_string::generate;
 use reqwest::{
@@ -60,6 +60,7 @@ pub enum SpaceTradersEnv {
     Mock,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct SpaceTradersInterface {
     token: String,
@@ -93,7 +94,7 @@ impl SpaceTradersInterface {
         panic!(
             "\ntoken: {}\nurl: {}\nenviroment: {:#?}\nclient: {:?}",
             self.token, self.url, self.enviroment, self.client
-        )
+        );
     }
 
     fn get_url(&self, endpoint: &str) -> Url {
@@ -119,7 +120,6 @@ impl SpaceTradersInterface {
             ),
         };
 
-        let data_clone: Option<Requests>;
         client = match data {
             Some(dataenum) => match dataenum {
                 Requests::RegisterNewAgent(json) => client.json(&json),
@@ -172,14 +172,14 @@ impl SpaceTradersInterface {
 pub struct SpaceTraders {
     interface: SpaceTradersInterface,
     channel: mpsc::Sender<ChannelMessage>,
-    task: task::JoinHandle<()>,
+    pub task: task::JoinHandle<()>,
 }
 
 impl SpaceTraders {
     pub async fn new(token: &str, enviroment: SpaceTradersEnv) -> Self {
         let space_trader = SpaceTradersInterface::new(token.to_string(), enviroment);
 
-        let (channel_sender, mut channel_receiver) = mpsc::channel(10000);
+        let (channel_sender, mut channel_receiver) = mpsc::channel(120);
 
         let mut interval = interval(Duration::from_millis(500));
 
@@ -973,6 +973,7 @@ impl<'de> Deserialize<'de> for System {
 pub struct Sector {
     pub sector: String,
 }
+#[allow(dead_code)]
 impl Sector {
     fn to_sector(&self) -> Self {
         Self {

@@ -8,7 +8,7 @@ pub mod systems;
 use crate::{spacetraders_date_format, spacetraders_datetime_format};
 
 use chrono::{offset::Utc, DateTime};
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 
 // currently fails tests because it trys "string" :facepalm:
 #[derive(Deserialize, Debug)]
@@ -93,8 +93,8 @@ pub struct ErrorData {
     pub message: String,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct error_429 {
-    #[serde(alias = "retryAfter")]
-    retry_after: f32,
-}
+// #[derive(Deserialize, Debug)]
+// pub struct Error429 {
+//     #[serde(alias = "retryAfter")]
+//     retry_after: f32,
+// }
