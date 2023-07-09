@@ -2,6 +2,7 @@ use crate::{enums, spacetraders_date_format, System as SystemType, Waypoint as W
 
 // use bson::serde_helpers::chrono_datetime_as_bson_datetime;
 use chrono::{DateTime, Utc};
+use rayon::prelude::*;
 use serde::{Deserialize, Deserializer, Serialize};
 
 fn skip_trade_symbol<'de, D>(de: D) -> Result<Option<enums::TradeSymbol>, D::Error>
