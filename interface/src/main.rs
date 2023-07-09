@@ -1,12 +1,13 @@
 use automation::{self, start_ship_handler, ShipHandlerData};
-use spacetraders::{self, responses::schemas, SpaceTraders};
+use spacetraders::{self, SpaceTraders}; // responses::schemas
 mod tui;
 
 use clap::Parser;
-use log::{info, trace};
+use log::trace;
 use simple_logger::SimpleLogger;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
+    signal,
     sync::Mutex,
     task::{self, JoinHandle},
 };
@@ -21,9 +22,9 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
     };
 
     let credits = space_traders.agent().await.data.credits;
-    let systems_db = automation::build_system_db(&space_traders).await;
+    let systems_db = automation::cache::build_system_db(&space_traders).await;
     let euclidean_distances =
-        automation::build_euclidean_distance(systems_db, &space_traders).await;
+        automation::cache::build_euclidean_distance(systems_db, &space_traders).await;
     let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
         spacetraders: space_traders,
         ships: vec![],
@@ -33,7 +34,8 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
         euclidean_distances,
     }));
 
-    let ship_handler: task::JoinHandle<()> = start_ship_handler(ship_handler_data.clone());
+    let ship_handler: task::JoinHandle<()> =
+        tokio::task::spawn(start_ship_handler(ship_handler_data.clone()));
 
     (ship_handler_data.clone(), ship_handler)
 }
@@ -75,10 +77,21 @@ async fn main() {
                 Some(token) => start_automation(Some(token)).await,
             };
             match args.interactive {
-                true => tui::start(ship_hander_data).unwrap(),
+                true => tui::start(ship_hander_data.clone()).unwrap(),
                 false => (), // runs in cli/headless mode
             }
-            ship_handler_handle.await.unwrap();
+
+            tokio::select! {
+                _ = signal::ctrl_c() => {}
+            }
+
+            ship_handler_handle.abort();
+            for handle in ship_hander_data.lock().await.handles.iter() {
+                handle.abort();
+            }
+            ship_hander_data.lock().await.spacetraders.task.abort();
+            println!("Exiting - Bye!");
+            std::process::exit(0);
         }
         false => match args.interactive {
             true => (),

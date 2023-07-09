@@ -1,17 +1,8 @@
-use super::{ShipHandlerData, SpaceTraders};
+use super::ShipHandlerData; //SpaceTraders
 
-use crossterm::{
-    event::{self, Event as CEvent, KeyCode},
-    terminal::{disable_raw_mode, enable_raw_mode},
-};
-use std::{
-    collections::HashMap,
-    sync::{mpsc, Arc},
-};
-use tokio::{
-    sync::Mutex,
-    task::{self, JoinHandle},
-};
+use crossterm::terminal::enable_raw_mode;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 #[allow(unused_imports)]
 use tui::{
     backend::CrosstermBackend,
@@ -25,12 +16,14 @@ use tui::{
 };
 
 // handles internal tui events
+#[allow(dead_code)]
 enum Event<I> {
     Input(I),
     Tick,
 }
 
 // stores the state of the tui
+#[allow(dead_code)]
 #[derive(Copy, Clone, Debug)]
 enum MenuItem {
     Home,
