@@ -34,6 +34,7 @@
             cargo-deny
             cargo-edit
             cargo-watch
+            rustup
             rust-analyzer
           ];
 
