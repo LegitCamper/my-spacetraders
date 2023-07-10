@@ -45,6 +45,8 @@ pub async fn travel_waypoint(
 ) -> schemas::Ship {
     trace!("Travel Waypoint");
 
+    // TODO: create chart here if not in mutex
+
     // TODO: refuel sometime
     if ship.nav.waypoint_symbol.waypoint != waypoint.waypoint {
         // there is also a case where the ship is in transit and neither docked or there
@@ -74,6 +76,8 @@ pub async fn travel_waypoint(
         (ship.nav, ship.fuel) = (temp_ship_data.nav, temp_ship_data.fuel);
 
         wait_duration(&ship).await;
+
+        // TODO: create chart here if not in mutex
     }
     ship
 }
@@ -137,19 +141,36 @@ pub async fn mine_astroid(
         if waypoint.r#type == enums::WaypointType::AsteroidField {
             ship = travel_waypoint(ship, ship_handler_data.clone(), waypoint.symbol.clone()).await;
 
-            // TODO: check if not in orbit and only do this if not
-            ship.nav = ship_handler_data
-                .lock()
-                .await
-                .spacetraders
-                .orbit_ship(&ship.symbol)
-                .await
-                .data
-                .nav;
+            if ship.nav.status == enums::ShipNavStatus::InOrbit {
+                ship.nav = ship_handler_data
+                    .lock()
+                    .await
+                    .spacetraders
+                    .orbit_ship(&ship.symbol)
+                    .await
+                    .data
+                    .nav;
+            }
 
             info!("Starting mining astroid");
 
-            // check if ship can survey and do survey before mining
+            'inner: for mount in ship.mounts.iter() {
+                if mount.symbol == enums::ShipMount::MountSurveyorI
+                    || mount.symbol == enums::ShipMount::MountSurveyorIi
+                    || mount.symbol == enums::ShipMount::MountSurveyorIii
+                {
+                    ship_handler_data.lock().await.surveys.push(
+                        ship_handler_data
+                            .lock()
+                            .await
+                            .spacetraders
+                            .create_survey(&ship.symbol)
+                            .await
+                            .data,
+                    );
+                    break 'inner;
+                }
+            }
             let temp_ship_data = ship_handler_data
                 .lock()
                 .await
@@ -171,15 +192,16 @@ pub async fn mine_astroid(
                         )
                         .await;
 
-                        // TODO: check if not docked and only do this if not
-                        ship.nav = ship_handler_data
-                            .lock()
-                            .await
-                            .spacetraders
-                            .dock_ship(&ship.clone().symbol)
-                            .await
-                            .data
-                            .nav;
+                        if ship.nav.status == enums::ShipNavStatus::InOrbit {
+                            ship.nav = ship_handler_data
+                                .lock()
+                                .await
+                                .spacetraders
+                                .dock_ship(&ship.clone().symbol)
+                                .await
+                                .data
+                                .nav;
+                        }
 
                         // TODO: make sure not to sell goods used for contracts
                         // TODO: also make sure I can sell that good here
@@ -293,7 +315,7 @@ pub async fn buy_ship(
     ship
 }
 
-// pub async fn explore(_ship_handler_data: Arc<Mutex<ShipHandlerData>>) {}
+pub async fn explore(_ship_handler_data: Arc<Mutex<ShipHandlerData>>) {}
 
 // pub async fn get_contracts(
 //     ship_handler_data: Arc<Mutex<ShipHandlerData>>,

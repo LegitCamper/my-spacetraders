@@ -1,6 +1,10 @@
 use spacetraders::{
     enums,
-    responses::schemas::{self, Contract, Ship},
+    responses::{
+        fleet::{CreateChartData, CreateSurveyData},
+        schemas::{self, Contract, Ship},
+        systems::Waypoints,
+    },
     SpaceTraders,
 };
 
@@ -24,8 +28,11 @@ pub struct ShipHandlerData {
     pub handles: Vec<task::JoinHandle<()>>,
     pub spacetraders: SpaceTraders,
     pub ships: Vec<Ship>,
-    pub contracts: HashMap<String, Contract>,
     pub credits: f64,
+    pub contracts: HashMap<String, Contract>,
+    pub surveys: Vec<CreateSurveyData>,
+    pub waypoints: Vec<Waypoints>,
+    pub charts: Vec<CreateChartData>,
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }
 
@@ -103,6 +110,7 @@ pub async fn ship_handler(
     };
 }
 
+// admin can also loop through contracts and survey to find expired ones and remove them from the list
 async fn admin_loop(
     mut ship: schemas::Ship,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,

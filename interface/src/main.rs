@@ -26,11 +26,14 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
     let euclidean_distances =
         automation::cache::build_euclidean_distance(systems_db, &space_traders).await;
     let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
+        handles: vec![],
         spacetraders: space_traders,
         ships: vec![],
-        contracts: HashMap::new(),
-        handles: vec![],
         credits,
+        contracts: HashMap::new(),
+        surveys: Vec::new(),
+        waypoints: Vec::new(), // TODO: this should be donwloaded before runtime
+        charts: Vec::new(),
         euclidean_distances,
     }));
 
