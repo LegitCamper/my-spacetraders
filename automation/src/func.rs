@@ -21,10 +21,9 @@ use tokio::{
 
 async fn wait_duration(ship_id: String, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
     trace!("Waiting duration");
+    let ship_handler_data_u = ship_handler_data.lock().await;
 
-    let local_time_to_stop: DateTime<Local> = ship_handler_data
-        .lock()
-        .await
+    let local_time_to_stop: DateTime<Local> = ship_handler_data_u
         .ships
         .get(&ship_id)
         .unwrap()
@@ -37,13 +36,7 @@ async fn wait_duration(ship_id: String, ship_handler_data: Arc<Mutex<ShipHandler
 
     info!(
         "{} is moving - going to sleep for {} seconds",
-        ship_handler_data
-            .lock()
-            .await
-            .ships
-            .get(&ship_id)
-            .unwrap()
-            .symbol,
+        ship_handler_data_u.ships.get(&ship_id).unwrap().symbol,
         duration.num_seconds()
     );
 
@@ -59,13 +52,12 @@ pub async fn travel_waypoint(
     waypoint: Waypoint,
 ) {
     trace!("Travel Waypoint");
+    let mut ship_handler_data_u = ship_handler_data.lock().await;
 
     // TODO: create chart here if not in mutex
 
     // TODO: refuel sometime
-    if ship_handler_data
-        .lock()
-        .await
+    if ship_handler_data_u
         .ships
         .get(&ship_id)
         .unwrap()
@@ -75,25 +67,10 @@ pub async fn travel_waypoint(
         != waypoint.waypoint
     {
         // there is also a case where the ship is in transit and neither docked or there
-        if ship_handler_data
-            .lock()
-            .await
-            .ships
-            .get(&ship_id)
-            .unwrap()
-            .nav
-            .status
+        if ship_handler_data_u.ships.get(&ship_id).unwrap().nav.status
             == enums::ShipNavStatus::Docked
         {
-            ship_handler_data
-                .lock()
-                .await
-                .ships
-                .get_mut(&ship_id)
-                .unwrap()
-                .nav = ship_handler_data
-                .lock()
-                .await
+            ship_handler_data_u.ships.get_mut(&ship_id).unwrap().nav = ship_handler_data_u
                 .spacetraders
                 .orbit_ship(&ship_id)
                 .await
@@ -101,9 +78,7 @@ pub async fn travel_waypoint(
                 .nav;
         }
         //TODO: consider fuel types here - eg stealth, drift
-        let temp_ship_data = ship_handler_data
-            .lock()
-            .await
+        let temp_ship_data = ship_handler_data_u
             .spacetraders
             .navigate_ship(
                 &ship_id,
@@ -115,22 +90,11 @@ pub async fn travel_waypoint(
             .data;
 
         (
-            ship_handler_data
-                .lock()
-                .await
-                .ships
-                .get_mut(&ship_id)
-                .unwrap()
-                .nav,
-            ship_handler_data
-                .lock()
-                .await
-                .ships
-                .get_mut(&ship_id)
-                .unwrap()
-                .fuel,
+            ship_handler_data_u.ships.get_mut(&ship_id).unwrap().nav,
+            ship_handler_data_u.ships.get_mut(&ship_id).unwrap().fuel,
         ) = (temp_ship_data.nav, temp_ship_data.fuel);
 
+        drop(ship_handler_data_u);
         wait_duration(ship_id, ship_handler_data).await;
 
         // TODO: create chart here if not in mutex
@@ -144,11 +108,10 @@ pub async fn travel_system(
     waypoint: System,
 ) {
     trace!("travel");
+    let mut ship_handler_data_u = ship_handler_data.lock().await;
 
     // TODO: refuel before traveling
-    if ship_handler_data
-        .lock()
-        .await
+    if ship_handler_data_u
         .ships
         .get(&ship_id)
         .unwrap()
@@ -158,24 +121,9 @@ pub async fn travel_system(
         != waypoint.to_system().system
     {
         // there is also a case where the ship is in transit and neither docked or there
-        let ship_status = ship_handler_data
-            .lock()
-            .await
-            .ships
-            .get(&ship_id)
-            .unwrap()
-            .nav
-            .status;
+        let ship_status = ship_handler_data_u.ships.get(&ship_id).unwrap().nav.status;
         if ship_status == enums::ShipNavStatus::Docked {
-            ship_handler_data
-                .lock()
-                .await
-                .ships
-                .get_mut(&ship_id)
-                .unwrap()
-                .nav = ship_handler_data
-                .lock()
-                .await
+            ship_handler_data_u.ships.get_mut(&ship_id).unwrap().nav = ship_handler_data_u
                 .spacetraders
                 .orbit_ship(&ship_id)
                 .await
@@ -187,8 +135,6 @@ pub async fn travel_system(
         // also ensure to check if there is a jump gate
 
         // let time_to_stop = ship_handler_data
-        //     .lock()
-        //     .await
         //     .spacetraders
         //     .navigate_ship(
         //         &ship_details.data.symbol,
@@ -214,7 +160,7 @@ pub async fn mine_astroid(ship_id: &String, ship_handler_data: Arc<Mutex<ShipHan
                 .lock()
                 .await
                 .ships
-                .get_mut(ship_id)
+                .get(ship_id)
                 .unwrap()
                 .nav
                 .system_symbol
@@ -272,15 +218,14 @@ pub async fn mine_astroid(ship_id: &String, ship_handler_data: Arc<Mutex<ShipHan
                     || mount.symbol == enums::ShipMount::MountSurveyorIi
                     || mount.symbol == enums::ShipMount::MountSurveyorIii
                 {
-                    ship_handler_data.lock().await.surveys.push(
-                        ship_handler_data
-                            .lock()
-                            .await
-                            .spacetraders
-                            .create_survey(&ship_id)
-                            .await
-                            .data,
-                    );
+                    let surveys = ship_handler_data
+                        .lock()
+                        .await
+                        .spacetraders
+                        .create_survey(&ship_id)
+                        .await
+                        .data;
+                    ship_handler_data.lock().await.surveys.push(surveys);
                     break 'inner;
                 }
             }
@@ -311,37 +256,23 @@ pub async fn mine_astroid(ship_id: &String, ship_handler_data: Arc<Mutex<ShipHan
                         )
                         .await;
 
-                        if ship_handler_data
-                            .lock()
-                            .await
-                            .ships
-                            .get(ship_id)
-                            .unwrap()
-                            .nav
-                            .status
+                        let mut ship_handler_data_u = ship_handler_data.lock().await;
+
+                        if ship_handler_data_u.ships.get(ship_id).unwrap().nav.status
                             == enums::ShipNavStatus::InOrbit
                         {
-                            ship_handler_data
-                                .lock()
-                                .await
-                                .ships
-                                .get_mut(ship_id)
-                                .unwrap()
-                                .nav = ship_handler_data
-                                .lock()
-                                .await
-                                .spacetraders
-                                .dock_ship(&&ship_id)
-                                .await
-                                .data
-                                .nav;
+                            ship_handler_data_u.ships.get_mut(ship_id).unwrap().nav =
+                                ship_handler_data_u
+                                    .spacetraders
+                                    .dock_ship(&ship_id)
+                                    .await
+                                    .data
+                                    .nav;
                         }
 
                         // TODO: make sure not to sell goods used for contracts
                         // TODO: also make sure I can sell that good here
-                        for item in ship_handler_data
-                            .lock()
-                            .await
+                        for item in ship_handler_data_u
                             .ships
                             .get(ship_id)
                             .unwrap()
@@ -352,8 +283,7 @@ pub async fn mine_astroid(ship_id: &String, ship_handler_data: Arc<Mutex<ShipHan
                         {
                             info!("{} is selling {} {:?}", ship_id, item.units, item.symbol);
 
-                            let mut ship_handler_data_unlocked = ship_handler_data.lock().await;
-                            let temp_ship_data = ship_handler_data_unlocked
+                            let temp_ship_data = ship_handler_data_u
                                 .spacetraders
                                 .sell_cargo(
                                     &ship_id,
@@ -365,20 +295,13 @@ pub async fn mine_astroid(ship_id: &String, ship_handler_data: Arc<Mutex<ShipHan
                                 .await
                                 .data;
 
-                            ship_handler_data
-                                .lock()
-                                .await
-                                .ships
-                                .get_mut(ship_id)
-                                .unwrap()
-                                .cargo = temp_ship_data.cargo;
+                            ship_handler_data_u.ships.get_mut(ship_id).unwrap().cargo =
+                                temp_ship_data.cargo;
                             let (_agent, transaction) =
                                 (temp_ship_data.agent, temp_ship_data.transaction);
 
-                            ship_handler_data_unlocked.credits =
-                                ship_handler_data_unlocked.credits + transaction.units;
-
-                            // drop(ship_handler_data_unlocked);
+                            ship_handler_data_u.credits =
+                                ship_handler_data_u.credits + transaction.units;
                         }
                         return;
                     }
@@ -399,21 +322,21 @@ pub async fn buy_ship(
 ) {
     trace!("Buy mining ship");
 
+    let system = ship_handler_data
+        .lock()
+        .await
+        .ships
+        .get(ship_id)
+        .unwrap()
+        .nav
+        .system_symbol
+        .clone();
+
     let waypoints = ship_handler_data
         .lock()
         .await
         .spacetraders
-        .list_waypoints(
-            ship_handler_data
-                .lock()
-                .await
-                .ships
-                .get(ship_id)
-                .unwrap()
-                .nav
-                .system_symbol
-                .clone(),
-        )
+        .list_waypoints(system)
         .await;
 
     'outer: for waypoint in waypoints.data.iter() {
@@ -426,9 +349,9 @@ pub async fn buy_ship(
                 )
                 .await;
 
-                let shipyard = ship_handler_data
-                    .lock()
-                    .await
+                let mut ship_handler_data_u = ship_handler_data.lock().await;
+
+                let shipyard = ship_handler_data_u
                     .spacetraders
                     .get_shipyard(waypoint.system_symbol.clone(), waypoint.symbol.clone())
                     .await;
@@ -436,9 +359,8 @@ pub async fn buy_ship(
                 for shipyard_ship in shipyard.data.ships.iter() {
                     for ship_type in ship_types {
                         if shipyard_ship.r#type == ship_type.to_owned() {
-                            let mut ship_handler_data_unlocked = ship_handler_data.lock().await;
-                            if shipyard_ship.purchase_price < ship_handler_data_unlocked.credits {
-                                let new_ship = ship_handler_data_unlocked
+                            if shipyard_ship.purchase_price < ship_handler_data_u.credits {
+                                let new_ship = ship_handler_data_u
                                     .spacetraders
                                     .purchase_ship(requests::PurchaseShip {
                                         ship_type: shipyard_ship.r#type,
@@ -448,13 +370,12 @@ pub async fn buy_ship(
 
                                 channel.send(new_ship.data.ship.clone()).await.unwrap();
 
-                                ship_handler_data_unlocked.credits = ship_handler_data_unlocked
-                                    .credits
-                                    - new_ship.data.transaction.price;
+                                ship_handler_data_u.credits =
+                                    ship_handler_data_u.credits - new_ship.data.transaction.price;
 
                                 info!(
                                     "buying ship, now at {} credits",
-                                    ship_handler_data_unlocked.credits
+                                    ship_handler_data_u.credits
                                 );
                                 return;
                             } else {
@@ -472,14 +393,12 @@ pub async fn buy_ship(
     warn!("Failed to find Shipyard or suitable ship");
 }
 
-pub async fn explore(_ship_handler_data: Arc<Mutex<ShipHandlerData>>) {}
+// pub async fn explore(_ship_handler_data: Arc<Mutex<ShipHandlerData>>) {}
 
 // pub async fn get_contracts(
 //     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
 // ) -> Vec<contracts::schemas::Contract> {
 //     let available_contracts = ship_handler_data
-//         .lock()
-//         .await
 //         .spacetraders
 //         .list_contracts()
 //         .await
@@ -497,8 +416,6 @@ pub async fn explore(_ship_handler_data: Arc<Mutex<ShipHandlerData>>) {}
 //         // for now just excepting the first contract for simplicity
 //         accepted_contracts.push(
 //             ship_handler_data
-//                 .lock()
-//                 .await
 //                 .spacetraders
 //                 .accept_contract(&available_contracts[0].id)
 //                 .await

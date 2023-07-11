@@ -38,7 +38,7 @@ pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandlerData>>) 
     trace!("Start Ship Handler");
     let (tx, mut rx) = mpsc::channel(100);
 
-    let start_ships = ship_handler_data
+    let ships = ship_handler_data
         .lock()
         .await
         .spacetraders
@@ -46,7 +46,7 @@ pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandlerData>>) 
         .await
         .data;
 
-    for ship in start_ships.into_iter() {
+    for ship in ships.into_iter() {
         tx.send(ship).await.unwrap();
     }
 
@@ -76,15 +76,16 @@ pub async fn ship_handler(
 ) {
     trace!("Ship Handler");
 
-    match ship_handler_data
+    let role = ship_handler_data
         .lock()
         .await
         .ships
         .get(&ship_id)
         .unwrap()
         .registration
-        .role
-    {
+        .role;
+
+    match role {
         enums::ShipRole::Fabricator => todo!(),
         enums::ShipRole::Harvester => todo!(),
         enums::ShipRole::Hauler => contractor_loop().await,
