@@ -1,6 +1,6 @@
 use super::ShipHandlerData;
 use spacetraders::{
-    enums,
+    enums::{self, ShipModule},
     requests,
     responses::{self, schemas}, //contracts
     // SpaceTraders,
@@ -19,16 +19,31 @@ use tokio::{
 
 // TODO: implement copy instead for all custom structs
 
-async fn wait_duration(ship: &schemas::Ship) {
+async fn wait_duration(ship_id: String, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
     trace!("Waiting duration");
 
-    let local_time_to_stop: DateTime<Local> = ship.nav.route.arrival.into();
+    let local_time_to_stop: DateTime<Local> = ship_handler_data
+        .lock()
+        .await
+        .ships
+        .get(&ship_id)
+        .unwrap()
+        .nav
+        .route
+        .arrival
+        .into();
     let local_time_now: DateTime<Local> = offset::Utc::now().into();
     let duration: chrono::Duration = local_time_to_stop - local_time_now;
 
     info!(
-        "{} is moving - going to sleep for {} seconds", // TODO: maybe log what ship is sleeping
-        ship.symbol,
+        "{} is moving - going to sleep for {} seconds",
+        ship_handler_data
+            .lock()
+            .await
+            .ships
+            .get(&ship_id)
+            .unwrap()
+            .symbol,
         duration.num_seconds()
     );
 
@@ -39,23 +54,48 @@ async fn wait_duration(ship: &schemas::Ship) {
 }
 
 pub async fn travel_waypoint(
-    mut ship: schemas::Ship,
+    ship_id: String,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     waypoint: Waypoint,
-) -> schemas::Ship {
+) {
     trace!("Travel Waypoint");
 
     // TODO: create chart here if not in mutex
 
     // TODO: refuel sometime
-    if ship.nav.waypoint_symbol.waypoint != waypoint.waypoint {
+    if ship_handler_data
+        .lock()
+        .await
+        .ships
+        .get(&ship_id)
+        .unwrap()
+        .nav
+        .waypoint_symbol
+        .waypoint
+        != waypoint.waypoint
+    {
         // there is also a case where the ship is in transit and neither docked or there
-        if ship.nav.status == enums::ShipNavStatus::Docked {
-            ship.nav = ship_handler_data
+        if ship_handler_data
+            .lock()
+            .await
+            .ships
+            .get(&ship_id)
+            .unwrap()
+            .nav
+            .status
+            == enums::ShipNavStatus::Docked
+        {
+            ship_handler_data
+                .lock()
+                .await
+                .ships
+                .get_mut(&ship_id)
+                .unwrap()
+                .nav = ship_handler_data
                 .lock()
                 .await
                 .spacetraders
-                .orbit_ship(&ship.symbol)
+                .orbit_ship(&ship_id)
                 .await
                 .data
                 .nav;
@@ -66,40 +106,78 @@ pub async fn travel_waypoint(
             .await
             .spacetraders
             .navigate_ship(
-                &ship.symbol,
+                &ship_id,
                 requests::NavigateShip {
                     waypoint_symbol: waypoint.waypoint.clone(),
                 },
             )
             .await
             .data;
-        (ship.nav, ship.fuel) = (temp_ship_data.nav, temp_ship_data.fuel);
 
-        wait_duration(&ship).await;
+        (
+            ship_handler_data
+                .lock()
+                .await
+                .ships
+                .get_mut(&ship_id)
+                .unwrap()
+                .nav,
+            ship_handler_data
+                .lock()
+                .await
+                .ships
+                .get_mut(&ship_id)
+                .unwrap()
+                .fuel,
+        ) = (temp_ship_data.nav, temp_ship_data.fuel);
+
+        wait_duration(ship_id, ship_handler_data).await;
 
         // TODO: create chart here if not in mutex
     }
-    ship
 }
 
 #[allow(dead_code)]
 pub async fn travel_system(
-    mut ship: schemas::Ship,
+    ship_id: String,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     waypoint: System,
 ) {
     trace!("travel");
 
     // TODO: refuel before traveling
-    if ship.nav.waypoint_symbol.system != waypoint.to_system().system {
+    if ship_handler_data
+        .lock()
+        .await
+        .ships
+        .get(&ship_id)
+        .unwrap()
+        .nav
+        .waypoint_symbol
+        .system
+        != waypoint.to_system().system
+    {
         // there is also a case where the ship is in transit and neither docked or there
-        let ship_status = ship.nav.status;
+        let ship_status = ship_handler_data
+            .lock()
+            .await
+            .ships
+            .get(&ship_id)
+            .unwrap()
+            .nav
+            .status;
         if ship_status == enums::ShipNavStatus::Docked {
-            ship.nav = ship_handler_data
+            ship_handler_data
+                .lock()
+                .await
+                .ships
+                .get_mut(&ship_id)
+                .unwrap()
+                .nav = ship_handler_data
                 .lock()
                 .await
                 .spacetraders
-                .orbit_ship(&ship.symbol)
+                .orbit_ship(&ship_id)
                 .await
                 .data
                 .nav;
@@ -124,29 +202,56 @@ pub async fn travel_system(
     }
 }
 
-pub async fn mine_astroid(
-    mut ship: schemas::Ship,
-    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
-) -> schemas::Ship {
+pub async fn mine_astroid(ship_id: &String, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
     trace!("Mining Astroid");
 
     let waypoints = ship_handler_data
         .lock()
         .await
         .spacetraders
-        .list_waypoints(ship.nav.system_symbol.clone())
+        .list_waypoints(
+            ship_handler_data
+                .lock()
+                .await
+                .ships
+                .get_mut(ship_id)
+                .unwrap()
+                .nav
+                .system_symbol
+                .clone(),
+        )
         .await;
 
     for waypoint in waypoints.data.iter() {
         if waypoint.r#type == enums::WaypointType::AsteroidField {
-            ship = travel_waypoint(ship, ship_handler_data.clone(), waypoint.symbol.clone()).await;
+            travel_waypoint(
+                ship_id.clone(),
+                ship_handler_data.clone(),
+                waypoint.symbol.clone(),
+            )
+            .await;
 
-            if ship.nav.status == enums::ShipNavStatus::InOrbit {
-                ship.nav = ship_handler_data
+            if ship_handler_data
+                .lock()
+                .await
+                .ships
+                .get(ship_id)
+                .unwrap()
+                .nav
+                .status
+                == enums::ShipNavStatus::InOrbit
+            {
+                ship_handler_data
+                    .lock()
+                    .await
+                    .ships
+                    .get_mut(ship_id)
+                    .unwrap()
+                    .nav = ship_handler_data
                     .lock()
                     .await
                     .spacetraders
-                    .orbit_ship(&ship.symbol)
+                    .orbit_ship(&ship_id)
                     .await
                     .data
                     .nav;
@@ -154,7 +259,15 @@ pub async fn mine_astroid(
 
             info!("Starting mining astroid");
 
-            'inner: for mount in ship.mounts.iter() {
+            'inner: for mount in ship_handler_data
+                .lock()
+                .await
+                .ships
+                .get(ship_id)
+                .unwrap()
+                .mounts
+                .iter()
+            {
                 if mount.symbol == enums::ShipMount::MountSurveyorI
                     || mount.symbol == enums::ShipMount::MountSurveyorIi
                     || mount.symbol == enums::ShipMount::MountSurveyorIii
@@ -164,7 +277,7 @@ pub async fn mine_astroid(
                             .lock()
                             .await
                             .spacetraders
-                            .create_survey(&ship.symbol)
+                            .create_survey(&ship_id)
                             .await
                             .data,
                     );
@@ -175,29 +288,50 @@ pub async fn mine_astroid(
                 .lock()
                 .await
                 .spacetraders
-                .extract_resources(&ship.clone().symbol, None)
+                .extract_resources(&ship_id, None)
                 .await
                 .data;
 
-            ship.cargo = temp_ship_data.cargo;
+            ship_handler_data
+                .lock()
+                .await
+                .ships
+                .get_mut(ship_id)
+                .unwrap()
+                .cargo = temp_ship_data.cargo;
             let (_cooldown, _extraction) = (temp_ship_data.cooldown, temp_ship_data.extraction);
 
             for waypoint in waypoints.data.iter() {
                 for r#trait in waypoint.traits.iter() {
                     if r#trait.symbol == enums::WaypointTrait::Marketplace {
-                        ship = travel_waypoint(
-                            ship.clone(),
+                        travel_waypoint(
+                            ship_id.clone(),
                             ship_handler_data.clone(),
                             waypoint.symbol.clone(),
                         )
                         .await;
 
-                        if ship.nav.status == enums::ShipNavStatus::InOrbit {
-                            ship.nav = ship_handler_data
+                        if ship_handler_data
+                            .lock()
+                            .await
+                            .ships
+                            .get(ship_id)
+                            .unwrap()
+                            .nav
+                            .status
+                            == enums::ShipNavStatus::InOrbit
+                        {
+                            ship_handler_data
+                                .lock()
+                                .await
+                                .ships
+                                .get_mut(ship_id)
+                                .unwrap()
+                                .nav = ship_handler_data
                                 .lock()
                                 .await
                                 .spacetraders
-                                .dock_ship(&ship.clone().symbol)
+                                .dock_ship(&&ship_id)
                                 .await
                                 .data
                                 .nav;
@@ -205,19 +339,24 @@ pub async fn mine_astroid(
 
                         // TODO: make sure not to sell goods used for contracts
                         // TODO: also make sure I can sell that good here
-                        for item in ship.cargo.inventory.clone().iter() {
-                            info!(
-                                "{} is selling {} {:?}",
-                                ship.clone().symbol,
-                                item.units,
-                                item.symbol
-                            );
+                        for item in ship_handler_data
+                            .lock()
+                            .await
+                            .ships
+                            .get(ship_id)
+                            .unwrap()
+                            .cargo
+                            .inventory
+                            .clone()
+                            .iter()
+                        {
+                            info!("{} is selling {} {:?}", ship_id, item.units, item.symbol);
 
                             let mut ship_handler_data_unlocked = ship_handler_data.lock().await;
                             let temp_ship_data = ship_handler_data_unlocked
                                 .spacetraders
                                 .sell_cargo(
-                                    &ship.clone().symbol,
+                                    &ship_id,
                                     requests::SellCargo {
                                         symbol: item.symbol.clone(),
                                         units: item.units,
@@ -226,7 +365,13 @@ pub async fn mine_astroid(
                                 .await
                                 .data;
 
-                            ship.cargo = temp_ship_data.cargo;
+                            ship_handler_data
+                                .lock()
+                                .await
+                                .ships
+                                .get_mut(ship_id)
+                                .unwrap()
+                                .cargo = temp_ship_data.cargo;
                             let (_agent, transaction) =
                                 (temp_ship_data.agent, temp_ship_data.transaction);
 
@@ -235,7 +380,7 @@ pub async fn mine_astroid(
 
                             // drop(ship_handler_data_unlocked);
                         }
-                        return ship;
+                        return;
                     }
                 }
             }
@@ -244,29 +389,42 @@ pub async fn mine_astroid(
 
     // else maybe fly to the closest system with a shipyard - TODO: Pathfinding
     warn!("Failed to find asteroid");
-    ship
 }
 
 pub async fn buy_ship(
-    mut ship: schemas::Ship,
+    ship_id: &String,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
-) -> schemas::Ship {
+) {
     trace!("Buy mining ship");
 
     let waypoints = ship_handler_data
         .lock()
         .await
         .spacetraders
-        .list_waypoints(ship.nav.system_symbol.clone())
+        .list_waypoints(
+            ship_handler_data
+                .lock()
+                .await
+                .ships
+                .get(ship_id)
+                .unwrap()
+                .nav
+                .system_symbol
+                .clone(),
+        )
         .await;
 
     'outer: for waypoint in waypoints.data.iter() {
         for r#trait in waypoint.traits.iter() {
             if r#trait.symbol == enums::WaypointTrait::Shipyard {
-                ship =
-                    travel_waypoint(ship, ship_handler_data.clone(), waypoint.symbol.clone()).await;
+                travel_waypoint(
+                    ship_id.clone(),
+                    ship_handler_data.clone(),
+                    waypoint.symbol.clone(),
+                )
+                .await;
 
                 let shipyard = ship_handler_data
                     .lock()
@@ -298,10 +456,10 @@ pub async fn buy_ship(
                                     "buying ship, now at {} credits",
                                     ship_handler_data_unlocked.credits
                                 );
-                                return ship;
+                                return;
                             } else {
                                 warn!("Not enough money to buy ship");
-                                return ship;
+                                return;
                             }
                         }
                     }
@@ -312,7 +470,6 @@ pub async fn buy_ship(
     }
     // else maybe fly to the closest system with a shipyard - TODO: Pathfinding
     warn!("Failed to find Shipyard or suitable ship");
-    ship
 }
 
 pub async fn explore(_ship_handler_data: Arc<Mutex<ShipHandlerData>>) {}
