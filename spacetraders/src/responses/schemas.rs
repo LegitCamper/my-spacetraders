@@ -1,4 +1,4 @@
-use crate::{enums, System as SystemType, Waypoint as WaypointType};
+use crate::{enums, Sector as SectorType, System as SystemType, Waypoint as WaypointType};
 
 // use bson::serde_helpers::chrono_datetime_as_bson_datetime;
 use chrono::{DateTime, Utc};
@@ -31,7 +31,7 @@ pub struct Agent {
     pub starting_faction: Option<enums::FactionSymbols>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Clone, Default, Debug)]
 pub struct Chart {
     #[serde(alias = "waypointSymbol")]
     #[serde(default)]
@@ -277,16 +277,16 @@ pub struct ScannedWaypoint {
     pub chart: Chart,
     pub faction: SystemFaction,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ScannedWaypointOrbitals {
     pub symbol: String,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ScannedWaypointFaction {
     #[serde(deserialize_with = "skip_faction_symbol")]
     pub symbol: Option<enums::FactionSymbols>,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ScannedWaypointTrait {
     pub symbol: enums::WaypointTrait,
     pub name: String,
@@ -551,9 +551,9 @@ pub struct SurveyDeposit {
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct System {
-    pub symbol: String,
+    pub symbol: SystemType,
     #[serde(alias = "sectorSymbol")]
-    pub sector_symbol: String,
+    pub sector_symbol: SectorType,
     pub r#type: enums::SystemType,
     pub x: i32,
     pub y: i32,
@@ -582,7 +582,7 @@ pub struct TradeGoods {
     // descripton
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Waypoint {
     #[serde(alias = "systemSymbol")]
     pub system_symbol: SystemType,

@@ -7,6 +7,7 @@ use log::{info, trace};
 // use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     fs::{read_to_string, remove_file, File},
     path::Path,
 };
@@ -134,7 +135,7 @@ pub async fn build_euclidean_distance(
         for system in systems_db.iter() {
             // consider using rayon here
             all_euclidean_distance.push(AllEuclideanDistances {
-                name: system.symbol.clone(),
+                name: system.symbol.system.clone(),
                 x: system.x,
                 y: system.y,
                 euclidean_distance: euclidean_distance(
@@ -168,7 +169,6 @@ pub struct EuclideanDistances {
     y: i32,
 }
 
-// TODO: this has to be super unoptimized. takes way to long
 fn euclidean_distance(
     current_system: &schemas::System,
     systems: &Vec<schemas::System>,
@@ -197,18 +197,18 @@ fn euclidean_distance(
                 distance,
                 x,
                 y,
-                name: system.symbol.clone(),
+                name: system.symbol.system.clone(),
             });
         } else {
             'inner: for (index, system_distance) in closest_systems.iter().enumerate() {
-                if distance < system_distance.distance || distance == system_distance.distance {
+                if distance <= system_distance.distance {
                     closest_systems.insert(
                         index,
                         EuclideanDistances {
                             distance,
                             x,
                             y,
-                            name: system.symbol.clone(),
+                            name: system.symbol.system.clone(),
                         },
                     );
                     if closest_systems.len() >= num_systems_to_return.try_into().unwrap() {
@@ -220,4 +220,22 @@ fn euclidean_distance(
         }
     }
     closest_systems
+}
+
+pub async fn cache_waypoints(
+    systems: &[schemas::System],
+    space_traders: &SpaceTraders,
+) -> HashMap<String, schemas::Waypoint> {
+    let mut cached_waypoints: HashMap<String, schemas::Waypoint> = HashMap::new();
+    for system in systems.iter() {
+        let waypoints = space_traders
+            .list_waypoints(system.symbol.clone())
+            .await
+            .data;
+
+        for waypoint in waypoints.iter() {
+            cached_waypoints.insert(waypoint.symbol.waypoint.clone(), waypoint.clone());
+        }
+    }
+    cached_waypoints
 }

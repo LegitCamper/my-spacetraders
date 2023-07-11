@@ -1,4 +1,4 @@
-use automation::{self, start_ship_handler, ShipHandlerData};
+use automation::{self, cache, start_ship_handler, ShipHandlerData};
 use spacetraders::{self, SpaceTraders}; // responses::schemas
 mod tui;
 
@@ -22,7 +22,8 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
     };
 
     let credits = space_traders.agent().await.data.credits;
-    let systems_db = automation::cache::build_system_db(&space_traders).await;
+    let systems_db = cache::build_system_db(&space_traders).await;
+    let cached_waypoints = cache::cache_waypoints(&systems_db, &space_traders).await;
     let euclidean_distances =
         automation::cache::build_euclidean_distance(systems_db, &space_traders).await;
     let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
@@ -30,8 +31,9 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
         spacetraders: space_traders,
         ships: HashMap::new(),
         contracts: HashMap::new(),
-        credits,
         surveys: Vec::new(),
+        waypoints: cached_waypoints,
+        credits,
         euclidean_distances,
     }));
 

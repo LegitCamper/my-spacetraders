@@ -25,7 +25,7 @@ use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use serde::{
     de::{Error as OtherError, Unexpected},
-    Deserialize, Deserializer,
+    Deserialize, Deserializer, Serialize,
 };
 use std::{
     collections::HashMap,
@@ -869,7 +869,7 @@ pub struct ChannelMessage {
 }
 
 // Waypoint handlers //
-#[derive(Clone, Debug)]
+#[derive(Clone, Serialize, Debug)]
 pub struct Waypoint {
     pub waypoint: String,
     pub system: String,
@@ -924,7 +924,7 @@ impl<'de> Deserialize<'de> for Waypoint {
         }
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Serialize, Debug)]
 pub struct System {
     pub system: String,
     pub sector: String,
@@ -969,7 +969,7 @@ impl<'de> Deserialize<'de> for System {
         }
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Serialize, Debug)]
 pub struct Sector {
     pub sector: String,
 }

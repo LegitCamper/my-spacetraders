@@ -29,8 +29,9 @@ pub struct ShipHandlerData {
     pub spacetraders: SpaceTraders,
     pub ships: HashMap<String, Ship>,
     pub contracts: HashMap<String, Contract>,
-    pub credits: f64,
     pub surveys: Vec<CreateSurveyData>,
+    pub waypoints: HashMap<String, schemas::Waypoint>,
+    pub credits: f64,
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }
 
@@ -63,14 +64,14 @@ pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandlerData>>) 
 
         info!("Starting new task for ship: {}", &msg.symbol);
         let join_handle: task::JoinHandle<()> = task::spawn(async move {
-            ship_handler(msg.symbol, new_ship_handler_data.clone(), channel).await
+            ship_handler(msg.symbol.as_str(), new_ship_handler_data.clone(), channel).await
         });
         ship_handler_data.lock().await.handles.push(join_handle);
     }
 }
 
 pub async fn ship_handler(
-    ship_id: String,
+    ship_id: &str,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     channel: mpsc::Sender<Ship>,
 ) {
@@ -80,7 +81,7 @@ pub async fn ship_handler(
         .lock()
         .await
         .ships
-        .get(&ship_id)
+        .get(ship_id)
         .unwrap()
         .registration
         .role;
@@ -105,13 +106,13 @@ pub async fn ship_handler(
 
 // admin can also loop through contracts and survey to find expired ones and remove them from the list
 async fn admin_loop(
-    ship_id: String,
+    ship_id: &str,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     channel: mpsc::Sender<Ship>,
 ) {
     loop {
         func::buy_ship(
-            &ship_id,
+            ship_id,
             ship_handler_data.clone(),
             &[enums::ShipType::ShipMiningDrone],
             channel.clone(),
@@ -135,9 +136,9 @@ async fn contractor_loop() {
     // func::buy_ship(&spacetraders);
 }
 
-async fn miner_loop(ship_id: String, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
+async fn miner_loop(ship_id: &str, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
     loop {
-        func::mine_astroid(&ship_id, ship_handler_data.clone()).await;
+        func::mine_astroid(ship_id, ship_handler_data.clone()).await;
     }
 }
 
