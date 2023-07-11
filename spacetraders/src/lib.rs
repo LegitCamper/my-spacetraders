@@ -297,10 +297,7 @@ impl SpaceTraders {
 
     // Systems
     pub async fn list_systems(&self, page: Option<u32>) -> systems::Systems {
-        let page_num = match page {
-            Some(page_num) => page_num,
-            None => 1,
-        };
+        let page_num = page.unwrap_or(1);
         serde_json::from_str(
             &self
                 .make_request(
@@ -324,12 +321,20 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn list_waypoints(&self, system_symbol: System) -> systems::Waypoints {
+    pub async fn list_waypoints(
+        &self,
+        system_symbol: System,
+        page: Option<u32>,
+    ) -> systems::Waypoints {
+        let page_num = page.unwrap_or(1);
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Get,
-                    format!("/systems/{}/waypoints", system_symbol.system),
+                    format!(
+                        "/systems/{}/waypoints?limit=20&page={}",
+                        system_symbol.system, page_num
+                    ),
                     None,
                 )
                 .await,

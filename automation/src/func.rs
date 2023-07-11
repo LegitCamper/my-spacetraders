@@ -205,7 +205,7 @@ pub async fn mine_astroid(ship_id: &str, ship_handler_data: Arc<Mutex<ShipHandle
         .lock()
         .await
         .spacetraders
-        .list_waypoints(waypoint.system_symbol)
+        .list_waypoints(waypoint.system_symbol, None)
         .await;
 
     for waypoint in waypoints.data.iter() {
@@ -375,7 +375,7 @@ pub async fn buy_ship(
         .lock()
         .await
         .spacetraders
-        .list_waypoints(system)
+        .list_waypoints(system, None)
         .await;
 
     'outer: for waypoint in waypoints.data.iter() {

@@ -226,16 +226,18 @@ pub async fn cache_waypoints(
     systems: &[schemas::System],
     space_traders: &SpaceTraders,
 ) -> HashMap<String, schemas::Waypoint> {
+    trace!("Caching Waypoint");
     let mut cached_waypoints: HashMap<String, schemas::Waypoint> = HashMap::new();
     for system in systems.iter() {
         let waypoints = space_traders
-            .list_waypoints(system.symbol.clone())
-            .await
-            .data;
+            .list_waypoints(system.symbol.clone(), None)
+            .await;
 
-        for waypoint in waypoints.iter() {
+        for waypoint in waypoints.data.iter() {
             cached_waypoints.insert(waypoint.symbol.waypoint.clone(), waypoint.clone());
         }
+
+        if waypoints.meta.total > 1 {}
     }
     cached_waypoints
 }

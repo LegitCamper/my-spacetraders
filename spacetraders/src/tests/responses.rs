@@ -92,10 +92,13 @@ async fn list_waypoints() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
         spacetraders
-            .list_waypoints(System {
-                system: STRING.to_string(),
-                sector: STRING.to_string(),
-            })
+            .list_waypoints(
+                System {
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+                None,
+            )
             .await;
     }
 }
