@@ -27,12 +27,10 @@ use tokio::{
 pub struct ShipHandlerData {
     pub handles: Vec<task::JoinHandle<()>>,
     pub spacetraders: SpaceTraders,
-    pub ships: Vec<Ship>,
-    pub credits: f64,
+    pub ships: HashMap<String, Ship>,
     pub contracts: HashMap<String, Contract>,
+    pub credits: f64,
     pub surveys: Vec<CreateSurveyData>,
-    pub waypoints: Vec<Waypoints>,
-    pub charts: Vec<CreateChartData>,
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }
 
@@ -48,60 +46,54 @@ pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandlerData>>) 
         .await
         .data;
 
-    // start initial ships in their own task
     for ship in start_ships.into_iter() {
-        let new_ship_handler_data = Arc::clone(&ship_handler_data);
-        let new_channel = tx.clone();
-
-        info!("Starting new task for ship: {}", ship.symbol);
-        let join_handle: task::JoinHandle<()> = task::spawn(async move {
-            ship_handler(
-                ship.clone(),
-                new_ship_handler_data.clone(),
-                new_channel.clone(),
-            )
-            .await
-        });
-        ship_handler_data.lock().await.handles.push(join_handle);
+        tx.send(ship).await.unwrap();
     }
 
     // listens for new ship purchases and spawns new task to deal with them
     while let Some(msg) = rx.recv().await {
         let new_ship_handler_data = Arc::clone(&ship_handler_data);
-        let new_channel = tx.clone();
+        let channel = tx.clone();
 
-        info!("Starting new task for ship: {}", msg.symbol);
-        let join_handle: task::JoinHandle<()> = task::spawn(async move {
-            ship_handler(
-                msg.clone(),
-                new_ship_handler_data.clone(),
-                new_channel.clone(),
-            )
+        ship_handler_data
+            .lock()
             .await
+            .ships
+            .insert(msg.symbol.clone(), msg.clone());
+
+        info!("Starting new task for ship: {}", &msg.symbol);
+        let join_handle: task::JoinHandle<()> = task::spawn(async move {
+            ship_handler(msg.symbol, new_ship_handler_data.clone(), channel).await
         });
         ship_handler_data.lock().await.handles.push(join_handle);
     }
 }
 
 pub async fn ship_handler(
-    ship: Ship,
+    ship_id: String,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     channel: mpsc::Sender<Ship>,
 ) {
     trace!("Ship Handler");
 
-    ship_handler_data.lock().await.ships.push(ship.clone()); // adds itself to ship_handler_data
-
-    match ship.registration.role {
+    match ship_handler_data
+        .lock()
+        .await
+        .ships
+        .get(&ship_id)
+        .unwrap()
+        .registration
+        .role
+    {
         enums::ShipRole::Fabricator => todo!(),
         enums::ShipRole::Harvester => todo!(),
         enums::ShipRole::Hauler => contractor_loop().await,
         enums::ShipRole::Interceptor => todo!(),
-        enums::ShipRole::Excavator => miner_loop(ship, ship_handler_data).await,
+        enums::ShipRole::Excavator => miner_loop(ship_id, ship_handler_data.clone()).await,
         enums::ShipRole::Transport => todo!(),
         enums::ShipRole::Repair => todo!(),
         enums::ShipRole::Surveyor => todo!(),
-        enums::ShipRole::Command => admin_loop(ship, ship_handler_data, channel).await,
+        enums::ShipRole::Command => admin_loop(ship_id, ship_handler_data.clone(), channel).await,
         enums::ShipRole::Carrier => todo!(),
         enums::ShipRole::Patrol => todo!(),
         enums::ShipRole::Satellite => explorer_loop().await,
@@ -112,13 +104,13 @@ pub async fn ship_handler(
 
 // admin can also loop through contracts and survey to find expired ones and remove them from the list
 async fn admin_loop(
-    mut ship: schemas::Ship,
+    ship_id: String,
     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
     channel: mpsc::Sender<Ship>,
 ) {
     loop {
-        ship = func::buy_ship(
-            ship,
+        func::buy_ship(
+            &ship_id,
             ship_handler_data.clone(),
             &[enums::ShipType::ShipMiningDrone],
             channel.clone(),
@@ -142,9 +134,9 @@ async fn contractor_loop() {
     // func::buy_ship(&spacetraders);
 }
 
-async fn miner_loop(mut ship: schemas::Ship, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
+async fn miner_loop(ship_id: String, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
     loop {
-        ship = func::mine_astroid(ship, ship_handler_data.clone()).await;
+        func::mine_astroid(&ship_id, ship_handler_data.clone()).await;
     }
 }
 

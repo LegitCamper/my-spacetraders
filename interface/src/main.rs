@@ -28,12 +28,10 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
     let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
         handles: vec![],
         spacetraders: space_traders,
-        ships: vec![],
-        credits,
+        ships: HashMap::new(),
         contracts: HashMap::new(),
+        credits,
         surveys: Vec::new(),
-        waypoints: Vec::new(), // TODO: this should be donwloaded before runtime
-        charts: Vec::new(),
         euclidean_distances,
     }));
 
