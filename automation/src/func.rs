@@ -147,6 +147,8 @@ pub async fn travel_system(
     }
 }
 
+// TODO: make sure for the following if there are more pages of waypoints you ensure to donwload them aswell
+
 // pub fn get_waypoint(
 //     waypoint: &str,
 //     ship_handler_data: Arc<Mutex<ShipHandlerData>>,

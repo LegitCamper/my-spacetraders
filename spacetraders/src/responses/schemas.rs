@@ -561,7 +561,7 @@ pub struct System {
     pub factions: Vec<SystemFaction>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug)]
 pub struct SystemFaction {
     #[serde(deserialize_with = "skip_faction_symbol")]
     pub symbol: Option<enums::FactionSymbols>,
@@ -594,6 +594,7 @@ pub struct Waypoint {
     pub traits: Vec<ScannedWaypointTrait>,
     #[serde(default)]
     pub chart: Chart,
+    #[serde(default)]
     pub faction: SystemFaction,
 }
 

@@ -171,14 +171,11 @@ pub struct EuclideanDistances {
 
 fn euclidean_distance(
     current_system: &schemas::System,
-    systems: &Vec<schemas::System>,
+    systems: &[schemas::System],
     num_returns: Option<u32>,
 ) -> Vec<EuclideanDistances> {
     trace!("Euclidean Distance Caluclations");
-    let num_systems_to_return = match num_returns {
-        Some(num) => num,
-        None => 5,
-    };
+    let num_systems_to_return = num_returns.unwrap_or(5);
 
     let mut closest_systems: Vec<EuclideanDistances> = Vec::new();
     let (my_x, my_y) = (current_system.x, current_system.y);
@@ -227,6 +224,10 @@ pub async fn cache_waypoints(
     space_traders: &SpaceTraders,
 ) -> HashMap<String, schemas::Waypoint> {
     trace!("Caching Waypoint");
+    info!(
+        "Caching waypoints will take ~{} minute(s)",
+        systems.len() / 2400 // = 20 per page every 500 milliseconds / 60 min
+    );
     let mut cached_waypoints: HashMap<String, schemas::Waypoint> = HashMap::new();
     for system in systems.iter() {
         let waypoints = space_traders
@@ -237,7 +238,17 @@ pub async fn cache_waypoints(
             cached_waypoints.insert(waypoint.symbol.waypoint.clone(), waypoint.clone());
         }
 
-        if waypoints.meta.total > 1 {}
+        if waypoints.meta.total > 1 {
+            for num in 2..waypoints.meta.total {
+                let waypoints = space_traders
+                    .list_waypoints(system.symbol.clone(), Some(num))
+                    .await;
+
+                for waypoint in waypoints.data.iter() {
+                    cached_waypoints.insert(waypoint.symbol.waypoint.clone(), waypoint.clone());
+                }
+            }
+        }
     }
     cached_waypoints
 }
