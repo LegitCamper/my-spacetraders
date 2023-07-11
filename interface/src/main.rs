@@ -26,7 +26,6 @@ async fn start_automation(
 
     let credits = space_traders.agent().await.data.credits;
     let systems_db = cache::build_system_db(&space_traders).await;
-    let cached_waypoints = cache::cache_waypoints(&systems_db, &space_traders).await;
     let euclidean_distances =
         automation::cache::build_euclidean_distance(systems_db, &space_traders).await;
     let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
@@ -35,7 +34,7 @@ async fn start_automation(
         ships: HashMap::new(),
         contracts: HashMap::new(),
         surveys: Vec::new(),
-        waypoints: cached_waypoints,
+        waypoints: HashMap::new(),
         credits,
         euclidean_distances,
     }));

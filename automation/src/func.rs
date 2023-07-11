@@ -5,6 +5,7 @@ use spacetraders::{
     enums,
     requests,
     responses::{self, schemas},
+    Waypoint,
 };
 
 // use async_recursion::async_recursion;
@@ -148,48 +149,39 @@ pub async fn travel_system(
 }
 
 // TODO: make sure for the following if there are more pages of waypoints you ensure to donwload them aswell
+pub async fn get_waypoint(
+    waypoint: Waypoint,
+    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
+) -> schemas::Waypoint {
+    trace!("Get Waypoint");
 
-// pub fn get_waypoint(
-//     waypoint: &str,
-//     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
-// ) -> schemas::Waypoint {
+    match ship_handler_data.lock().await.waypoints.get(&waypoint) {
+        Some(data) => data.clone(),
+        None => {
+            let new_waypoint = ship_handler_data
+                .lock()
+                .await
+                .spacetraders
+                .get_waypoint(waypoint.to_system(), waypoint)
+                .await
+                .data;
+            if new_waypoint.chart.submitted_by.is_empty() {
+                new_waypoint
+            } else {
+                ship_handler_data
+                    .lock()
+                    .await
+                    .waypoints
+                    .insert(new_waypoint.symbol.clone(), new_waypoint.clone());
+                new_waypoint
+            }
+        }
+    }
+}
+
+// pub fn get_waypoints(ship_handler_data: Arc<Mutex<ShipHandlerData>>) -> Vec<schemas::Waypoint> {
+
 // }
-
-// pub async fn get_current_waypoint(
-//     ship_id: &str,
-//     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
-// ) -> schemas::Waypoint {
-//     trace!("Get Current Waypoint");
-//     let ship_waypoint = ship_handler_data
-//         .lock()
-//         .await
-//         .ships
-//         .get(ship_id)
-//         .unwrap()
-//         .nav;
-
-//     // check if more detailed waypoint already exists
-//     let cached_waypoints = ship_handler_data.lock().await.systems;
-//     for waypoint in cached_waypoints {
-//         if ship_waypoint.system_symbol.system == waypoint.symbol {
-//             let new_waypoint = ship_handler_data
-//                 .lock()
-//                 .await
-//                 .spacetraders
-//                 .get_waypoint(ship_waypoint.system, ship_waypoint.system_symbol)
-//             if new_waypoint.
-//         }
-//     }
-
-//    let waypoints = ship_handler_data
-//         .lock()
-//         .await
-//         .spacetraders
-//         .list_waypoints()
-//         .await;
-// }
-
-// pub fn get_waypoints(ship_handler_data: Arc<Mutex<ShipHandlerData>>) -> Vec<schemas::Waypoint> {}
 
 pub async fn mine_astroid(ship_id: &str, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
     trace!("Mining Astroid");

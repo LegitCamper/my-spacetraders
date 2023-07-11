@@ -874,7 +874,7 @@ pub struct ChannelMessage {
 }
 
 // Waypoint handlers //
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Serialize, PartialEq, Eq, Hash, Debug)]
 pub struct Waypoint {
     pub waypoint: String,
     pub system: String,
@@ -929,7 +929,7 @@ impl<'de> Deserialize<'de> for Waypoint {
         }
     }
 }
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Serialize, PartialEq, Eq, Hash, Debug)]
 pub struct System {
     pub system: String,
     pub sector: String,
@@ -974,7 +974,7 @@ impl<'de> Deserialize<'de> for System {
         }
     }
 }
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Serialize, PartialEq, Eq, Hash, Debug)]
 pub struct Sector {
     pub sector: String,
 }

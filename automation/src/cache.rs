@@ -218,37 +218,3 @@ fn euclidean_distance(
     }
     closest_systems
 }
-
-pub async fn cache_waypoints(
-    systems: &[schemas::System],
-    space_traders: &SpaceTraders,
-) -> HashMap<String, schemas::Waypoint> {
-    trace!("Caching Waypoint");
-    info!(
-        "Caching waypoints will take ~{} minute(s)",
-        systems.len() / 2400 // = 20 per page every 500 milliseconds / 60 min
-    );
-    let mut cached_waypoints: HashMap<String, schemas::Waypoint> = HashMap::new();
-    for system in systems.iter() {
-        let waypoints = space_traders
-            .list_waypoints(system.symbol.clone(), None)
-            .await;
-
-        for waypoint in waypoints.data.iter() {
-            cached_waypoints.insert(waypoint.symbol.waypoint.clone(), waypoint.clone());
-        }
-
-        if waypoints.meta.total > 1 {
-            for num in 2..waypoints.meta.total {
-                let waypoints = space_traders
-                    .list_waypoints(system.symbol.clone(), Some(num))
-                    .await;
-
-                for waypoint in waypoints.data.iter() {
-                    cached_waypoints.insert(waypoint.symbol.waypoint.clone(), waypoint.clone());
-                }
-            }
-        }
-    }
-    cached_waypoints
-}

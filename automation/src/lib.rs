@@ -5,7 +5,7 @@ use spacetraders::{
         schemas::{self, Contract, Ship},
         systems::Waypoints,
     },
-    SpaceTraders,
+    SpaceTraders, Waypoint,
 };
 
 pub mod cache;
@@ -30,7 +30,7 @@ pub struct ShipHandlerData {
     pub ships: HashMap<String, Ship>,
     pub contracts: HashMap<String, Contract>,
     pub surveys: Vec<CreateSurveyData>,
-    pub waypoints: HashMap<String, schemas::Waypoint>,
+    pub waypoints: HashMap<Waypoint, schemas::Waypoint>,
     pub credits: f64,
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }
