@@ -110,7 +110,7 @@ pub struct ContractTerms {
     pub deliver: Vec<ContractDeliverGood>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Cooldown {
     #[serde(alias = "shipSymbol")]
     pub ship_symbol: String,
@@ -533,7 +533,7 @@ pub struct ShipyardTransaction {
     pub timestamp: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Survey {
     pub signature: String,
     pub symbol: String,
@@ -544,7 +544,7 @@ pub struct Survey {
     pub size: enums::DepositSize,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct SurveyDeposit {
     pub symbol: String, // maybe change to enum TradeSymbol
 }

@@ -101,7 +101,7 @@ pub struct CreateSurvey {
     pub data: CreateSurveyData,
 }
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct CreateSurveyData {
     pub cooldown: schemas::Cooldown,
     pub surveys: Vec<schemas::Survey>,

@@ -1,9 +1,8 @@
 use spacetraders::{
     enums,
     responses::{
-        fleet::{CreateChartData, CreateSurveyData},
+        fleet::CreateSurveyData,
         schemas::{self, Contract, Ship},
-        systems::Waypoints,
     },
     SpaceTraders, Waypoint,
 };
@@ -15,6 +14,7 @@ pub mod explorer;
 mod func;
 mod miner;
 use cache::AllEuclideanDistances;
+use func::ShipDataAbstractor;
 
 // use async_recursion::async_recursion;
 // use chrono::{offset, serde::ts_milliseconds, DateTime, NaiveDateTime, Utc};
@@ -33,7 +33,7 @@ pub struct ShipHandlerData {
     pub spacetraders: SpaceTraders,
     pub ships: HashMap<String, Ship>,
     pub contracts: HashMap<String, Contract>,
-    pub surveys: Vec<CreateSurveyData>,
+    pub surveys: HashMap<Waypoint, CreateSurveyData>,
     pub waypoints: HashMap<Waypoint, schemas::Waypoint>,
     pub credits: f64,
     pub euclidean_distances: Vec<AllEuclideanDistances>,
@@ -80,12 +80,11 @@ pub async fn ship_handler(
     channel: mpsc::Sender<Ship>,
 ) {
     trace!("Ship Handler");
+    let ship_data = ShipDataAbstractor::new(ship_handler_data);
 
-    let role = ship_handler_data
-        .lock()
+    let role = ship_data
+        .clone_ship(ship_id)
         .await
-        .ships
-        .get(ship_id)
         .unwrap()
         .registration
         .role;
@@ -93,31 +92,27 @@ pub async fn ship_handler(
     match role {
         enums::ShipRole::Fabricator => todo!(),
         enums::ShipRole::Harvester => todo!(),
-        enums::ShipRole::Hauler => contractor_loop(ship_id, ship_handler_data.clone()).await,
+        enums::ShipRole::Hauler => contractor_loop(ship_id, ship_data.clone()).await,
         enums::ShipRole::Interceptor => todo!(),
-        enums::ShipRole::Excavator => miner_loop(ship_id, ship_handler_data.clone()).await,
+        enums::ShipRole::Excavator => miner_loop(ship_id, ship_data.clone()).await,
         enums::ShipRole::Transport => todo!(),
         enums::ShipRole::Repair => todo!(),
         enums::ShipRole::Surveyor => todo!(),
-        enums::ShipRole::Command => admin_loop(ship_id, ship_handler_data.clone(), channel).await,
+        enums::ShipRole::Command => admin_loop(ship_id, ship_data.clone(), channel).await,
         enums::ShipRole::Carrier => todo!(),
         enums::ShipRole::Patrol => todo!(),
-        enums::ShipRole::Satellite => explorer_loop(ship_id, ship_handler_data.clone()).await,
-        enums::ShipRole::Explorer => explorer_loop(ship_id, ship_handler_data.clone()).await,
+        enums::ShipRole::Satellite => explorer_loop(ship_id, ship_data.clone()).await,
+        enums::ShipRole::Explorer => explorer_loop(ship_id, ship_data.clone()).await,
         enums::ShipRole::Refinery => todo!(),
     };
 }
 
 // admin can also loop through contracts and survey to find expired ones and remove them from the list
-async fn admin_loop(
-    ship_id: &str,
-    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
-    channel: mpsc::Sender<Ship>,
-) {
+async fn admin_loop(ship_id: &str, ship_data: ShipDataAbstractor, channel: mpsc::Sender<Ship>) {
     loop {
         admin::buy_ship(
             ship_id,
-            ship_handler_data.clone(),
+            ship_data.clone(),
             &[enums::ShipType::ShipMiningDrone],
             channel.clone(),
         )
@@ -125,19 +120,19 @@ async fn admin_loop(
     }
 }
 
-async fn contractor_loop(ship_id: &str, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
+async fn contractor_loop(_ship_id: &str, ship_data: ShipDataAbstractor) {
     loop {
         // contractor::
     }
 }
 
-async fn miner_loop(ship_id: &str, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
+async fn miner_loop(ship_id: &str, ship_data: ShipDataAbstractor) {
     loop {
-        miner::mine_astroid(ship_id, ship_handler_data.clone()).await;
+        miner::mine_astroid(ship_id, ship_data.clone()).await;
     }
 }
 
-async fn explorer_loop(ship_id: &str, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
+async fn explorer_loop(_ship_id: &str, ship_data: ShipDataAbstractor) {
     loop {
         // explorer::
     }

@@ -7,7 +7,6 @@ use log::{info, trace};
 // use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
     fs::{read_to_string, remove_file, File},
     path::Path,
 };
@@ -88,10 +87,10 @@ pub struct SerdeEuclideanDistances {
 }
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AllEuclideanDistances {
-    name: String,
-    x: i32,
-    y: i32,
-    euclidean_distance: Vec<EuclideanDistances>,
+    pub name: String,
+    pub x: i32,
+    pub y: i32,
+    pub euclidean_distance: Vec<EuclideanDistances>,
 }
 
 const DISTANCESDB_FILE: &str = "distancesDB.json";
@@ -163,10 +162,10 @@ pub async fn build_euclidean_distance(
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct EuclideanDistances {
-    distance: u64,
-    name: String,
-    x: i32,
-    y: i32,
+    pub distance: u64,
+    pub name: String,
+    pub x: i32,
+    pub y: i32,
 }
 
 fn euclidean_distance(

@@ -31,7 +31,7 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
         spacetraders: space_traders,
         ships: HashMap::new(),
         contracts: HashMap::new(),
-        surveys: Vec::new(),
+        surveys: HashMap::new(),
         waypoints: HashMap::new(),
         credits,
         euclidean_distances,
@@ -64,7 +64,7 @@ struct Args {
 #[tokio::main]
 async fn main() {
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
+        // .with_level(log::LevelFilter::Info)
         .with_colors(true)
         .without_timestamps()
         .init()

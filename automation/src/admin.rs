@@ -1,32 +1,28 @@
+use std::mem::transmute;
+
 use spacetraders::{
     //contracts
     // SpaceTraders,
     enums,
     requests,
-    responses::{self, schemas},
-    System,
-    Waypoint,
+    responses,
 };
 
-use super::func::{get_waypoint, get_waypoints, travel_system, travel_waypoint};
-use super::ShipHandlerData;
+use super::func::ShipDataAbstractor;
 
 use log::{info, trace, warn};
-use std::sync::Arc;
-use tokio::sync::{
-    mpsc::{self, channel},
-    Mutex,
-};
+use tokio::sync::mpsc;
 
 pub async fn admin_stuff(
     ship_id: &str,
-    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
-    ship_types: &[enums::ShipType],
+    ship_data: ShipDataAbstractor,
+    _ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
     trace!("Look at contracts");
 
-    let mut contracts = ship_handler_data
+    let mut contracts = ship_data
+        .0
         .lock()
         .await
         .spacetraders
@@ -35,7 +31,8 @@ pub async fn admin_stuff(
 
     if contracts.meta.total > 1 {
         for num in 2..contracts.meta.total {
-            let paged_contracts = ship_handler_data
+            let paged_contracts = ship_data
+                .0
                 .lock()
                 .await
                 .spacetraders
@@ -65,7 +62,7 @@ pub async fn admin_stuff(
             let mut contractor_ship = false;
 
             // TODO: this clone is note affective
-            'inner: for (_, ship) in ship_handler_data.lock().await.ships.clone().into_iter() {
+            'inner: for (_, ship) in ship_data.0.lock().await.ships.clone().into_iter() {
                 if ship.registration.role == enums::ShipRole::Hauler {
                     contractor_ship = true;
                     break 'inner;
@@ -73,13 +70,7 @@ pub async fn admin_stuff(
             }
             if contractor_ship {
             } else {
-                buy_ship(
-                    ship_id,
-                    ship_handler_data.clone(),
-                    &needed_ship,
-                    channel.clone(),
-                )
-                .await
+                buy_ship(ship_id, ship_data.clone(), &needed_ship, channel.clone()).await
             }
         }
     }
@@ -87,37 +78,27 @@ pub async fn admin_stuff(
 
 pub async fn buy_ship(
     ship_id: &str,
-    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
+    ship_data: ShipDataAbstractor,
     ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
     trace!("Buy mining ship");
 
-    let system = ship_handler_data
-        .lock()
-        .await
-        .ships
-        .get(ship_id)
-        .unwrap()
-        .nav
-        .system_symbol
-        .clone();
+    let ship = ship_data.clone_ship(ship_id).await.unwrap();
 
-    let waypoints = get_waypoints(system, ship_handler_data.clone()).await;
+    let waypoints = ship_data.get_waypoints(ship.nav.system_symbol).await;
 
     'outer: for waypoint in waypoints.iter() {
         for r#trait in waypoint.traits.iter() {
             if r#trait.symbol == enums::WaypointTrait::Shipyard {
-                travel_waypoint(
-                    ship_id,
-                    ship_handler_data.clone(),
-                    waypoint.symbol.waypoint.as_str(),
-                )
-                .await;
+                ship_data
+                    .travel_waypoint(ship_id, waypoint.symbol.waypoint.as_str())
+                    .await;
 
-                let mut ship_handler_data_u = ship_handler_data.lock().await;
-
-                let shipyard = ship_handler_data_u
+                let shipyard = ship_data
+                    .0
+                    .lock()
+                    .await
                     .spacetraders
                     .get_shipyard(waypoint.system_symbol.clone(), waypoint.symbol.clone())
                     .await;
@@ -125,8 +106,10 @@ pub async fn buy_ship(
                 for shipyard_ship in shipyard.data.ships.iter() {
                     for ship_type in ship_types {
                         if shipyard_ship.r#type == *ship_type {
-                            if shipyard_ship.purchase_price < ship_handler_data_u.credits {
-                                let new_ship = ship_handler_data_u
+                            if shipyard_ship.purchase_price < ship_data.get_credits().await {
+                                let mut unlocked = ship_data.0.lock().await;
+
+                                let new_ship = unlocked
                                     .spacetraders
                                     .purchase_ship(requests::PurchaseShip {
                                         ship_type: shipyard_ship.r#type,
@@ -136,12 +119,9 @@ pub async fn buy_ship(
 
                                 channel.send(new_ship.data.ship.clone()).await.unwrap();
 
-                                ship_handler_data_u.credits -= new_ship.data.transaction.price;
+                                unlocked.credits -= new_ship.data.transaction.price;
 
-                                info!(
-                                    "buying ship, now at {} credits",
-                                    ship_handler_data_u.credits
-                                );
+                                info!("buying ship, now at {} credits", unlocked.credits,);
                                 return;
                             } else {
                                 warn!("Not enough money to buy ship");
