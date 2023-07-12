@@ -229,7 +229,8 @@ impl ShipDataAbstractor {
 
         let ship = self.0.lock().await.ships.get(ship_id).unwrap().clone();
 
-        // TODO: refuel sometime
+        self.get_fuel(ship_id).await;
+
         if ship.nav.waypoint_symbol.waypoint != waypoint {
             // there is also a case where the ship is in transit and neither docked or there
 
@@ -259,8 +260,31 @@ impl ShipDataAbstractor {
             self.wait_duration(ship_id).await;
 
             self.chart_waypoint(ship_id).await;
+
+            self.get_fuel(ship_id).await;
         }
         self.clone_ship(ship_id).await
+    }
+
+    // TODO: needs work
+    // should consider fuel prices and other locations
+    pub async fn get_fuel(&self, ship_id: &str) {
+        let ship = self.clone_ship(ship_id).await.unwrap();
+        let waypoint = self.get_waypoint(ship.nav.waypoint_symbol).await;
+
+        for r#trait in waypoint.traits.iter() {
+            if r#trait.symbol == enums::WaypointTrait::Marketplace {
+                if ship.fuel.current != ship.fuel.capacity {
+                    if ship.nav.status == enums::ShipNavStatus::Docked {
+                        self.0.lock().await.spacetraders.refuel_ship(ship_id).await;
+                    } else if ship.nav.status == enums::ShipNavStatus::InOrbit {
+                        self.dock_ship(ship_id).await;
+                        self.0.lock().await.spacetraders.refuel_ship(ship_id).await;
+                        self.orbit_ship(ship_id).await;
+                    }
+                }
+            }
+        }
     }
 
     pub async fn travel_system(&self, ship_id: &str, waypoint: &str) {

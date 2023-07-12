@@ -110,7 +110,7 @@ pub async fn ship_handler(
 // admin can also loop through contracts and survey to find expired ones and remove them from the list
 async fn admin_loop(ship_id: &str, ship_data: ShipDataAbstractor, channel: mpsc::Sender<Ship>) {
     loop {
-        admin::buy_ship(
+        admin::admin_stuff(
             ship_id,
             ship_data.clone(),
             &[enums::ShipType::ShipMiningDrone],

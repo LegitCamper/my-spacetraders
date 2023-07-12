@@ -59,8 +59,7 @@ pub async fn admin_stuff(
 
             let mut contractor_ship = false;
 
-            // TODO: this clone is note affective
-            'inner: for (_, ship) in ship_data.0.lock().await.ships.clone().into_iter() {
+            'inner: for (_, ship) in ship_data.clone_ships().await.into_iter() {
                 if ship.registration.role == enums::ShipRole::Hauler {
                     contractor_ship = true;
                     break 'inner;
@@ -119,7 +118,7 @@ pub async fn buy_ship(
 
                                 unlocked.credits -= new_ship.data.transaction.price;
 
-                                info!("buying ship, now at {} credits", unlocked.credits,);
+                                info!("buying ship, now at {} credits", unlocked.credits);
                                 return;
                             } else {
                                 warn!("Not enough money to buy ship");
