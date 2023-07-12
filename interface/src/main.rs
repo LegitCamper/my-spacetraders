@@ -13,9 +13,7 @@ use tokio::{
     task::{self, JoinHandle},
 };
 
-async fn start_automation(
-    token: Option<String>,
-) -> (Arc<Mutex<ShipHandlerData>>, JoinHandle<()>, JoinHandle<()>) {
+async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>, JoinHandle<()>) {
     trace!("Starting automation");
     let space_traders: SpaceTraders = match token {
         Some(token) => {
@@ -42,20 +40,7 @@ async fn start_automation(
     let ship_handler: task::JoinHandle<()> =
         tokio::task::spawn(start_ship_handler(ship_handler_data.clone()));
 
-    let deadlock_mutex = ship_handler_data.clone();
-    let deadlock_checker: task::JoinHandle<()> = tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(15));
-        interval.tick().await;
-        loop {
-            interval.tick().await;
-            match deadlock_mutex.try_lock() {
-                Ok(_) => (),
-                Err(_) => panic!("Deadlock occured"),
-            }
-        }
-    });
-
-    (ship_handler_data, deadlock_checker, ship_handler)
+    (ship_handler_data, ship_handler)
 }
 
 #[derive(Parser, Debug)]
@@ -90,7 +75,7 @@ async fn main() {
 
     match args.automation {
         true => {
-            let (ship_hander_data, deadlock_handle, ship_handler_handle) = match args.token {
+            let (ship_hander_data, ship_handler_handle) = match args.token {
                 None => start_automation(None).await,
                 Some(token) => start_automation(Some(token)).await,
             };
@@ -107,7 +92,6 @@ async fn main() {
             for handle in ship_hander_data.lock().await.handles.iter() {
                 handle.abort();
             }
-            deadlock_handle.abort();
             ship_hander_data.lock().await.spacetraders.task.abort();
             println!("Exiting - Bye!");
             std::process::exit(0);

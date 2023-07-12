@@ -419,10 +419,15 @@ impl SpaceTraders {
     }
 
     // Contracts
-    pub async fn list_contracts(&self) -> contracts::Contracts {
+    pub async fn list_contracts(&self, page_num: Option<u32>) -> contracts::Contracts {
+        let page_num = page_num.unwrap_or(1);
         serde_json::from_str(
             &self
-                .make_request(Method::Get, String::from("/my/contracts"), None)
+                .make_request(
+                    Method::Get,
+                    format!("/my/contracts?limit=20&page={}", page_num),
+                    None,
+                )
                 .await,
         )
         .unwrap()

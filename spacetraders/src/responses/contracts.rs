@@ -6,6 +6,7 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 pub struct Contracts {
     pub data: Vec<schemas::Contract>,
+    pub meta: schemas::Meta,
 }
 
 #[allow(dead_code)]

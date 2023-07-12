@@ -8,8 +8,12 @@ use spacetraders::{
     SpaceTraders, Waypoint,
 };
 
+pub mod admin;
 pub mod cache;
+pub mod contractor;
+pub mod explorer;
 mod func;
+mod miner;
 use cache::AllEuclideanDistances;
 
 // use async_recursion::async_recursion;
@@ -89,7 +93,7 @@ pub async fn ship_handler(
     match role {
         enums::ShipRole::Fabricator => todo!(),
         enums::ShipRole::Harvester => todo!(),
-        enums::ShipRole::Hauler => contractor_loop().await,
+        enums::ShipRole::Hauler => contractor_loop(ship_id, ship_handler_data.clone()).await,
         enums::ShipRole::Interceptor => todo!(),
         enums::ShipRole::Excavator => miner_loop(ship_id, ship_handler_data.clone()).await,
         enums::ShipRole::Transport => todo!(),
@@ -98,8 +102,8 @@ pub async fn ship_handler(
         enums::ShipRole::Command => admin_loop(ship_id, ship_handler_data.clone(), channel).await,
         enums::ShipRole::Carrier => todo!(),
         enums::ShipRole::Patrol => todo!(),
-        enums::ShipRole::Satellite => explorer_loop().await,
-        enums::ShipRole::Explorer => explorer_loop().await,
+        enums::ShipRole::Satellite => explorer_loop(ship_id, ship_handler_data.clone()).await,
+        enums::ShipRole::Explorer => explorer_loop(ship_id, ship_handler_data.clone()).await,
         enums::ShipRole::Refinery => todo!(),
     };
 }
@@ -111,7 +115,7 @@ async fn admin_loop(
     channel: mpsc::Sender<Ship>,
 ) {
     loop {
-        func::buy_ship(
+        admin::buy_ship(
             ship_id,
             ship_handler_data.clone(),
             &[enums::ShipType::ShipMiningDrone],
@@ -121,25 +125,20 @@ async fn admin_loop(
     }
 }
 
-async fn contractor_loop() {
-    // let accepted_contracts = func::get_contract(&space_traders.lock().await).await;
-
-    // println!("{:?}", accepted_contracts);
-    // for current_contract in accepted_contracts {
-    // println!(
-    //     "{:?}",
-    //     func::get_contract_ship(&spacetraders, current_contract).await
-    // );
-
-    // for current_contract in accepted.iter() {
-    // if !have_correct_ship {
-    // func::buy_ship(&spacetraders);
+async fn contractor_loop(ship_id: &str, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
+    loop {
+        // contractor::
+    }
 }
 
 async fn miner_loop(ship_id: &str, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
     loop {
-        func::mine_astroid(ship_id, ship_handler_data.clone()).await;
+        miner::mine_astroid(ship_id, ship_handler_data.clone()).await;
     }
 }
 
-async fn explorer_loop() {}
+async fn explorer_loop(ship_id: &str, ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
+    loop {
+        // explorer::
+    }
+}

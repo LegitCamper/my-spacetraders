@@ -188,7 +188,7 @@ async fn get_jump_gate() {
 async fn list_contracts() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_contracts().await;
+        spacetraders.list_contracts(None).await;
     }
 }
 #[tokio::test]
