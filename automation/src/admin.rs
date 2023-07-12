@@ -1,5 +1,3 @@
-use std::mem::transmute;
-
 use spacetraders::{
     //contracts
     // SpaceTraders,

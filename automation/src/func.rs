@@ -234,16 +234,7 @@ impl ShipDataAbstractor {
             // there is also a case where the ship is in transit and neither docked or there
 
             if ship.nav.status == enums::ShipNavStatus::Docked {
-                let mut ship_nav = &self.0.lock().await.ships.get_mut(ship_id).unwrap().nav;
-                ship_nav = &self
-                    .0
-                    .lock()
-                    .await
-                    .spacetraders
-                    .orbit_ship(ship_id)
-                    .await
-                    .data
-                    .nav;
+                self.orbit_ship(ship_id).await;
             }
             //TODO: consider fuel types here - eg stealth, drift
             let temp_ship_data = self
@@ -282,16 +273,7 @@ impl ShipDataAbstractor {
             // there is also a case where the ship is in transit and neither docked or there
 
             if ship.nav.status == enums::ShipNavStatus::Docked {
-                let mut ship_nav = &self.0.lock().await.ships.get_mut(ship_id).unwrap().nav;
-                ship_nav = &self
-                    .0
-                    .lock()
-                    .await
-                    .spacetraders
-                    .orbit_ship(ship_id)
-                    .await
-                    .data
-                    .nav;
+                self.orbit_ship(ship_id).await;
             }
 
             // depending on whether there is a warp drive or jump drive determines the endpoint to use

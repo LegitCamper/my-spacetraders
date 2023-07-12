@@ -33,7 +33,7 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
                     || mount.symbol == enums::ShipMount::MountSurveyorIi
                     || mount.symbol == enums::ShipMount::MountSurveyorIii
                 {
-                    let surveys = ship_data.create_survey(ship_id).await;
+                    let _surveys = ship_data.create_survey(ship_id).await;
                     break 'inner;
                 }
             }
