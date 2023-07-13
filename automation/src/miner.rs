@@ -1,22 +1,22 @@
 use spacetraders::{
     //contracts
     // SpaceTraders,
-    enums::{self, WaypointType},
+    enums,
     requests,
     responses::schemas,
-    Waypoint,
 };
 
 use super::func::ShipDataAbstractor;
 
 use log::{info, trace, warn};
+use tokio::time::{sleep, Duration};
 
 pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
-    trace!("Mining Astroid");
+    trace!("{} Mining Astroid", ship_id);
 
     let ship = ship_data.clone_ship(ship_id).await.unwrap();
-    let waypoints = ship_data.get_waypoints(ship.nav.system_symbol).await;
-    let ship_waypoint = ship_data.get_waypoint(ship.nav.waypoint_symbol).await;
+    let waypoints = ship_data.get_waypoints(&ship.nav.system_symbol).await;
+    let ship_waypoint = ship_data.get_waypoint(&ship.nav.waypoint_symbol).await;
 
     let mut mine_distances: Vec<(&schemas::Waypoint, u64)> = Vec::new();
     for waypoint in waypoints.iter() {
@@ -57,11 +57,11 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
         if ship.nav.status == enums::ShipNavStatus::Docked {
             ship_data.orbit_ship(ship_id).await;
         } else if ship.nav.status == enums::ShipNavStatus::InTransit {
-            ship_data.wait_duration(ship_id).await;
+            ship_data.wait_flight_duration(ship_id).await;
             ship_data.orbit_ship(ship_id).await;
         }
 
-        info!("Starting mining astroid");
+        info!("{} Starting mining astroid", ship_id);
 
         'inner: for mount in ship.mounts.iter() {
             if mount.symbol == enums::ShipMount::MountSurveyorI
@@ -90,9 +90,10 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
                 .get_mut(ship_id)
                 .unwrap()
                 .cargo = temp_ship_data.cargo.clone();
-            let (_cooldown, _extraction) = (temp_ship_data.cooldown, temp_ship_data.extraction);
+            let (cooldown, _extraction) = (temp_ship_data.cooldown, temp_ship_data.extraction);
 
             if &temp_ship_data.cargo.capacity - &temp_ship_data.cargo.units > 1 {
+                sleep(Duration::from_secs(cooldown.remaining_seconds.into())).await;
                 continue;
             } else {
                 break;
@@ -140,7 +141,7 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
             if ship.nav.status == enums::ShipNavStatus::InOrbit {
                 ship_data.dock_ship(ship_id).await;
             } else if ship.nav.status == enums::ShipNavStatus::InTransit {
-                ship_data.wait_duration(ship_id).await;
+                ship_data.wait_flight_duration(ship_id).await;
                 ship_data.dock_ship(ship_id).await;
             }
 
@@ -172,5 +173,5 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
         }
         //TODO: else maybe fly to the closest system with a shipyard - TODO: Pathfinding
     }
-    warn!("Failed to find asteroid");
+    warn!("{} Failed to find asteroid", ship_id);
 }

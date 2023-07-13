@@ -310,7 +310,7 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn get_system(&self, system_symbol: System) -> systems::System {
+    pub async fn get_system(&self, system_symbol: &SystemString) -> systems::System {
         serde_json::from_str(
             &self
                 .make_request(
@@ -324,7 +324,7 @@ impl SpaceTraders {
     }
     pub async fn list_waypoints(
         &self,
-        system_symbol: System,
+        system_symbol: &SystemString,
         page: Option<u32>,
     ) -> systems::Waypoints {
         let page_num = page.unwrap_or(1);
@@ -344,8 +344,8 @@ impl SpaceTraders {
     }
     pub async fn get_waypoint(
         &self,
-        system_symbol: System,
-        waypoint_symbol: Waypoint,
+        system_symbol: &SystemString,
+        waypoint_symbol: &WaypointString,
     ) -> systems::Waypoint {
         serde_json::from_str(
             &self
@@ -363,8 +363,8 @@ impl SpaceTraders {
     }
     pub async fn get_market(
         &self,
-        system_symbol: System,
-        waypoint_symbol: Waypoint,
+        system_symbol: &SystemString,
+        waypoint_symbol: &WaypointString,
     ) -> systems::Market {
         serde_json::from_str(
             &self
@@ -382,8 +382,8 @@ impl SpaceTraders {
     }
     pub async fn get_shipyard(
         &self,
-        system_symbol: System,
-        waypoint_symbol: Waypoint,
+        system_symbol: &SystemString,
+        waypoint_symbol: &WaypointString,
     ) -> systems::Shipyard {
         serde_json::from_str(
             &self
@@ -401,8 +401,8 @@ impl SpaceTraders {
     }
     pub async fn jump_gate(
         &self,
-        system_symbol: System,
-        waypoint_symbol: Waypoint,
+        system_symbol: &SystemString,
+        waypoint_symbol: &WaypointString,
     ) -> systems::JumpGate {
         serde_json::from_str(
             &self
@@ -886,33 +886,26 @@ pub struct ChannelMessage {
 
 // Waypoint handlers //
 #[derive(Clone, Serialize, PartialEq, Eq, Hash, Debug)]
-pub struct Waypoint {
+pub struct WaypointString {
     pub waypoint: String,
     pub system: String,
     pub sector: String,
 }
-impl Waypoint {
-    pub fn to_waypoint(&self) -> Self {
-        Self {
-            waypoint: self.waypoint.clone(),
+impl WaypointString {
+    pub fn to_system(&self) -> SystemString {
+        SystemString {
             system: self.system.clone(),
             sector: self.sector.clone(),
         }
     }
-    pub fn to_system(&self) -> System {
-        System {
-            system: self.system.clone(),
-            sector: self.sector.clone(),
-        }
-    }
-    pub fn to_sector(&self) -> Sector {
-        Sector {
+    pub fn to_sector(&self) -> SectorString {
+        SectorString {
             sector: self.sector.clone(),
         }
     }
 }
-impl<'de> Deserialize<'de> for Waypoint {
-    fn deserialize<D>(deserializer: D) -> Result<Waypoint, D::Error>
+impl<'de> Deserialize<'de> for WaypointString {
+    fn deserialize<D>(deserializer: D) -> Result<WaypointString, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -920,7 +913,7 @@ impl<'de> Deserialize<'de> for Waypoint {
         if s.contains('-') {
             let waypoint_split: Vec<&str> = s.split('-').collect();
             if waypoint_split.len() == 3 {
-                Ok(Waypoint {
+                Ok(WaypointString {
                     waypoint: s.to_string(),
                     system: format!("{}-{}", waypoint_split[0], waypoint_split[1]),
                     sector: waypoint_split[0].to_string(),
@@ -932,7 +925,7 @@ impl<'de> Deserialize<'de> for Waypoint {
                 ))
             }
         } else {
-            Ok(Waypoint {
+            Ok(WaypointString {
                 waypoint: "None".to_string(),
                 system: "None".to_string(),
                 sector: "None".to_string(),
@@ -941,25 +934,19 @@ impl<'de> Deserialize<'de> for Waypoint {
     }
 }
 #[derive(Clone, Serialize, PartialEq, Eq, Hash, Debug)]
-pub struct System {
+pub struct SystemString {
     pub system: String,
     pub sector: String,
 }
-impl System {
-    pub fn to_system(&self) -> Self {
-        Self {
-            system: self.system.clone(),
-            sector: self.sector.clone(),
-        }
-    }
-    pub fn to_sector(&self) -> Sector {
-        Sector {
+impl SystemString {
+    pub fn to_sector(&self) -> SectorString {
+        SectorString {
             sector: self.sector.clone(),
         }
     }
 }
-impl<'de> Deserialize<'de> for System {
-    fn deserialize<D>(deserializer: D) -> Result<System, D::Error>
+impl<'de> Deserialize<'de> for SystemString {
+    fn deserialize<D>(deserializer: D) -> Result<SystemString, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -967,7 +954,7 @@ impl<'de> Deserialize<'de> for System {
         if s.contains('-') {
             let split: Vec<&str> = s.split('-').collect();
             if split.len() == 2 {
-                Ok(System {
+                Ok(SystemString {
                     sector: split[0].to_string(),
                     system: format!("{}-{}", split[0], split[1]),
                 })
@@ -978,7 +965,7 @@ impl<'de> Deserialize<'de> for System {
                 ))
             }
         } else {
-            Ok(System {
+            Ok(SystemString {
                 system: "None".to_string(),
                 sector: "None".to_string(),
             })
@@ -986,19 +973,12 @@ impl<'de> Deserialize<'de> for System {
     }
 }
 #[derive(Clone, Serialize, PartialEq, Eq, Hash, Debug)]
-pub struct Sector {
+pub struct SectorString {
     pub sector: String,
 }
 #[allow(dead_code)]
-impl Sector {
-    fn to_sector(&self) -> Self {
-        Self {
-            sector: self.sector.clone(),
-        }
-    }
-}
-impl<'de> Deserialize<'de> for Sector {
-    fn deserialize<D>(deserializer: D) -> Result<Sector, D::Error>
+impl<'de> Deserialize<'de> for SectorString {
+    fn deserialize<D>(deserializer: D) -> Result<SectorString, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -1006,7 +986,7 @@ impl<'de> Deserialize<'de> for Sector {
         if s.contains('-') {
             let split: Vec<&str> = s.split('-').collect();
             if split.len() == 1 {
-                Ok(Sector {
+                Ok(SectorString {
                     sector: split[0].to_string(),
                 })
             } else {
@@ -1016,7 +996,7 @@ impl<'de> Deserialize<'de> for Sector {
                 ))
             }
         } else {
-            Ok(Sector {
+            Ok(SectorString {
                 sector: "None".to_string(),
             })
         }

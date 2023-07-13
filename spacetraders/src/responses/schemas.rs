@@ -1,4 +1,4 @@
-use crate::{enums, Sector as SectorType, System as SystemType, Waypoint as WaypointType};
+use crate::{enums, SectorString, SystemString, WaypointString};
 
 // use bson::serde_helpers::chrono_datetime_as_bson_datetime;
 use chrono::{DateTime, Utc};
@@ -24,7 +24,7 @@ pub struct Agent {
     #[serde(alias = "accountId")]
     pub account_id: String,
     pub symbol: String,
-    pub headquarters: WaypointType,
+    pub headquarters: WaypointString,
     pub credits: f64,
     #[serde(alias = "startingFaction")]
     #[serde(deserialize_with = "skip_faction_symbol")]
@@ -35,7 +35,7 @@ pub struct Agent {
 pub struct Chart {
     #[serde(alias = "waypointSymbol")]
     #[serde(default)]
-    pub waypoint_symbol: String, // WaypointType,
+    pub waypoint_symbol: String, // WaypointString,
     #[serde(alias = "submittedBy")]
     #[serde(default)]
     pub submitted_by: String,
@@ -432,9 +432,9 @@ pub struct ShipMount {
 #[derive(Deserialize, Clone, Debug)]
 pub struct ShipNav {
     #[serde(alias = "systemSymbol")]
-    pub system_symbol: SystemType,
+    pub system_symbol: SystemString,
     #[serde(alias = "waypointSymbol")]
-    pub waypoint_symbol: WaypointType,
+    pub waypoint_symbol: WaypointString,
     pub route: ShipNavRoute,
     pub status: enums::ShipNavStatus,
     #[serde(alias = "flightMode")]
@@ -551,9 +551,9 @@ pub struct SurveyDeposit {
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct System {
-    pub symbol: SystemType,
+    pub symbol: SystemString,
     #[serde(alias = "sectorSymbol")]
-    pub sector_symbol: SectorType,
+    pub sector_symbol: SectorString,
     pub r#type: enums::SystemType,
     pub x: i32,
     pub y: i32,
@@ -585,8 +585,8 @@ pub struct TradeGoods {
 #[derive(Deserialize, Clone, Debug)]
 pub struct Waypoint {
     #[serde(alias = "systemSymbol")]
-    pub system_symbol: SystemType,
-    pub symbol: WaypointType,
+    pub system_symbol: SystemString,
+    pub symbol: WaypointString,
     pub r#type: enums::WaypointType,
     pub x: i32,
     pub y: i32,

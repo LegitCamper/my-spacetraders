@@ -83,7 +83,7 @@ pub async fn buy_ship(
 
     let ship = ship_data.clone_ship(ship_id).await.unwrap();
 
-    let waypoints = ship_data.get_waypoints(ship.nav.system_symbol).await;
+    let waypoints = ship_data.get_waypoints(&ship.nav.system_symbol).await;
 
     'outer: for waypoint in waypoints.iter() {
         for r#trait in waypoint.traits.iter() {
@@ -97,7 +97,7 @@ pub async fn buy_ship(
                     .lock()
                     .await
                     .spacetraders
-                    .get_shipyard(waypoint.system_symbol.clone(), waypoint.symbol.clone())
+                    .get_shipyard(&waypoint.system_symbol, &waypoint.symbol)
                     .await;
 
                 for shipyard_ship in shipyard.data.ships.iter() {

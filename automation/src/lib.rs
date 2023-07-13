@@ -4,7 +4,7 @@ use spacetraders::{
         fleet::CreateSurveyData,
         schemas::{self, Contract, Ship},
     },
-    SpaceTraders, Waypoint,
+    SpaceTraders, WaypointString,
 };
 
 pub mod admin;
@@ -33,8 +33,8 @@ pub struct ShipHandlerData {
     pub spacetraders: SpaceTraders,
     pub ships: HashMap<String, Ship>,
     pub contracts: HashMap<String, Contract>,
-    pub surveys: HashMap<Waypoint, CreateSurveyData>,
-    pub waypoints: HashMap<Waypoint, schemas::Waypoint>,
+    pub surveys: HashMap<WaypointString, CreateSurveyData>,
+    pub waypoints: HashMap<WaypointString, schemas::Waypoint>,
     pub credits: f64,
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }

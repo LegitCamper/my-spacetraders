@@ -2,12 +2,11 @@ use super::ShipHandlerData;
 use spacetraders::{
     //contracts
     // SpaceTraders,
-    enums::{self, WaypointTrait},
+    enums,
     requests,
-    responses::{contracts::Contract, fleet, schemas},
-    SpaceTraders,
-    System,
-    Waypoint,
+    responses::{fleet, schemas},
+    SystemString,
+    WaypointString,
 };
 
 // use async_recursion::async_recursion;
@@ -49,7 +48,11 @@ impl ShipDataAbstractor {
         self.0.lock().await.ships.clone()
     }
 
-    pub async fn system_distance(&self, system1: System, system2: System) -> Option<u64> {
+    pub async fn system_distance(
+        &self,
+        system1: &SystemString,
+        system2: &SystemString,
+    ) -> Option<u64> {
         trace!("System Distance");
         for system in self.0.lock().await.euclidean_distances.iter() {
             if system1.system == system.name {
@@ -84,11 +87,14 @@ impl ShipDataAbstractor {
             .insert(contract_id.to_string(), contract)
     }
 
-    pub async fn get_survey(&self, waypoint: Waypoint) -> Option<fleet::CreateSurveyData> {
+    pub async fn get_survey(&self, waypoint: &WaypointString) -> Option<fleet::CreateSurveyData> {
         trace!("Get Survey");
         self.0.lock().await.surveys.get(&waypoint).cloned()
     }
-    pub async fn remove_survey(&self, waypoint: Waypoint) -> Option<fleet::CreateSurveyData> {
+    pub async fn remove_survey(
+        &self,
+        waypoint: &WaypointString,
+    ) -> Option<fleet::CreateSurveyData> {
         trace!("Remove Survey");
         self.0.lock().await.surveys.remove(&waypoint)
     }
@@ -116,17 +122,17 @@ impl ShipDataAbstractor {
         trace!("Orbit Ship");
         let ship = self.0.lock().await.spacetraders.orbit_ship(ship_id).await;
         self.0.lock().await.ships.get_mut(ship_id).unwrap().nav = ship.data.nav;
-        self.wait_duration(ship_id).await;
+        self.wait_flight_duration(ship_id).await;
     }
 
     pub async fn dock_ship(&self, ship_id: &str) {
         trace!("Dock Ship");
         let ship = self.0.lock().await.spacetraders.dock_ship(ship_id).await;
         self.0.lock().await.ships.get_mut(ship_id).unwrap().nav = ship.data.nav;
-        self.wait_duration(ship_id).await;
+        self.wait_flight_duration(ship_id).await;
     }
 
-    pub async fn get_waypoint(&self, waypoint: Waypoint) -> schemas::Waypoint {
+    pub async fn get_waypoint(&self, waypoint: &WaypointString) -> schemas::Waypoint {
         trace!("Get Waypoint");
         let mut unlocked = self.0.lock().await;
         match unlocked.waypoints.get(&waypoint) {
@@ -134,7 +140,7 @@ impl ShipDataAbstractor {
             None => {
                 let new_waypoint = unlocked
                     .spacetraders
-                    .get_waypoint(waypoint.to_system(), waypoint)
+                    .get_waypoint(&waypoint.to_system(), &waypoint)
                     .await
                     .data;
                 if new_waypoint.chart.submitted_by.is_empty() {
@@ -148,19 +154,16 @@ impl ShipDataAbstractor {
             }
         }
     }
-    pub async fn get_waypoints(&self, system: System) -> Vec<schemas::Waypoint> {
+    pub async fn get_waypoints(&self, system: &SystemString) -> Vec<schemas::Waypoint> {
         trace!("Get Waypoints");
         let mut unlocked = self.0.lock().await;
 
-        let mut waypoints = unlocked
-            .spacetraders
-            .list_waypoints(system.clone(), None)
-            .await;
+        let mut waypoints = unlocked.spacetraders.list_waypoints(system, None).await;
         if waypoints.meta.total > 1 {
             for num in 2..waypoints.meta.total {
                 let paged_waypoints = unlocked
                     .spacetraders
-                    .list_waypoints(system.clone(), Some(num))
+                    .list_waypoints(system, Some(num))
                     .await
                     .data;
                 for paged_waypoint in paged_waypoints.iter() {
@@ -205,7 +208,7 @@ impl ShipDataAbstractor {
         if ship.get(&ship_location).is_none() {
             let waypoint = unlocked
                 .spacetraders
-                .get_waypoint(ship_location.to_system(), ship_location)
+                .get_waypoint(&ship_location.to_system(), &ship_location)
                 .await;
 
             if waypoint.data.chart.submitted_by.is_empty() {
@@ -214,7 +217,7 @@ impl ShipDataAbstractor {
         }
     }
 
-    pub async fn wait_duration(&self, ship_id: &str) {
+    pub async fn wait_flight_duration(&self, ship_id: &str) {
         trace!("Wait Durtation");
         let local_time_to_stop: DateTime<Local> = self
             .0
@@ -259,7 +262,7 @@ impl ShipDataAbstractor {
             if ship.nav.status == enums::ShipNavStatus::Docked {
                 self.orbit_ship(ship_id).await;
             } else if ship.nav.status == enums::ShipNavStatus::InTransit {
-                self.wait_duration(ship_id).await;
+                self.wait_flight_duration(ship_id).await;
                 self.orbit_ship(ship_id).await;
             }
             //TODO: consider fuel types here - eg stealth, drift
@@ -282,7 +285,7 @@ impl ShipDataAbstractor {
                 self.0.lock().await.ships.get_mut(ship_id).unwrap().fuel,
             ) = (temp_ship_data.nav, temp_ship_data.fuel);
 
-            self.wait_duration(ship_id).await;
+            self.wait_flight_duration(ship_id).await;
 
             self.chart_waypoint(ship_id).await;
 
@@ -296,27 +299,46 @@ impl ShipDataAbstractor {
     // should consider fuel prices and other locations
     pub async fn get_fuel(&self, ship_id: &str, fuel_amount: i32) {
         let ship = self.clone_ship(ship_id).await.unwrap();
-        let waypoint = self.get_waypoint(ship.nav.waypoint_symbol).await;
+        let waypoint = self.get_waypoint(&ship.nav.waypoint_symbol).await;
 
         for r#trait in waypoint.traits.iter() {
             if r#trait.symbol == enums::WaypointTrait::Marketplace {
-                if ship.fuel.current != ship.fuel.capacity {
-                    if ship.nav.status == enums::ShipNavStatus::Docked {
-                        self.0
-                            .lock()
-                            .await
-                            .spacetraders
-                            .refuel_ship(ship_id, Some(requests::RefuelShip { units: fuel_amount }))
-                            .await;
-                    } else if ship.nav.status == enums::ShipNavStatus::InOrbit {
-                        self.dock_ship(ship_id).await;
-                        self.0
-                            .lock()
-                            .await
-                            .spacetraders
-                            .refuel_ship(ship_id, Some(requests::RefuelShip { units: fuel_amount }))
-                            .await;
-                        self.orbit_ship(ship_id).await;
+                let market = self
+                    .0
+                    .lock()
+                    .await
+                    .spacetraders
+                    .get_market(&waypoint.system_symbol, &waypoint.symbol)
+                    .await
+                    .data;
+                for tradegood in market.exports.iter() {
+                    if tradegood.symbol == enums::TradeSymbol::Fuel {
+                        if ship.fuel.current != ship.fuel.capacity {
+                            if ship.nav.status == enums::ShipNavStatus::Docked {
+                                self.0
+                                    .lock()
+                                    .await
+                                    .spacetraders
+                                    .refuel_ship(
+                                        ship_id,
+                                        Some(requests::RefuelShip { units: fuel_amount }),
+                                    )
+                                    .await;
+                            } else if ship.nav.status == enums::ShipNavStatus::InOrbit {
+                                self.dock_ship(ship_id).await;
+                                self.0
+                                    .lock()
+                                    .await
+                                    .spacetraders
+                                    .refuel_ship(
+                                        ship_id,
+                                        Some(requests::RefuelShip { units: fuel_amount }),
+                                    )
+                                    .await;
+                                self.orbit_ship(ship_id).await;
+                            }
+                            return;
+                        }
                     }
                 }
             }

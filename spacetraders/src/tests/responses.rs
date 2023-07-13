@@ -5,7 +5,7 @@ use crate::{
         JettisonCargo, JumpShip, NavigateShip, PatchShipNav, PurchaseCargo, PurchaseShip,
         RemoveMount, SellCargo, ShipRefine, TransferCargo, WarpShip,
     },
-    Method, SpaceTraders, System, Waypoint,
+    Method, SpaceTraders, SystemString, WaypointString,
 };
 
 use serial_test::serial;
@@ -79,7 +79,7 @@ async fn get_systems() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
         spacetraders
-            .get_system(System {
+            .get_system(&SystemString {
                 system: STRING.to_string(),
                 sector: STRING.to_string(),
             })
@@ -93,7 +93,7 @@ async fn list_waypoints() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .list_waypoints(
-                System {
+                &SystemString {
                     system: STRING.to_string(),
                     sector: STRING.to_string(),
                 },
@@ -109,11 +109,11 @@ async fn get_waypoint() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .get_waypoint(
-                System {
+                &SystemString {
                     system: STRING.to_string(),
                     sector: STRING.to_string(),
                 },
-                Waypoint {
+                &WaypointString {
                     waypoint: STRING.to_string(),
                     system: STRING.to_string(),
                     sector: STRING.to_string(),
@@ -129,11 +129,11 @@ async fn get_market() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .get_market(
-                System {
+                &SystemString {
                     system: STRING.to_string(),
                     sector: STRING.to_string(),
                 },
-                Waypoint {
+                &WaypointString {
                     waypoint: STRING.to_string(),
                     system: STRING.to_string(),
                     sector: STRING.to_string(),
@@ -149,11 +149,11 @@ async fn get_shipyard() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .get_shipyard(
-                System {
+                &SystemString {
                     system: STRING.to_string(),
                     sector: STRING.to_string(),
                 },
-                Waypoint {
+                &WaypointString {
                     waypoint: STRING.to_string(),
                     system: STRING.to_string(),
                     sector: STRING.to_string(),
@@ -169,11 +169,11 @@ async fn get_jump_gate() {
     for _ in 0..TIMES_TO_RUN {
         spacetraders
             .jump_gate(
-                System {
+                &SystemString {
                     system: STRING.to_string(),
                     sector: STRING.to_string(),
                 },
-                Waypoint {
+                &WaypointString {
                     waypoint: STRING.to_string(),
                     system: STRING.to_string(),
                     sector: STRING.to_string(),
