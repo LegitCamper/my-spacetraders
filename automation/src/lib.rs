@@ -92,23 +92,26 @@ pub async fn ship_handler(
     match role {
         enums::ShipRole::Fabricator => todo!(),
         enums::ShipRole::Harvester => todo!(),
-        enums::ShipRole::Hauler => contractor_loop(ship_id, ship_data.clone()).await,
+        enums::ShipRole::Hauler => contractor_loop(ship_id, ship_data.clone(), channel).await,
         enums::ShipRole::Interceptor => todo!(),
-        enums::ShipRole::Excavator => miner_loop(ship_id, ship_data.clone()).await,
+        enums::ShipRole::Excavator => miner_loop(ship_id, ship_data.clone(), channel).await,
         enums::ShipRole::Transport => todo!(),
         enums::ShipRole::Repair => todo!(),
         enums::ShipRole::Surveyor => todo!(),
-        enums::ShipRole::Command => admin_loop(ship_id, ship_data.clone(), channel).await,
+        enums::ShipRole::Command => explorer_loop(ship_id, ship_data.clone(), channel).await,
         enums::ShipRole::Carrier => todo!(),
         enums::ShipRole::Patrol => todo!(),
-        enums::ShipRole::Satellite => explorer_loop(ship_id, ship_data.clone()).await,
-        enums::ShipRole::Explorer => explorer_loop(ship_id, ship_data.clone()).await,
+        enums::ShipRole::Satellite => explorer_loop(ship_id, ship_data.clone(), channel).await,
+        enums::ShipRole::Explorer => explorer_loop(ship_id, ship_data.clone(), channel).await,
         enums::ShipRole::Refinery => todo!(),
     };
 }
 
-// admin can also loop through contracts and survey to find expired ones and remove them from the list
-async fn admin_loop(ship_id: &str, ship_data: ShipDataAbstractor, channel: mpsc::Sender<Ship>) {
+async fn contractor_loop(
+    ship_id: &str,
+    ship_data: ShipDataAbstractor,
+    channel: mpsc::Sender<Ship>,
+) {
     loop {
         admin::admin_stuff(
             ship_id,
@@ -117,23 +120,32 @@ async fn admin_loop(ship_id: &str, ship_data: ShipDataAbstractor, channel: mpsc:
             channel.clone(),
         )
         .await;
-    }
-}
-
-async fn contractor_loop(_ship_id: &str, ship_data: ShipDataAbstractor) {
-    loop {
         // contractor::
     }
 }
 
-async fn miner_loop(ship_id: &str, ship_data: ShipDataAbstractor) {
+async fn miner_loop(ship_id: &str, ship_data: ShipDataAbstractor, channel: mpsc::Sender<Ship>) {
     loop {
+        admin::admin_stuff(
+            ship_id,
+            ship_data.clone(),
+            &[enums::ShipType::ShipMiningDrone],
+            channel.clone(),
+        )
+        .await;
         miner::mine_astroid(ship_id, ship_data.clone()).await;
     }
 }
 
-async fn explorer_loop(_ship_id: &str, ship_data: ShipDataAbstractor) {
+async fn explorer_loop(ship_id: &str, ship_data: ShipDataAbstractor, channel: mpsc::Sender<Ship>) {
     loop {
+        admin::admin_stuff(
+            ship_id,
+            ship_data.clone(),
+            &[enums::ShipType::ShipMiningDrone],
+            channel.clone(),
+        )
+        .await;
         // explorer::
     }
 }

@@ -15,6 +15,7 @@ pub enum Requests {
     WarpShip(WarpShip),
     SellCargo(SellCargo),
     PurchaseCargo(PurchaseCargo),
+    RefuelShip(RefuelShip),
     TransferCargo(TransferCargo),
     InstallMount(InstallMount),
     RemoveMount(RemoveMount),
@@ -98,6 +99,11 @@ pub struct SellCargo {
 #[derive(Serialize, Debug)]
 pub struct PurchaseCargo {
     pub symbol: TradeSymbol,
+    pub units: i32,
+}
+
+#[derive(Serialize, Debug)]
+pub struct RefuelShip {
     pub units: i32,
 }
 

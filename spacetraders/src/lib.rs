@@ -133,6 +133,7 @@ impl SpaceTradersInterface {
                 Requests::WarpShip(json) => client.json(&json),
                 Requests::SellCargo(json) => client.json(&json),
                 Requests::PurchaseCargo(json) => client.json(&json),
+                Requests::RefuelShip(json) => client.json(&json),
                 Requests::TransferCargo(json) => client.json(&json),
                 Requests::InstallMount(json) => client.json(&json),
                 Requests::RemoveMount(json) => client.json(&json),
@@ -750,13 +751,18 @@ impl SpaceTraders {
         )
         .unwrap()
     }
-    pub async fn refuel_ship(&self, ship_symbol: &str) -> fleet::RefuelShip {
+    pub async fn refuel_ship(
+        &self,
+        ship_symbol: &str,
+        fuel_amount: Option<requests::RefuelShip>,
+    ) -> fleet::RefuelShip {
+        let fuel_amount = fuel_amount.unwrap_or(requests::RefuelShip { units: 1 });
         serde_json::from_str(
             &self
                 .make_request(
                     Method::Post,
                     format!("/my/ships/{}/refuel", ship_symbol),
-                    None,
+                    Some(Requests::RefuelShip(fuel_amount)),
                 )
                 .await,
         )

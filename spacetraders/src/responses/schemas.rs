@@ -322,7 +322,7 @@ pub struct ScannedShipMounts {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct ShipCargo {
-    pub capacity: u32,
+    pub capacity: i32,
     pub units: i32,
     pub inventory: Vec<ShipCargoItem>,
 }
