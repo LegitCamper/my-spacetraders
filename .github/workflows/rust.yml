@@ -13,19 +13,16 @@ jobs:
   build-and-test:
     runs-on: self-hosted
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      
-    - name: Compile
-      uses: mirlahiji/rust-action@master
-      with:
-        args: cargo test && cargo build --release
+      - uses: actions/checkout@v3
+      - uses: mirlahiji/rust-action@master
+        with:
+          args: cargo test && cargo build --release
         
-    - name: Upload
-      uses: actions/upload-artifact@v3
-      with:
-        name: my-spacetraders.bin
-        path: target/release/interface
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: my-spacetraders.bin
+          path: target/release/interface
 
   docker-build:
     name: Docker Build
