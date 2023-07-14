@@ -256,7 +256,7 @@ impl ShipDataAbstractor {
 
         if duration.num_milliseconds() > 0 {
             info!(
-                "{} is moving - going to sleep for {} seconds",
+                "{} is going to sleep for {} seconds",
                 self.0.lock().await.ships.get(ship_id).unwrap().symbol,
                 duration.num_seconds()
             );
@@ -298,21 +298,23 @@ impl ShipDataAbstractor {
                         waypoint_symbol: waypoint.to_string(),
                     },
                 )
-                .await
-                .unwrap()
-                .data;
-
-            (
-                self.0.lock().await.ships.get_mut(ship_id).unwrap().nav,
-                self.0.lock().await.ships.get_mut(ship_id).unwrap().fuel,
-            ) = (temp_ship_data.nav, temp_ship_data.fuel);
-
-            self.wait_flight_duration(ship_id).await;
-
-            self.chart_waypoint(ship_id).await;
-
-            self.get_fuel(ship_id, ship.fuel.consumed.amount.try_into().unwrap())
                 .await;
+
+            if temp_ship_data.is_some() {
+                let temp_ship_data = temp_ship_data.unwrap().data;
+
+                (
+                    self.0.lock().await.ships.get_mut(ship_id).unwrap().nav,
+                    self.0.lock().await.ships.get_mut(ship_id).unwrap().fuel,
+                ) = (temp_ship_data.nav, temp_ship_data.fuel);
+
+                self.wait_flight_duration(ship_id).await;
+
+                self.chart_waypoint(ship_id).await;
+
+                self.get_fuel(ship_id, ship.fuel.consumed.amount.try_into().unwrap())
+                    .await;
+            }
         }
         self.clone_ship(ship_id).await
     }

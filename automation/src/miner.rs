@@ -209,23 +209,26 @@ pub async fn sell_mining_item(
 
     info!("{} is selling {} {:?}", ship_id, item.units, item.symbol);
 
-    let mut unlocked = ship_data.0.lock().await;
+    {
+        let mut unlocked = ship_data.0.lock().await;
 
-    let temp_ship_data = unlocked
-        .spacetraders
-        .sell_cargo(
-            ship_id,
-            requests::SellCargo {
-                symbol: item.symbol.clone(),
-                units: item.units,
-            },
-        )
-        .await
-        .unwrap()
-        .data;
+        let temp_ship_data = unlocked
+            .spacetraders
+            .sell_cargo(
+                ship_id,
+                requests::SellCargo {
+                    symbol: item.symbol.clone(),
+                    units: item.units,
+                },
+            )
+            .await;
+        if temp_ship_data.is_some() {
+            let temp_ship_data = temp_ship_data.unwrap().data;
 
-    unlocked.ships.get_mut(ship_id).unwrap().cargo = temp_ship_data.cargo;
-    let (_agent, transaction) = (temp_ship_data.agent, temp_ship_data.transaction);
+            unlocked.ships.get_mut(ship_id).unwrap().cargo = temp_ship_data.cargo;
+            let (_agent, transaction) = (temp_ship_data.agent, temp_ship_data.transaction);
 
-    ship_data.add_credits(transaction.units).await;
+            unlocked.credits += transaction.units;
+        }
+    }
 }

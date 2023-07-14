@@ -66,9 +66,9 @@ async fn main() {
     SimpleLogger::new()
         .with_level(log::LevelFilter::Info)
         .with_colors(true)
-        .without_timestamps()
         .init()
         .unwrap();
+
     trace!("Starting SpaceTraders cli");
 
     let args = Args::parse();
@@ -93,6 +93,7 @@ async fn main() {
                 handle.abort();
             }
             ship_hander_data.lock().await.spacetraders.task.abort();
+            println!("{}", ship_hander_data.lock().await.spacetraders.diagnose());
             println!("Exiting - Bye!");
             std::process::exit(0);
         }

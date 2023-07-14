@@ -12,7 +12,7 @@ use responses::{
     GetStatus, {agents, contracts, factions, fleet, systems},
 };
 
-use async_recursion::async_recursion;
+// use async_recursion::async_recursion;
 use core::panic;
 use log::error;
 use rand::Rng;
@@ -92,8 +92,8 @@ impl SpaceTradersInterface {
 
     pub fn diagnose(&self) {
         panic!(
-            "\ntoken: {}\nurl: {}\nenviroment: {:#?}\nclient: {:?}",
-            self.token, self.url, self.enviroment, self.client
+            "\ntoken: {}\nurl: {}\nenviroment: {:#?}",
+            self.token, self.url, self.enviroment
         );
     }
 
@@ -249,11 +249,8 @@ impl SpaceTraders {
 
     pub fn diagnose(&self) -> String {
         format!(
-            "\ntoken: {}\nurl: {}\nenviroment: {:#?}\nclient: {:?}",
-            self.interface.token,
-            self.interface.url,
-            self.interface.enviroment,
-            self.interface.client,
+            "\ntoken: {}\nurl: {}\nenviroment: {:#?}",
+            self.interface.token, self.interface.url, self.interface.enviroment,
         )
     }
 
@@ -272,9 +269,15 @@ impl SpaceTraders {
                 oneshot: oneshot_sender,
             })
             .await
-            .ok()?;
+            .unwrap();
 
-        oneshot_receiver.await.ok()?
+        match oneshot_receiver.await {
+            Err(error) => {
+                error!("{}", error);
+                None
+            }
+            Ok(data) => Some(data?),
+        }
     }
 
     // Status
