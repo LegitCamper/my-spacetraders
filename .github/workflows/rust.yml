@@ -29,9 +29,6 @@ jobs:
           command: build
           args: --release --all-features
       
-      - name: Rename
-        run: mv target/release/interface target/release/my-spacetraders.bin
-        
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
