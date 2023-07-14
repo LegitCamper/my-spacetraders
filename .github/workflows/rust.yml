@@ -39,4 +39,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: registry.sawyer.services/my-spacetraders:latest
+          tags: registry.sawyer.services/my-spacetraders:$(date +%Y-%m-%d_%H:%M:%S)
