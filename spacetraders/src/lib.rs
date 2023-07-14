@@ -216,6 +216,7 @@ impl SpaceTraders {
         }
     }
 
+    // TODO: find most efficient starting faction
     pub async fn default() -> Self {
         let mut rng = rand::thread_rng();
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");

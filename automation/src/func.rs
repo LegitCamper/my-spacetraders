@@ -254,7 +254,7 @@ impl ShipDataAbstractor {
         let local_time_now: DateTime<Local> = offset::Utc::now().into();
         let duration: chrono::Duration = local_time_to_stop - local_time_now;
 
-        if duration.num_milliseconds() >= 0 {
+        if duration.num_milliseconds() > 0 {
             info!(
                 "{} is moving - going to sleep for {} seconds",
                 self.0.lock().await.ships.get(ship_id).unwrap().symbol,

@@ -203,7 +203,7 @@ pub struct MarketDetails {
 
 #[derive(Deserialize, Debug)]
 pub struct GetMarketTradeGood {
-    pub symbol: String,
+    pub symbol: enums::TradeSymbol,
     #[serde(alias = "tradeVolume")]
     pub trade_volume: u32,
     pub supply: enums::GetMarketSupplyType,
