@@ -101,8 +101,13 @@ impl SpaceTradersInterface {
         Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
     }
 
-    #[async_recursion]
-    async fn make_reqwest(&self, method: Method, url: &str, data: Option<Requests>) -> String {
+    // #[async_recursion]
+    async fn make_reqwest(
+        &self,
+        method: Method,
+        url: &str,
+        data: Option<Requests>,
+    ) -> Option<String> {
         let mut client = match method {
             Method::Get => self.client.get(self.get_url(url)),
             Method::Post => self.client.post(self.get_url(url)),
@@ -142,18 +147,22 @@ impl SpaceTradersInterface {
             None => client.header(CONTENT_LENGTH, "0"),
         };
 
-        let response = client.send().await.unwrap();
-        if response.status().is_success() {
-            response.text().await.unwrap()
-        // } else if response.status().as_u16() == 429 {
-        // let time_to_sleep: error_429 = response.json().await.unwrap();
-        // self.make_reqwest(method, url, data).await
-        } else {
-            panic!(
-                "status: {:?}, error: {}",
-                response.status(),
-                response.text().await.unwrap()
-            )
+        let response = client.send().await;
+        let response = match response {
+            Err(msg) => {
+                error!("{}", msg);
+                None
+            }
+            Ok(msg) => Some(msg),
+        }?
+        .text()
+        .await;
+        match response {
+            Err(msg) => {
+                error!("{}", msg);
+                None
+            }
+            Ok(msg) => Some(msg),
         }
     }
 
@@ -163,7 +172,7 @@ impl SpaceTradersInterface {
         method: Method,
         endpoint: &str,
         data: Option<Requests>,
-    ) -> String {
+    ) -> Option<String> {
         self.make_reqwest(method, endpoint, data).await
     }
 }
@@ -252,52 +261,38 @@ impl SpaceTraders {
         method: Method,
         url: String,
         data: Option<Requests>,
-    ) -> String {
+    ) -> Option<String> {
         let (oneshot_sender, oneshot_receiver) = oneshot::channel();
 
         // make request
-        match self
-            .channel
+        self.channel
             .send(ChannelMessage {
                 message: RequestMessage { method, url, data },
                 oneshot: oneshot_sender,
             })
             .await
-        {
-            Err(r) => {
-                error!("closed: {}", r);
-            }
-            Ok(s) => s,
-        }
+            .ok()?;
 
-        // listen to oneshot for response
-        match oneshot_receiver.await {
-            Ok(res) => res,
-            Err(err) => {
-                // TODO: implement error check to make sure I dont error 100 times
-                error!("Interface failed to send back a correct response: {}", err);
-                panic!("{}", self.diagnose());
-            }
-        }
+        oneshot_receiver.await.ok()?
     }
 
     // Status
-    pub async fn get_status(&self) -> GetStatus {
-        serde_json::from_str(&self.make_request(Method::Get, "".to_string(), None).await).unwrap()
+    pub async fn get_status(&self) -> Option<GetStatus> {
+        serde_json::from_str(&self.make_request(Method::Get, "".to_string(), None).await?).ok()
     }
 
     // Agents
-    pub async fn agent(&self) -> agents::Agent {
+    pub async fn agent(&self) -> Option<agents::Agent> {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, "/my/agent".to_string(), None)
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
 
     // Systems
-    pub async fn list_systems(&self, page: Option<u32>) -> systems::Systems {
+    pub async fn list_systems(&self, page: Option<u32>) -> Option<systems::Systems> {
         let page_num = page.unwrap_or(1);
         serde_json::from_str(
             &self
@@ -306,11 +301,11 @@ impl SpaceTraders {
                     format!("/systems?limit=20&page={}", page_num),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn get_system(&self, system_symbol: &SystemString) -> systems::System {
+    pub async fn get_system(&self, system_symbol: &SystemString) -> Option<systems::System> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -318,15 +313,15 @@ impl SpaceTraders {
                     format!("/systems/{}", system_symbol.system),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn list_waypoints(
         &self,
         system_symbol: &SystemString,
         page: Option<u32>,
-    ) -> systems::Waypoints {
+    ) -> Option<systems::Waypoints> {
         let page_num = page.unwrap_or(1);
         serde_json::from_str(
             &self
@@ -338,15 +333,15 @@ impl SpaceTraders {
                     ),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn get_waypoint(
         &self,
         system_symbol: &SystemString,
         waypoint_symbol: &WaypointString,
-    ) -> systems::Waypoint {
+    ) -> Option<systems::Waypoint> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -357,15 +352,15 @@ impl SpaceTraders {
                     ),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn get_market(
         &self,
         system_symbol: &SystemString,
         waypoint_symbol: &WaypointString,
-    ) -> systems::Market {
+    ) -> Option<systems::Market> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -376,15 +371,15 @@ impl SpaceTraders {
                     ),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn get_shipyard(
         &self,
         system_symbol: &SystemString,
         waypoint_symbol: &WaypointString,
-    ) -> systems::Shipyard {
+    ) -> Option<systems::Shipyard> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -395,15 +390,15 @@ impl SpaceTraders {
                     ),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn jump_gate(
         &self,
         system_symbol: &SystemString,
         waypoint_symbol: &WaypointString,
-    ) -> systems::JumpGate {
+    ) -> Option<systems::JumpGate> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -414,13 +409,13 @@ impl SpaceTraders {
                     ),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
 
     // Contracts
-    pub async fn list_contracts(&self, page_num: Option<u32>) -> contracts::Contracts {
+    pub async fn list_contracts(&self, page_num: Option<u32>) -> Option<contracts::Contracts> {
         let page_num = page_num.unwrap_or(1);
         serde_json::from_str(
             &self
@@ -429,19 +424,19 @@ impl SpaceTraders {
                     format!("/my/contracts?limit=20&page={}", page_num),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn get_contract(&self, contract_id: &str) -> contracts::Contract {
+    pub async fn get_contract(&self, contract_id: &str) -> Option<contracts::Contract> {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, format!("/my/contracts/{}", contract_id), None)
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn accept_contract(&self, contract_id: &str) -> contracts::AcceptContract {
+    pub async fn accept_contract(&self, contract_id: &str) -> Option<contracts::AcceptContract> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -449,15 +444,15 @@ impl SpaceTraders {
                     format!("/my/contracts/{}/accept", contract_id),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn deliver_contract(
         &self,
         contract_id: &str,
         data: DeliverCargoToContract,
-    ) -> contracts::DeliverContract {
+    ) -> Option<contracts::DeliverContract> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -465,11 +460,11 @@ impl SpaceTraders {
                     format!("/my/contracts/{}/deliver", contract_id),
                     Some(Requests::DeliverCargoToContract(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn fulfill_contract(&self, contract_id: &str) -> contracts::FulfillContract {
+    pub async fn fulfill_contract(&self, contract_id: &str) -> Option<contracts::FulfillContract> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -477,21 +472,21 @@ impl SpaceTraders {
                     format!("/my/contracts/{}/fulfill", contract_id),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
 
     // Fleet
-    pub async fn list_ships(&self) -> fleet::Ships {
+    pub async fn list_ships(&self) -> Option<fleet::Ships> {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, String::from("/my/ships"), None)
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn purchase_ship(&self, data: PurchaseShip) -> fleet::PurchaseShip {
+    pub async fn purchase_ship(&self, data: PurchaseShip) -> Option<fleet::PurchaseShip> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -499,19 +494,19 @@ impl SpaceTraders {
                     String::from("/my/ships"),
                     Some(Requests::PurchaseShip(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn get_ship(&self, ship_symbol: &str) -> fleet::Ship {
+    pub async fn get_ship(&self, ship_symbol: &str) -> Option<fleet::Ship> {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, format!("/my/ships/{}", ship_symbol), None)
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn get_ship_cargo(&self, ship_symbol: &str) -> fleet::ShipCargo {
+    pub async fn get_ship_cargo(&self, ship_symbol: &str) -> Option<fleet::ShipCargo> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -519,11 +514,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/cargo", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn orbit_ship(&self, ship_symbol: &str) -> fleet::OrbitShip {
+    pub async fn orbit_ship(&self, ship_symbol: &str) -> Option<fleet::OrbitShip> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -531,11 +526,15 @@ impl SpaceTraders {
                     format!("/my/ships/{}/orbit", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn ship_refine(&self, ship_symbol: &str, data: ShipRefine) -> fleet::ShipRefine {
+    pub async fn ship_refine(
+        &self,
+        ship_symbol: &str,
+        data: ShipRefine,
+    ) -> Option<fleet::ShipRefine> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -543,11 +542,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/refine", ship_symbol),
                     Some(Requests::ShipRefine(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn create_chart(&self, ship_symbol: &str) -> fleet::CreateChart {
+    pub async fn create_chart(&self, ship_symbol: &str) -> Option<fleet::CreateChart> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -555,11 +554,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/chart", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn get_ship_cooldown(&self, ship_symbol: &str) -> fleet::GetShipCooldown {
+    pub async fn get_ship_cooldown(&self, ship_symbol: &str) -> Option<fleet::GetShipCooldown> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -567,11 +566,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/cooldown", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn dock_ship(&self, ship_symbol: &str) -> fleet::DockShip {
+    pub async fn dock_ship(&self, ship_symbol: &str) -> Option<fleet::DockShip> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -579,11 +578,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/dock", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn create_survey(&self, ship_symbol: &str) -> fleet::CreateSurvey {
+    pub async fn create_survey(&self, ship_symbol: &str) -> Option<fleet::CreateSurvey> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -591,15 +590,15 @@ impl SpaceTraders {
                     format!("/my/ships/{}/survey", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn extract_resources(
         &self,
         ship_symbol: &str,
         data: Option<ExtractResources>,
-    ) -> fleet::ExtractResources {
+    ) -> Option<fleet::ExtractResources> {
         match data {
             Some(data) => serde_json::from_str(
                 &self
@@ -608,9 +607,9 @@ impl SpaceTraders {
                         format!("/my/ships/{}/extract", ship_symbol),
                         Some(Requests::ExtractResources(data)),
                     )
-                    .await,
+                    .await?,
             )
-            .unwrap(),
+            .ok(),
             None => serde_json::from_str(
                 &self
                     .make_request(
@@ -618,16 +617,16 @@ impl SpaceTraders {
                         format!("/my/ships/{}/extract", ship_symbol),
                         None,
                     )
-                    .await,
+                    .await?,
             )
-            .unwrap(),
+            .ok(),
         }
     }
     pub async fn jettison_cargo(
         &self,
         ship_symbol: &str,
         data: JettisonCargo,
-    ) -> fleet::JettisonCargo {
+    ) -> Option<fleet::JettisonCargo> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -635,11 +634,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/jettison", ship_symbol),
                     Some(Requests::JettisonCargo(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn jump_ship(&self, ship_symbol: &str, data: JumpShip) -> fleet::JumpShip {
+    pub async fn jump_ship(&self, ship_symbol: &str, data: JumpShip) -> Option<fleet::JumpShip> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -647,15 +646,15 @@ impl SpaceTraders {
                     format!("/my/ships/{}/jump", ship_symbol),
                     Some(Requests::JumpShip(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn navigate_ship(
         &self,
         ship_symbol: &str,
         data: NavigateShip,
-    ) -> fleet::NavigateShip {
+    ) -> Option<fleet::NavigateShip> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -663,15 +662,15 @@ impl SpaceTraders {
                     format!("/my/ships/{}/navigate", ship_symbol),
                     Some(Requests::NavigateShip(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn patch_ship_nav(
         &self,
         ship_symbol: &str,
         data: PatchShipNav,
-    ) -> fleet::PatchShipNav {
+    ) -> Option<fleet::PatchShipNav> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -679,19 +678,19 @@ impl SpaceTraders {
                     format!("/my/ships/{}/nav", ship_symbol),
                     Some(Requests::PatchShipNav(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn get_ship_nav(&self, ship_symbol: &str) -> fleet::GetShipNav {
+    pub async fn get_ship_nav(&self, ship_symbol: &str) -> Option<fleet::GetShipNav> {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, format!("/my/ships/{}/nav", ship_symbol), None)
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn warp_ship(&self, ship_symbol: &str, data: WarpShip) -> fleet::WarpShip {
+    pub async fn warp_ship(&self, ship_symbol: &str, data: WarpShip) -> Option<fleet::WarpShip> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -699,11 +698,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/warp", ship_symbol),
                     Some(Requests::WarpShip(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn sell_cargo(&self, ship_symbol: &str, data: SellCargo) -> fleet::SellCargo {
+    pub async fn sell_cargo(&self, ship_symbol: &str, data: SellCargo) -> Option<fleet::SellCargo> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -711,11 +710,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/sell", ship_symbol),
                     Some(Requests::SellCargo(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn scan_systems(&self, ship_symbol: &str) -> fleet::ScanSystems {
+    pub async fn scan_systems(&self, ship_symbol: &str) -> Option<fleet::ScanSystems> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -723,11 +722,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/scan/systems", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn scan_waypoints(&self, ship_symbol: &str) -> fleet::ScanWaypoints {
+    pub async fn scan_waypoints(&self, ship_symbol: &str) -> Option<fleet::ScanWaypoints> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -735,11 +734,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/scan/waypoints", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn scan_ships(&self, ship_symbol: &str) -> fleet::ScanShips {
+    pub async fn scan_ships(&self, ship_symbol: &str) -> Option<fleet::ScanShips> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -747,15 +746,15 @@ impl SpaceTraders {
                     format!("/my/ships/{}/scan/ships", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn refuel_ship(
         &self,
         ship_symbol: &str,
         fuel_amount: Option<requests::RefuelShip>,
-    ) -> fleet::RefuelShip {
+    ) -> Option<fleet::RefuelShip> {
         let fuel_amount = fuel_amount.unwrap_or(requests::RefuelShip { units: 1 });
         serde_json::from_str(
             &self
@@ -764,15 +763,15 @@ impl SpaceTraders {
                     format!("/my/ships/{}/refuel", ship_symbol),
                     Some(Requests::RefuelShip(fuel_amount)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn purchase_cargo(
         &self,
         ship_symbol: &str,
         data: PurchaseCargo,
-    ) -> fleet::PurchaseCargo {
+    ) -> Option<fleet::PurchaseCargo> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -780,15 +779,15 @@ impl SpaceTraders {
                     format!("/my/ships/{}/purchase", ship_symbol),
                     Some(Requests::PurchaseCargo(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn transfer_cargo(
         &self,
         ship_symbol: &str,
         data: TransferCargo,
-    ) -> fleet::TransferCargo {
+    ) -> Option<fleet::TransferCargo> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -796,11 +795,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/transfer", ship_symbol),
                     Some(Requests::TransferCargo(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn negotiate_contract(&self, ship_symbol: &str) -> fleet::NegotiateContract {
+    pub async fn negotiate_contract(&self, ship_symbol: &str) -> Option<fleet::NegotiateContract> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -808,11 +807,11 @@ impl SpaceTraders {
                     format!("/my/ships/{}/negotiate/contract", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn get_mounts(&self, ship_symbol: &str) -> fleet::GetMounts {
+    pub async fn get_mounts(&self, ship_symbol: &str) -> Option<fleet::GetMounts> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -820,15 +819,15 @@ impl SpaceTraders {
                     format!("/my/ships/{}/mounts", ship_symbol),
                     None,
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
     pub async fn install_mount(
         &self,
         ship_symbol: &str,
         data: InstallMount,
-    ) -> fleet::InstallMounts {
+    ) -> Option<fleet::InstallMounts> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -836,11 +835,15 @@ impl SpaceTraders {
                     format!("/my/ships/{}/mounts/install", ship_symbol),
                     Some(Requests::InstallMount(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn remove_mount(&self, ship_symbol: &str, data: RemoveMount) -> fleet::RemoveMounts {
+    pub async fn remove_mount(
+        &self,
+        ship_symbol: &str,
+        data: RemoveMount,
+    ) -> Option<fleet::RemoveMounts> {
         serde_json::from_str(
             &self
                 .make_request(
@@ -848,27 +851,27 @@ impl SpaceTraders {
                     format!("/my/ships/{}/mounts/remove", ship_symbol),
                     Some(Requests::RemoveMount(data)),
                 )
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
 
     // Factions
-    pub async fn list_factions(&self) -> factions::Factions {
+    pub async fn list_factions(&self) -> Option<factions::Factions> {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, String::from("/factions"), None)
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
-    pub async fn get_faction(&self, faction_symbol: &str) -> factions::Faction {
+    pub async fn get_faction(&self, faction_symbol: &str) -> Option<factions::Faction> {
         serde_json::from_str(
             &self
                 .make_request(Method::Get, format!("/factions/{}", faction_symbol), None)
-                .await,
+                .await?,
         )
-        .unwrap()
+        .ok()
     }
 }
 
@@ -881,7 +884,7 @@ pub struct RequestMessage {
 #[derive(Debug)]
 pub struct ChannelMessage {
     message: RequestMessage,
-    oneshot: oneshot::Sender<String>,
+    oneshot: oneshot::Sender<Option<String>>,
 }
 
 // Waypoint handlers //

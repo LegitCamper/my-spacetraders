@@ -22,7 +22,7 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
         None => spacetraders::SpaceTraders::default().await,
     };
 
-    let credits = space_traders.agent().await.data.credits;
+    let credits = space_traders.agent().await.unwrap().data.credits;
     let systems_db = cache::build_system_db(&space_traders).await;
     let euclidean_distances =
         automation::cache::build_euclidean_distance(systems_db, &space_traders).await;

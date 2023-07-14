@@ -35,6 +35,7 @@ pub struct ShipHandlerData {
     pub contracts: HashMap<String, Contract>,
     pub surveys: HashMap<WaypointString, CreateSurveyData>,
     pub waypoints: HashMap<WaypointString, schemas::Waypoint>,
+    // TODO: definatly cache market stuff to optimize refuel func
     pub credits: f64,
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }
@@ -49,6 +50,7 @@ pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandlerData>>) 
         .spacetraders
         .list_ships()
         .await
+        .unwrap()
         .data;
 
     for ship in ships.into_iter() {
@@ -126,13 +128,13 @@ async fn contractor_loop(
 
 async fn miner_loop(ship_id: &str, ship_data: ShipDataAbstractor, channel: mpsc::Sender<Ship>) {
     loop {
-        admin::admin_stuff(
-            ship_id,
-            ship_data.clone(),
-            &[enums::ShipType::ShipMiningDrone],
-            channel.clone(),
-        )
-        .await;
+        // admin::admin_stuff(
+        //     ship_id,
+        //     ship_data.clone(),
+        //     &[enums::ShipType::ShipMiningDrone],
+        //     channel.clone(),
+        // )
+        // .await;
         miner::mine_astroid(ship_id, ship_data.clone()).await;
     }
 }
@@ -146,6 +148,7 @@ async fn explorer_loop(ship_id: &str, ship_data: ShipDataAbstractor, channel: mp
             channel.clone(),
         )
         .await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(120)).await;
         // explorer::
     }
 }

@@ -108,7 +108,7 @@ impl ShipDataAbstractor {
             .nav
             .waypoint_symbol
             .clone();
-        let survey = unlocked.spacetraders.create_survey(ship_id).await;
+        let survey = unlocked.spacetraders.create_survey(ship_id).await.unwrap();
         self.0
             .lock()
             .await
@@ -120,14 +120,28 @@ impl ShipDataAbstractor {
 
     pub async fn orbit_ship(&self, ship_id: &str) {
         trace!("Orbit Ship");
-        let ship = self.0.lock().await.spacetraders.orbit_ship(ship_id).await;
+        let ship = self
+            .0
+            .lock()
+            .await
+            .spacetraders
+            .orbit_ship(ship_id)
+            .await
+            .unwrap();
         self.0.lock().await.ships.get_mut(ship_id).unwrap().nav = ship.data.nav;
         self.wait_flight_duration(ship_id).await;
     }
 
     pub async fn dock_ship(&self, ship_id: &str) {
         trace!("Dock Ship");
-        let ship = self.0.lock().await.spacetraders.dock_ship(ship_id).await;
+        let ship = self
+            .0
+            .lock()
+            .await
+            .spacetraders
+            .dock_ship(ship_id)
+            .await
+            .unwrap();
         self.0.lock().await.ships.get_mut(ship_id).unwrap().nav = ship.data.nav;
         self.wait_flight_duration(ship_id).await;
     }
@@ -142,6 +156,7 @@ impl ShipDataAbstractor {
                     .spacetraders
                     .get_waypoint(&waypoint.to_system(), &waypoint)
                     .await
+                    .unwrap()
                     .data;
                 if new_waypoint.chart.submitted_by.is_empty() {
                     new_waypoint
@@ -158,13 +173,18 @@ impl ShipDataAbstractor {
         trace!("Get Waypoints");
         let mut unlocked = self.0.lock().await;
 
-        let mut waypoints = unlocked.spacetraders.list_waypoints(system, None).await;
+        let mut waypoints = unlocked
+            .spacetraders
+            .list_waypoints(system, None)
+            .await
+            .unwrap();
         if waypoints.meta.total > 1 {
             for num in 2..waypoints.meta.total {
                 let paged_waypoints = unlocked
                     .spacetraders
                     .list_waypoints(system, Some(num))
                     .await
+                    .unwrap()
                     .data;
                 for paged_waypoint in paged_waypoints.iter() {
                     waypoints.data.push(paged_waypoint.clone())
@@ -209,7 +229,8 @@ impl ShipDataAbstractor {
             let waypoint = unlocked
                 .spacetraders
                 .get_waypoint(&ship_location.to_system(), &ship_location)
-                .await;
+                .await
+                .unwrap();
 
             if waypoint.data.chart.submitted_by.is_empty() {
                 unlocked.spacetraders.create_chart(ship_id).await;
@@ -278,6 +299,7 @@ impl ShipDataAbstractor {
                     },
                 )
                 .await
+                .unwrap()
                 .data;
 
             (
@@ -310,6 +332,7 @@ impl ShipDataAbstractor {
                     .spacetraders
                     .get_market(&waypoint.system_symbol, &waypoint.symbol)
                     .await
+                    .unwrap()
                     .data;
                 for tradegood in market.exports.iter() {
                     if tradegood.symbol == enums::TradeSymbol::Fuel {
@@ -382,4 +405,6 @@ impl ShipDataAbstractor {
             // wait_duration(time_to_stop.data.nav.route.arrival).await;
         }
     }
+    // pub async fn get_market()
+    // TODO: cache market data
 }

@@ -188,7 +188,9 @@ pub struct Market {
     pub exports: Vec<MarketDetails>,
     pub imports: Vec<MarketDetails>,
     pub exchange: Vec<MarketDetails>,
+    #[serde(default)]
     pub transactions: Vec<MarketTransaction>,
+    #[serde(default)]
     #[serde(alias = "tradeGoods")]
     pub trade_goods: Vec<GetMarketTradeGood>,
 }

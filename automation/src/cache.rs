@@ -36,7 +36,7 @@ pub async fn build_system_db(space_traders: &SpaceTraders) -> Vec<schemas::Syste
                 Ok(data) => {
                     info!("{} integrity check good", SYSTEMDB_FILE);
 
-                    if data.date < space_traders.get_status().await.reset_date {
+                    if data.date < space_traders.get_status().await.unwrap().reset_date {
                         info!("{} is outdated", SYSTEMDB_FILE);
                         remove_file(SYSTEMDB_FILE).unwrap();
                         return build_system_db(space_traders).await;
@@ -50,7 +50,7 @@ pub async fn build_system_db(space_traders: &SpaceTraders) -> Vec<schemas::Syste
     } else {
         info!("{} does not exist - building ", SYSTEMDB_FILE);
         // let num_systems = space_traders_unlocked.get_status().await.stats.systems; // TODO: this currently does not work, but should replace below
-        let num_systems = space_traders.list_systems(None).await.meta.total;
+        let num_systems = space_traders.list_systems(None).await.unwrap().meta.total;
         info!(
             "There are ~{} systems - Building will take ~{} minute(s)",
             num_systems,
@@ -60,7 +60,13 @@ pub async fn build_system_db(space_traders: &SpaceTraders) -> Vec<schemas::Syste
         let mut systems: Vec<schemas::System> = Vec::new();
 
         for page in 1..((num_systems / 20) + 1) {
-            for system in space_traders.list_systems(Some(page)).await.data.iter() {
+            for system in space_traders
+                .list_systems(Some(page))
+                .await
+                .unwrap()
+                .data
+                .iter()
+            {
                 systems.push(system.clone());
             }
         }
@@ -115,7 +121,7 @@ pub async fn build_euclidean_distance(
             Ok(data) => {
                 info!("{} integrity check good", DISTANCESDB_FILE);
 
-                if data.date < space_traders.get_status().await.reset_date {
+                if data.date < space_traders.get_status().await.unwrap().reset_date {
                     info!("{} is outdated", DISTANCESDB_FILE);
                     remove_file(DISTANCESDB_FILE).unwrap();
                     return build_euclidean_distance(systems_db, space_traders).await;

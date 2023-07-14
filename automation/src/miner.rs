@@ -32,6 +32,9 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
             mine_distances.push((waypoint, distance));
         }
     }
+    if mine_distances.is_empty() {
+        warn!("{} Failed to find mineable location", ship_id);
+    }
 
     // sort the distances
     {
@@ -80,6 +83,7 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
                 .spacetraders
                 .extract_resources(ship_id, None)
                 .await
+                .unwrap()
                 .data;
 
             ship_data
@@ -93,6 +97,10 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
             let (cooldown, _extraction) = (temp_ship_data.cooldown, temp_ship_data.extraction);
 
             if &temp_ship_data.cargo.capacity - &temp_ship_data.cargo.units > 1 {
+                info!(
+                    "{} is on cooldown from mining for {} seconds",
+                    ship_id, cooldown.remaining_seconds
+                );
                 sleep(Duration::from_secs(cooldown.remaining_seconds.into())).await;
                 continue;
             } else {
@@ -116,6 +124,9 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
                 }
             }
         }
+        if mine_distances.is_empty() {
+            warn!("{} Failed to find a market location", ship_id);
+        }
 
         // sort the distances
         {
@@ -132,46 +143,59 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
             }
         }
 
-        for (waypoint, _distance) in mine_distances.iter() {
-            let ship = ship_data
-                .travel_waypoint(ship_id, waypoint.symbol.waypoint.as_str())
-                .await
-                .unwrap();
-
-            if ship.nav.status == enums::ShipNavStatus::InOrbit {
-                ship_data.dock_ship(ship_id).await;
-            } else if ship.nav.status == enums::ShipNavStatus::InTransit {
-                ship_data.wait_flight_duration(ship_id).await;
-                ship_data.dock_ship(ship_id).await;
-            }
-
-            // TODO: make sure not to sell goods used for contracts
-            // TODO: also make sure I can sell that good here
-            for item in ship.cargo.inventory.clone().iter() {
-                info!("{} is selling {} {:?}", ship_id, item.units, item.symbol);
-
-                let mut unlocked = ship_data.0.lock().await;
-
-                let temp_ship_data = unlocked
-                    .spacetraders
-                    .sell_cargo(
-                        ship_id,
-                        requests::SellCargo {
-                            symbol: item.symbol.clone(),
-                            units: item.units,
-                        },
-                    )
+        // TODO: make sure not to sell goods used for contracts
+        for item in ship.cargo.inventory.clone().iter() {
+            for (waypoint, _distance) in mine_distances.iter() {
+                let market = ship_data
+                    .0
+                    .lock()
                     .await
+                    .spacetraders
+                    .get_market(&waypoint.system_symbol, &waypoint.symbol)
+                    .await
+                    .unwrap()
                     .data;
+                for tradegood in market.exports.iter() {
+                    if tradegood.symbol == item.symbol {
+                        let ship = ship_data
+                            .travel_waypoint(ship_id, waypoint.symbol.waypoint.as_str())
+                            .await
+                            .unwrap();
 
-                unlocked.ships.get_mut(ship_id).unwrap().cargo = temp_ship_data.cargo;
-                let (_agent, transaction) = (temp_ship_data.agent, temp_ship_data.transaction);
+                        if ship.nav.status == enums::ShipNavStatus::InOrbit {
+                            ship_data.dock_ship(ship_id).await;
+                        } else if ship.nav.status == enums::ShipNavStatus::InTransit {
+                            ship_data.wait_flight_duration(ship_id).await;
+                            ship_data.dock_ship(ship_id).await;
+                        }
 
-                ship_data.add_credits(transaction.units).await;
+                        info!("{} is selling {} {:?}", ship_id, item.units, item.symbol);
+
+                        let mut unlocked = ship_data.0.lock().await;
+
+                        let temp_ship_data = unlocked
+                            .spacetraders
+                            .sell_cargo(
+                                ship_id,
+                                requests::SellCargo {
+                                    symbol: item.symbol.clone(),
+                                    units: item.units,
+                                },
+                            )
+                            .await
+                            .unwrap()
+                            .data;
+
+                        unlocked.ships.get_mut(ship_id).unwrap().cargo = temp_ship_data.cargo;
+                        let (_agent, transaction) =
+                            (temp_ship_data.agent, temp_ship_data.transaction);
+
+                        ship_data.add_credits(transaction.units).await;
+                    }
+                    return;
+                }
+                warn!("{} unable to find location to buy {:?}", ship_id, item)
             }
-            return;
         }
-        //TODO: else maybe fly to the closest system with a shipyard - TODO: Pathfinding
     }
-    warn!("{} Failed to find asteroid", ship_id);
 }

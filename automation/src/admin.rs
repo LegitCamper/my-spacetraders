@@ -25,7 +25,8 @@ pub async fn admin_stuff(
         .await
         .spacetraders
         .list_contracts(None)
-        .await;
+        .await
+        .unwrap();
 
     if contracts.meta.total > 1 {
         for num in 2..contracts.meta.total {
@@ -36,6 +37,7 @@ pub async fn admin_stuff(
                 .spacetraders
                 .list_contracts(Some(num))
                 .await
+                .unwrap()
                 .data;
             for paged_contract in paged_contracts.iter() {
                 contracts.data.push(paged_contract.clone())
@@ -100,7 +102,7 @@ pub async fn buy_ship(
                     .get_shipyard(&waypoint.system_symbol, &waypoint.symbol)
                     .await;
 
-                for shipyard_ship in shipyard.data.ships.iter() {
+                for shipyard_ship in shipyard.unwrap().data.ships.iter() {
                     for ship_type in ship_types {
                         if shipyard_ship.r#type == *ship_type {
                             if shipyard_ship.purchase_price < ship_data.get_credits().await {
@@ -112,7 +114,8 @@ pub async fn buy_ship(
                                         ship_type: shipyard_ship.r#type,
                                         waypoint_symbol: waypoint.symbol.clone().waypoint,
                                     })
-                                    .await;
+                                    .await
+                                    .unwrap();
 
                                 channel.send(new_ship.data.ship.clone()).await.unwrap();
 
