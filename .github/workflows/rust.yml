@@ -28,25 +28,17 @@ jobs:
         with:
           command: build
           args: --release --all-features
+      
+      - name: Rename
+        run: mv target/release/interface target/release/my-spacetraders.bin
         
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
-          name: my-spacetraders.bin
-          path: target/release/interface
+          name: my-spacetraders
+          path: target/release/my-spacetraders.bin
 
-  docker-build:
-    name: Docker Build
-    needs: build-and-test
-    runs-on: self-hosted
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        
-      - name: Bin
-        uses: actions/download-artifact@v3
-
-      - name: Build
+      - name: Docker
         id: build
         uses: cloudposse/github-action-docker-build-push@main
         with:
