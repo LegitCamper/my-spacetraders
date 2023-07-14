@@ -25,7 +25,7 @@ jobs:
         path: target/release/interface
 
   docker-build:
-    name: Multiply by 9
+    name: Docker Build
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
