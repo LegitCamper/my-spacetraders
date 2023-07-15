@@ -1,6 +1,8 @@
 use automation::{self, cache, start_ship_handler, ShipHandlerData};
 use spacetraders::{self, SpaceTraders}; // responses::schemas
-mod tui;
+
+mod site;
+use site::start_server;
 
 use clap::Parser;
 use core::panic;
@@ -23,9 +25,7 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
     };
 
     let credits = space_traders.agent().await.unwrap().data.credits;
-    let systems_db = cache::build_system_db(&space_traders).await;
-    let euclidean_distances =
-        automation::cache::build_euclidean_distance(systems_db, &space_traders).await;
+    let euclidean_distances = automation::cache::build_euclidean_distance(&space_traders).await;
     let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
         handles: vec![],
         spacetraders: space_traders,
@@ -37,7 +37,7 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
         euclidean_distances,
     }));
 
-    let ship_handler: task::JoinHandle<()> =
+    let ship_handler: JoinHandle<()> =
         tokio::task::spawn(start_ship_handler(ship_handler_data.clone()));
 
     (ship_handler_data, ship_handler)
@@ -53,7 +53,7 @@ struct Args {
 
     /// Run in interactive if true
     /// and headless if false
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, default_value_t = true)]
     interactive: bool,
 
     /// Starts automation for the agent
@@ -79,9 +79,9 @@ async fn main() {
                 None => start_automation(None).await,
                 Some(token) => start_automation(Some(token)).await,
             };
-            match args.interactive {
-                true => tui::start(ship_hander_data.clone()).unwrap(),
-                false => (), // runs in cli/headless mode
+            ship_hander_data.lock().await.spacetraders.task.abort(); // TODO: remove this
+            if args.interactive {
+                site::start_server().await
             }
 
             tokio::select! {

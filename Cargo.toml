@@ -1,6 +1,2 @@
 [workspace]
-members = [
-    "spacetraders",
-    "automation",
-    "interface"
-]
+members = ["spacetraders", "automation", "interface"]

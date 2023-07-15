@@ -12,7 +12,7 @@ use responses::{
     GetStatus, {agents, contracts, factions, fleet, systems},
 };
 
-// use async_recursion::async_recursion;
+use async_recursion::async_recursion;
 use core::panic;
 use log::error;
 use rand::Rng;
@@ -217,11 +217,11 @@ impl SpaceTraders {
     }
 
     // TODO: find most efficient starting faction
+    #[async_recursion]
     pub async fn default() -> Self {
-        let mut rng = rand::thread_rng();
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = RegisterNewAgent {
-            faction: rng.gen::<enums::FactionSymbols>(),
+            faction: rand::thread_rng().gen::<enums::FactionSymbols>(),
             symbol: username,
             email: None,
         };
@@ -238,7 +238,10 @@ impl SpaceTraders {
             Ok(registration) => {
                 SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Live).await
             }
-            Err(error) => panic!("{}\nTransitive error occured - please re-run", error),
+            Err(_) => {
+                error!("Transitive error occured creating new agent. Trying again");
+                SpaceTraders::default().await
+            }
         }
     }
 
