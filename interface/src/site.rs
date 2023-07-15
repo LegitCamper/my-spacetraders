@@ -1,11 +1,15 @@
+use super::ShipHandlerData;
+
 use axum::{routing::post, Router};
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[component]
 fn App(cx: Scope) -> impl IntoView {
     view! { cx,
-        <link rel="stylesheet" href="../../style.css" />
+        <link rel="stylesheet" href="./style.css" />
         // Top navigation
         <div class="topnav">
 
@@ -25,12 +29,10 @@ fn App(cx: Scope) -> impl IntoView {
             </div>
 
         </div>
-        <p> "Hello World" </p>
-        <h1> "Hello World" </h1>
     }
 }
 
-pub async fn start_server() {
+pub async fn start_server(_ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
     let conf = get_configuration(Some("./interface/Cargo.toml"))
         .await
         .unwrap();

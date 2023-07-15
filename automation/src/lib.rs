@@ -16,11 +16,7 @@ mod miner;
 use cache::AllEuclideanDistances;
 use func::ShipDataAbstractor;
 
-// use async_recursion::async_recursion;
-// use chrono::{offset, serde::ts_milliseconds, DateTime, NaiveDateTime, Utc};
-// use itertools::Itertools;
 use log::{info, trace};
-// use rayon::prelude::*;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
     sync::{mpsc, Mutex},

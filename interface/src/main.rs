@@ -79,9 +79,8 @@ async fn main() {
                 None => start_automation(None).await,
                 Some(token) => start_automation(Some(token)).await,
             };
-            ship_hander_data.lock().await.spacetraders.task.abort(); // TODO: remove this
             if args.interactive {
-                site::start_server().await
+                site::start_server(ship_hander_data.clone()).await
             }
 
             tokio::select! {

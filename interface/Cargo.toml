@@ -9,14 +9,11 @@ edition = "2018"
 [dependencies]
 spacetraders = { path = "../spacetraders" }
 automation = { path = "../automation" }
-crossterm = { version = "0.26.1", features = ["serde"] }
 clap = { version = "4.3.10", features = ["derive"] }
 simple_logger = "4.2.0"
 log = "0.4.19"
 leptos = { version = "0.4.3", features = ["csr"] }
 axum = "0.6.18"
-serde = { version = "1", features = ["derive"] }
-tower = { version = "0.4.13", optional = true }
 tokio = { version = "1.22.0", features = ["full"] }
 leptos_axum = "0.4.3"
 
@@ -26,5 +23,5 @@ skip_feature_sets = [["ssr", "hydrate"]]
 
 [package.metadata.leptos]
 output-name = "start-axum"
-style-file = "style.css"
+style-file = "./style.css"
 site-addr = "127.0.0.1:3000"
