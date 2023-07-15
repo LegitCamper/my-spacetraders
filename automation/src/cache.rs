@@ -1,90 +1,19 @@
-use spacetraders::{responses::schemas, SpaceTraders};
+use spacetraders::{
+    responses::{schemas, systems},
+    SpaceTraders,
+};
 
 use async_recursion::async_recursion;
-use chrono::{serde::ts_milliseconds, DateTime, Utc};
-// use itertools::Itertools;
+use chrono::{DateTime, Utc};
 use log::{info, trace};
 // use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{read_to_string, remove_file, File},
     path::Path,
+    sync::Arc,
 };
-
-#[derive(Debug, Serialize, Deserialize)]
-struct SystemDB {
-    #[serde(with = "ts_milliseconds")]
-    date: DateTime<Utc>,
-    data: Vec<schemas::System>,
-}
-
-const SYSTEMDB_FILE: &str = "systemDB.json";
-
-#[async_recursion]
-pub async fn build_system_db(space_traders: &SpaceTraders) -> Vec<schemas::System> {
-    trace!("Building system DB");
-
-    if Path::new(SYSTEMDB_FILE).is_file() {
-        let systems: SystemDB =
-            match serde_json::from_str::<SystemDB>(&read_to_string(SYSTEMDB_FILE).unwrap()) {
-                Err(_) => {
-                    info!("removing currupted {}", SYSTEMDB_FILE);
-
-                    remove_file(SYSTEMDB_FILE).unwrap();
-                    return build_system_db(space_traders).await;
-                }
-                Ok(data) => {
-                    info!("{} integrity check good", SYSTEMDB_FILE);
-
-                    if data.date < space_traders.get_status().await.unwrap().reset_date {
-                        info!("{} is outdated", SYSTEMDB_FILE);
-                        remove_file(SYSTEMDB_FILE).unwrap();
-                        return build_system_db(space_traders).await;
-                    }
-
-                    data
-                }
-            };
-
-        systems.data
-    } else {
-        info!("{} does not exist - building ", SYSTEMDB_FILE);
-        // let num_systems = space_traders_unlocked.get_status().await.stats.systems; // TODO: this currently does not work, but should replace below
-        let num_systems = space_traders.list_systems(None).await.unwrap().meta.total;
-        info!(
-            "There are ~{} systems - Building will take ~{} minute(s)",
-            num_systems,
-            num_systems / 2400 // = 20 per page every 500 milliseconds / 60 min
-        );
-
-        let mut systems: Vec<schemas::System> = Vec::new();
-
-        for page in 1..((num_systems / 20) + 1) {
-            for system in space_traders
-                .list_systems(Some(page))
-                .await
-                .unwrap()
-                .data
-                .iter()
-            {
-                systems.push(system.clone());
-            }
-        }
-        info!("Writing new systems to {}", SYSTEMDB_FILE);
-
-        serde_json::to_writer_pretty(
-            &File::create(SYSTEMDB_FILE).unwrap(),
-            &SystemDB {
-                date: chrono::offset::Utc::now(),
-                data: systems.clone(),
-            },
-        )
-        .unwrap();
-
-        info!("{} systems in db", systems.len());
-        systems
-    }
-}
+use tokio::sync::Mutex;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SerdeEuclideanDistances {
@@ -102,10 +31,7 @@ pub struct AllEuclideanDistances {
 const DISTANCESDB_FILE: &str = "distancesDB.json";
 
 #[async_recursion]
-pub async fn build_euclidean_distance(
-    systems_db: Vec<schemas::System>,
-    space_traders: &SpaceTraders,
-) -> Vec<AllEuclideanDistances> {
+pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEuclideanDistances> {
     trace!("Building Euclidean Distances");
 
     if Path::new(DISTANCESDB_FILE).is_file() {
@@ -116,7 +42,7 @@ pub async fn build_euclidean_distance(
                 info!("removing currupted {}", DISTANCESDB_FILE);
 
                 remove_file(DISTANCESDB_FILE).unwrap();
-                return build_euclidean_distance(systems_db, space_traders).await;
+                return build_euclidean_distance(space_traders).await;
             }
             Ok(data) => {
                 info!("{} integrity check good", DISTANCESDB_FILE);
@@ -124,7 +50,7 @@ pub async fn build_euclidean_distance(
                 if data.date < space_traders.get_status().await.unwrap().reset_date {
                     info!("{} is outdated", DISTANCESDB_FILE);
                     remove_file(DISTANCESDB_FILE).unwrap();
-                    return build_euclidean_distance(systems_db, space_traders).await;
+                    return build_euclidean_distance(space_traders).await;
                 }
 
                 data
@@ -133,11 +59,43 @@ pub async fn build_euclidean_distance(
 
         distances.distances
     } else {
-        info!("{} does not exist - building ", DISTANCESDB_FILE);
+        //TODO: should multithread this to download quicker
+        let num_systems = space_traders.get_status().await.unwrap().stats.systems;
+
+        info!(
+            "{} does not exist - Downloading will take ~{} minute(s) to to fetch {} systems",
+            DISTANCESDB_FILE,
+            num_systems / 2400, // = 20 per page every 500 milliseconds / 60 min
+            num_systems,
+        );
+
+        let systems: Arc<Mutex<Vec<schemas::System>>> = Arc::new(Mutex::new(Vec::new()));
+
+        for task_numers in 1..(((num_systems / 20) + 1) / 100) {
+            let new_space_traders = SpaceTraders::default().await;
+            let systems = systems.clone();
+            tokio::task::spawn(async move {
+                for page in 1..task_numers {
+                    for system in new_space_traders
+                        .list_systems(Some(page))
+                        .await
+                        .unwrap()
+                        .data
+                        .iter()
+                    {
+                        systems.lock().await.push(system.clone());
+                    }
+                }
+            });
+        }
+
+        info!("Calclulating System Distances");
 
         let mut all_euclidean_distance: Vec<AllEuclideanDistances> = Vec::new();
 
-        for system in systems_db.iter() {
+        let systems = systems.lock().await;
+
+        for system in systems.iter() {
             // consider using rayon here
             all_euclidean_distance.push(AllEuclideanDistances {
                 name: system.symbol.system.clone(),
@@ -145,15 +103,15 @@ pub async fn build_euclidean_distance(
                 y: system.y,
                 euclidean_distance: euclidean_distance(
                     system,
-                    &systems_db,
-                    Some(systems_db.len().try_into().unwrap()),
+                    &systems,
+                    Some(systems.len().try_into().unwrap()),
                 ),
             });
         }
 
         info!("Writing new distances to {}", DISTANCESDB_FILE);
 
-        serde_json::to_writer_pretty(
+        serde_json::to_writer(
             &File::create(DISTANCESDB_FILE).unwrap(),
             &SerdeEuclideanDistances {
                 date: chrono::offset::Utc::now(),
