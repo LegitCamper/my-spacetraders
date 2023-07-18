@@ -13,7 +13,10 @@ use std::{
     path::Path,
     sync::Arc,
 };
-use tokio::sync::Mutex;
+use tokio::{
+    sync::Mutex,
+    task::{self, JoinHandle},
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SerdeEuclideanDistances {
@@ -70,11 +73,12 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
         );
 
         let systems: Arc<Mutex<Vec<schemas::System>>> = Arc::new(Mutex::new(Vec::new()));
+        let mut systems_handles: Vec<JoinHandle<()>> = Vec::new();
 
         for task_numers in 1..(((num_systems / 20) + 1) / 100) {
             let new_space_traders = SpaceTraders::default().await;
             let systems = systems.clone();
-            tokio::task::spawn(async move {
+            systems_handles.push(task::spawn(async move {
                 for page in 1..task_numers {
                     for system in new_space_traders
                         .list_systems(Some(page))
@@ -86,28 +90,45 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
                         systems.lock().await.push(system.clone());
                     }
                 }
-            });
+            }));
+        }
+
+        for handle in systems_handles.into_iter() {
+            handle.await.unwrap();
         }
 
         info!("Calclulating System Distances");
 
-        let mut all_euclidean_distance: Vec<AllEuclideanDistances> = Vec::new();
+        let all_euclidean_distance: Arc<Mutex<Vec<AllEuclideanDistances>>> =
+            Arc::new(Mutex::new(Vec::new()));
+        let mut euclidean_handles: Vec<JoinHandle<()>> = Vec::new();
 
-        let systems = systems.lock().await;
+        let systems_len = systems.lock().await.len();
+        let loop_systems = systems.lock().await.clone();
 
-        for system in systems.iter() {
-            // consider using rayon here
-            all_euclidean_distance.push(AllEuclideanDistances {
-                name: system.symbol.system.clone(),
-                x: system.x,
-                y: system.y,
-                euclidean_distance: euclidean_distance(
-                    system,
-                    &systems,
-                    Some(systems.len().try_into().unwrap()),
-                ),
-            });
+        for system in loop_systems {
+            let all_euclidean_distance = all_euclidean_distance.clone();
+            let systems = systems.clone();
+            euclidean_handles.push(task::spawn(async move {
+                let distances = AllEuclideanDistances {
+                    name: system.symbol.system.clone(),
+                    x: system.x,
+                    y: system.y,
+                    euclidean_distance: euclidean_distance(
+                        &system,
+                        systems,
+                        Some(systems_len.try_into().unwrap()),
+                    )
+                    .await,
+                };
+                all_euclidean_distance.lock().await.push(distances)
+            }));
         }
+
+        for handle in euclidean_handles.into_iter() {
+            handle.await.unwrap();
+        }
+        let all_euclidean_distance = all_euclidean_distance.lock().await;
 
         info!("Writing new distances to {}", DISTANCESDB_FILE);
 
@@ -120,7 +141,7 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
         )
         .unwrap();
 
-        all_euclidean_distance
+        all_euclidean_distance.to_vec()
     }
 }
 
@@ -132,9 +153,9 @@ pub struct EuclideanDistances {
     pub y: i32,
 }
 
-fn euclidean_distance(
+async fn euclidean_distance(
     current_system: &schemas::System,
-    systems: &[schemas::System],
+    systems: Arc<Mutex<Vec<schemas::System>>>,
     num_returns: Option<u32>,
 ) -> Vec<EuclideanDistances> {
     trace!("Euclidean Distance Caluclations");
@@ -143,7 +164,9 @@ fn euclidean_distance(
     let mut closest_systems: Vec<EuclideanDistances> = Vec::new();
     let (my_x, my_y) = (current_system.x, current_system.y);
 
-    for system in systems.iter() {
+    let loop_systems = systems.lock().await.clone();
+
+    for system in loop_systems.iter() {
         let (x, y) = (system.x, system.y);
 
         let distance: f64 =
