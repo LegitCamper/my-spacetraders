@@ -8,7 +8,7 @@ use spacetraders::{
 
 use super::func::ShipDataAbstractor;
 
-use log::{error, info, trace, warn};
+use log::{info, trace, warn}; // error
 use tokio::time::{sleep, Duration};
 
 pub fn sort_distance(
@@ -79,41 +79,20 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
                 break 'inner;
             }
         }
+
         loop {
-            let temp_ship_data = match ship_data
-                .0
-                .lock()
-                .await
-                .spacetraders
-                .extract_resources(ship_id, None)
-                .await
+            if let Some((cargo, cooldown, _extraction)) = ship_data.extract_resources(ship_id).await
             {
-                Some(data) => data.data,
-                None => {
-                    error!("{} Failed to extract resources", ship_id);
+                if cargo.capacity - cargo.units > 1 {
+                    info!(
+                        "{} is on cooldown from mining for {} seconds",
+                        ship_id, cooldown.remaining_seconds
+                    );
+                    sleep(Duration::from_secs(cooldown.remaining_seconds.into())).await;
+                    continue;
+                } else {
                     break;
                 }
-            };
-
-            ship_data
-                .0
-                .lock()
-                .await
-                .ships
-                .get_mut(ship_id)
-                .unwrap()
-                .cargo = temp_ship_data.cargo.clone();
-            let (cooldown, _extraction) = (temp_ship_data.cooldown, temp_ship_data.extraction);
-
-            if &temp_ship_data.cargo.capacity - &temp_ship_data.cargo.units > 1 {
-                info!(
-                    "{} is on cooldown from mining for {} seconds",
-                    ship_id, cooldown.remaining_seconds
-                );
-                sleep(Duration::from_secs(cooldown.remaining_seconds.into())).await;
-                continue;
-            } else {
-                break;
             }
         }
     }
@@ -163,19 +142,19 @@ pub async fn sell_mining_cargo(ship_id: &str, ship_data: ShipDataAbstractor) {
                 .data;
             for tradegood in market.imports.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(ship_id, ship_data.clone(), &item, waypoint).await;
+                    sell_mining_item(ship_id, ship_data.clone(), item, waypoint).await;
                     continue 'inner;
                 }
             }
             for tradegood in market.exchange.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(ship_id, ship_data.clone(), &item, waypoint).await;
+                    sell_mining_item(ship_id, ship_data.clone(), item, waypoint).await;
                     break 'inner;
                 }
             }
             for tradegood in market.trade_goods.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(ship_id, ship_data.clone(), &item, waypoint).await;
+                    sell_mining_item(ship_id, ship_data.clone(), item, waypoint).await;
                     break 'inner;
                 }
             }

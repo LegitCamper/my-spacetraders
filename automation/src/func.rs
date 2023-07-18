@@ -11,7 +11,7 @@ use spacetraders::{
 
 // use async_recursion::async_recursion;
 use chrono::{offset, DateTime, Local};
-use log::{info, trace};
+use log::{error, info, trace};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
     sync::Mutex,
@@ -89,14 +89,14 @@ impl ShipDataAbstractor {
 
     pub async fn get_survey(&self, waypoint: &WaypointString) -> Option<fleet::CreateSurveyData> {
         trace!("Get Survey");
-        self.0.lock().await.surveys.get(&waypoint).cloned()
+        self.0.lock().await.surveys.get(waypoint).cloned()
     }
     pub async fn remove_survey(
         &self,
         waypoint: &WaypointString,
     ) -> Option<fleet::CreateSurveyData> {
         trace!("Remove Survey");
-        self.0.lock().await.surveys.remove(&waypoint)
+        self.0.lock().await.surveys.remove(waypoint)
     }
     pub async fn create_survey(&self, ship_id: &str) -> Option<Vec<schemas::Survey>> {
         trace!("Create Survey");
@@ -149,12 +149,12 @@ impl ShipDataAbstractor {
     pub async fn get_waypoint(&self, waypoint: &WaypointString) -> schemas::Waypoint {
         trace!("Get Waypoint");
         let mut unlocked = self.0.lock().await;
-        match unlocked.waypoints.get(&waypoint) {
+        match unlocked.waypoints.get(waypoint) {
             Some(data) => data.clone(),
             None => {
                 let new_waypoint = unlocked
                     .spacetraders
-                    .get_waypoint(&waypoint.to_system(), &waypoint)
+                    .get_waypoint(&waypoint.to_system(), waypoint)
                     .await
                     .unwrap()
                     .data;
@@ -278,8 +278,6 @@ impl ShipDataAbstractor {
             .await;
 
         if ship.nav.waypoint_symbol.waypoint != waypoint {
-            // there is also a case where the ship is in transit and neither docked or there
-
             if ship.nav.status == enums::ShipNavStatus::Docked {
                 self.orbit_ship(ship_id).await;
             } else if ship.nav.status == enums::ShipNavStatus::InTransit {
@@ -337,33 +335,33 @@ impl ShipDataAbstractor {
                     .unwrap()
                     .data;
                 for tradegood in market.exports.iter() {
-                    if tradegood.symbol == enums::TradeSymbol::Fuel {
-                        if ship.fuel.current != ship.fuel.capacity {
-                            if ship.nav.status == enums::ShipNavStatus::Docked {
-                                self.0
-                                    .lock()
-                                    .await
-                                    .spacetraders
-                                    .refuel_ship(
-                                        ship_id,
-                                        Some(requests::RefuelShip { units: fuel_amount }),
-                                    )
-                                    .await;
-                            } else if ship.nav.status == enums::ShipNavStatus::InOrbit {
-                                self.dock_ship(ship_id).await;
-                                self.0
-                                    .lock()
-                                    .await
-                                    .spacetraders
-                                    .refuel_ship(
-                                        ship_id,
-                                        Some(requests::RefuelShip { units: fuel_amount }),
-                                    )
-                                    .await;
-                                self.orbit_ship(ship_id).await;
-                            }
-                            return;
+                    if tradegood.symbol == enums::TradeSymbol::Fuel
+                        && ship.fuel.current != ship.fuel.capacity
+                    {
+                        if ship.nav.status == enums::ShipNavStatus::Docked {
+                            self.0
+                                .lock()
+                                .await
+                                .spacetraders
+                                .refuel_ship(
+                                    ship_id,
+                                    Some(requests::RefuelShip { units: fuel_amount }),
+                                )
+                                .await;
+                        } else if ship.nav.status == enums::ShipNavStatus::InOrbit {
+                            self.dock_ship(ship_id).await;
+                            self.0
+                                .lock()
+                                .await
+                                .spacetraders
+                                .refuel_ship(
+                                    ship_id,
+                                    Some(requests::RefuelShip { units: fuel_amount }),
+                                )
+                                .await;
+                            self.orbit_ship(ship_id).await;
                         }
+                        return;
                     }
                 }
             }
@@ -405,6 +403,29 @@ impl ShipDataAbstractor {
             //     .await;
 
             // wait_duration(time_to_stop.data.nav.route.arrival).await;
+        }
+    }
+
+    pub async fn extract_resources(
+        &self,
+        ship_id: &str,
+    ) -> Option<(schemas::ShipCargo, schemas::Cooldown, schemas::Extraction)> {
+        let mut unlocked = self.0.lock().await;
+        let ship_data = match unlocked.spacetraders.extract_resources(ship_id, None).await {
+            Some(data) => Some(data.data),
+            None => {
+                error!("{} Failed to extract resources", ship_id);
+                None
+            }
+        };
+
+        if ship_data.is_some() {
+            let ship_data = ship_data.unwrap();
+            unlocked.ships.get_mut(ship_id).unwrap().cargo = ship_data.cargo.clone();
+            let (cooldown, extraction) = (ship_data.cooldown, ship_data.extraction);
+            Some((ship_data.cargo, cooldown, extraction))
+        } else {
+            None
         }
     }
     // pub async fn get_market()
