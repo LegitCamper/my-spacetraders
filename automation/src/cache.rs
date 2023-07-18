@@ -6,10 +6,9 @@ use spacetraders::{
 use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};
 use log::{info, trace};
-// use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{
-    fs::{read_to_string, remove_file, File},
+    fs::{remove_file, File},
     path::Path,
     sync::Arc,
 };
@@ -31,16 +30,16 @@ pub struct AllEuclideanDistances {
     pub euclidean_distance: Vec<EuclideanDistances>,
 }
 
-const DISTANCESDB_FILE: &str = "distancesDB.json";
+const DISTANCESDB_FILE: &str = "distances.cbor";
 
 #[async_recursion]
 pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEuclideanDistances> {
     trace!("Building Euclidean Distances");
 
     if Path::new(DISTANCESDB_FILE).is_file() {
-        let distances: SerdeEuclideanDistances = match serde_json::from_str::<SerdeEuclideanDistances>(
-            &read_to_string(DISTANCESDB_FILE).unwrap(),
-        ) {
+        let distance_file: Result<SerdeEuclideanDistances, ciborium::de::Error<std::io::Error>> =
+            ciborium::from_reader(&File::open(DISTANCESDB_FILE).unwrap());
+        let distances: SerdeEuclideanDistances = match distance_file {
             Err(_) => {
                 info!("removing currupted {}", DISTANCESDB_FILE);
 
@@ -132,12 +131,12 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
 
         info!("Writing new distances to {}", DISTANCESDB_FILE);
 
-        serde_json::to_writer(
-            &File::create(DISTANCESDB_FILE).unwrap(),
+        ciborium::into_writer(
             &SerdeEuclideanDistances {
                 date: chrono::offset::Utc::now(),
                 distances: all_euclidean_distance.clone(),
             },
+            &File::create(DISTANCESDB_FILE).unwrap(),
         )
         .unwrap();
 
