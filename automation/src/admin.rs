@@ -48,7 +48,7 @@ pub async fn admin_stuff(
     let mut needed_ship = vec![];
 
     for contract in contracts.data.iter() {
-        if contract.accepted == false {
+        if !contract.accepted {
             // TODO: check the expiration here
             // TODO: definatly make sure not to accept too many or clan ranking goes down
             match contract.r#type {

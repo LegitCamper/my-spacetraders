@@ -122,7 +122,7 @@ async fn contractor_loop(
     }
 }
 
-async fn miner_loop(ship_id: &str, ship_data: ShipDataAbstractor, channel: mpsc::Sender<Ship>) {
+async fn miner_loop(ship_id: &str, ship_data: ShipDataAbstractor, _channel: mpsc::Sender<Ship>) {
     loop {
         miner::mine_astroid(ship_id, ship_data.clone()).await;
         miner::sell_mining_cargo(ship_id, ship_data.clone()).await;

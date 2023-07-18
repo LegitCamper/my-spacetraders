@@ -59,11 +59,13 @@ pub struct GetStatusServerResets {
     pub next: DateTime<Utc>,
     pub frequency: String,
 }
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetStatusAnnouncements {
     title: String,
     body: String,
 }
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct GetStatusLinks {
     name: String,

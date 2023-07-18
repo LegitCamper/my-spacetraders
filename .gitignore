@@ -4,3 +4,4 @@ systemDB.json
 distancesDB.json
 dist
 distances.cbor
+output.txt

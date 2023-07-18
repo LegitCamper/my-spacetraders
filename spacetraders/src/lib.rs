@@ -218,6 +218,7 @@ impl SpaceTraders {
 
     // TODO: find most efficient starting faction
     #[async_recursion]
+    #[allow(clippy::should_implement_trait)]
     pub async fn default() -> Self {
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = RegisterNewAgent {
@@ -1017,7 +1018,7 @@ pub mod spacetraders_datetime_format {
     use chrono::{DateTime, TimeZone, Utc};
     use serde::{self, Deserialize, Deserializer, Serializer};
 
-    const FORMAT: &'static str = "%+";
+    const FORMAT: &str = "%+";
 
     pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -1040,7 +1041,7 @@ pub mod spacetraders_date_format {
     use chrono::{DateTime, TimeZone, Utc};
     use serde::{self, Deserialize, Deserializer, Serializer};
 
-    const FORMAT: &'static str = "%+";
+    const FORMAT: &str = "%+";
 
     pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
     where

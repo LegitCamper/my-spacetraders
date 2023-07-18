@@ -1,8 +1,8 @@
-use automation::{self, cache, start_ship_handler, ShipHandlerData};
+use automation::{self, start_ship_handler, ShipHandlerData};
 use spacetraders::{self, SpaceTraders}; // responses::schemas
 
-mod site;
-use site::start_server;
+// mod site;
+// use site::start_server;
 
 use clap::Parser;
 use core::panic;
@@ -37,8 +37,7 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
         euclidean_distances,
     }));
 
-    let ship_handler: JoinHandle<()> =
-        tokio::task::spawn(start_ship_handler(ship_handler_data.clone()));
+    let ship_handler: JoinHandle<()> = task::spawn(start_ship_handler(ship_handler_data.clone()));
 
     (ship_handler_data, ship_handler)
 }
@@ -79,9 +78,9 @@ async fn main() {
                 None => start_automation(None).await,
                 Some(token) => start_automation(Some(token)).await,
             };
-            if args.interactive {
-                site::start_server(ship_hander_data.clone()).await
-            }
+            // if args.interactive {
+            //     site::start_server(ship_hander_data.clone()).await
+            // }
 
             tokio::select! {
                 _ = signal::ctrl_c() => {}

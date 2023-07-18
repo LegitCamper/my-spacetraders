@@ -1,5 +1,5 @@
 use spacetraders::{
-    responses::{schemas, systems},
+    responses::schemas, // systems
     SpaceTraders,
 };
 
