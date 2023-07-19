@@ -1,11 +1,7 @@
-use automation::{self, start_ship_handler, ShipHandlerData};
+use automation::{start_ship_handler, ShipHandlerData};
 use spacetraders::{self, SpaceTraders}; // responses::schemas
 
-// mod site;
-// use site::start_server;
-
 use clap::Parser;
-use core::panic;
 use log::trace;
 use simple_logger::SimpleLogger;
 use std::{collections::HashMap, sync::Arc};
@@ -49,15 +45,6 @@ struct Args {
     /// (otherwise generate new agent)
     #[arg(short, long)]
     token: Option<String>,
-
-    /// Run in interactive if true
-    /// and headless if false
-    #[arg(short, long, default_value_t = true)]
-    interactive: bool,
-
-    /// Starts automation for the agent
-    #[arg(short, long, default_value_t = true)]
-    automation: bool,
 }
 
 #[tokio::main]
@@ -72,32 +59,21 @@ async fn main() {
 
     let args = Args::parse();
 
-    match args.automation {
-        true => {
-            let (ship_hander_data, ship_handler_handle) = match args.token {
-                None => start_automation(None).await,
-                Some(token) => start_automation(Some(token)).await,
-            };
-            // if args.interactive {
-            //     site::start_server(ship_hander_data.clone()).await
-            // }
+    let (ship_hander_data, ship_handler_handle) = match args.token {
+        None => start_automation(None).await,
+        Some(token) => start_automation(Some(token)).await,
+    };
 
-            tokio::select! {
-                _ = signal::ctrl_c() => {}
-            }
-
-            ship_handler_handle.abort();
-            for handle in ship_hander_data.lock().await.handles.iter() {
-                handle.abort();
-            }
-            ship_hander_data.lock().await.spacetraders.task.abort();
-            println!("{}", ship_hander_data.lock().await.spacetraders.diagnose());
-            println!("Exiting - Bye!");
-            std::process::exit(0);
-        }
-        false => match args.interactive {
-            true => (),
-            false => (),
-        },
+    tokio::select! {
+        _ = signal::ctrl_c() => {}
     }
+
+    ship_handler_handle.abort();
+    for handle in ship_hander_data.lock().await.handles.iter() {
+        handle.abort();
+    }
+    ship_hander_data.lock().await.spacetraders.task.abort();
+    println!("{}", ship_hander_data.lock().await.spacetraders.diagnose());
+    println!("Exiting - Bye!");
+    std::process::exit(0);
 }

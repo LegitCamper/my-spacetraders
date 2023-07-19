@@ -92,8 +92,8 @@ impl SpaceTradersInterface {
 
     pub fn diagnose(&self) {
         panic!(
-            "\ntoken: {}\nurl: {}\nenviroment: {:#?}",
-            self.token, self.url, self.enviroment
+            "\nurl: {}\nenviroment: {:#?}\ntoken: {}",
+            self.url, self.enviroment, self.token,
         );
     }
 
@@ -253,8 +253,8 @@ impl SpaceTraders {
 
     pub fn diagnose(&self) -> String {
         format!(
-            "\ntoken: {}\nurl: {}\nenviroment: {:#?}",
-            self.interface.token, self.interface.url, self.interface.enviroment,
+            "\nurl: {}\nenviroment: {:#?}\ntoken: {}",
+            self.interface.url, self.interface.enviroment, self.interface.token,
         )
     }
 

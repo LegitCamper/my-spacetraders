@@ -7,14 +7,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-spacetraders = { path =  "../spacetraders/"}
+spacetraders = { path = "../spacetraders/" }
 chrono = { version = "0.4.24", features = ["serde"] }
 log = "0.4.19"
+clap = { version = "4.3.10", features = ["derive"] }
+simple_logger = "4.2.0"
 serde = "1.0.164"
-serde_json = { version = "1.0.99", fetures = ["std"] }
 tokio = { version = "1.28.2", features = ["full"] }
 async-recursion = "1.0.4"
-itertools = "0.11.0"
-rayon = "1.7.0"
 ciborium = "0.2.1"
-ciborium-io = "0.2.1"

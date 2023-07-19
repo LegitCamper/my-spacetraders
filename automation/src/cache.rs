@@ -65,10 +65,8 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
         let num_systems = space_traders.get_status().await.unwrap().stats.systems;
 
         info!(
-            "{} does not exist - Downloading will take ~{} minute(s) to to fetch {} systems",
-            DISTANCESDB_FILE,
-            num_systems / 2400, // = 20 per page every 500 milliseconds / 60 min
-            num_systems,
+            "{} does not exist - Downloading {} systems",
+            DISTANCESDB_FILE, num_systems,
         );
 
         let systems: Arc<Mutex<Vec<schemas::System>>> = Arc::new(Mutex::new(Vec::new()));
