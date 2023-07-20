@@ -164,8 +164,7 @@ impl ShipWrapper {
                             ()
                         }
                     }
-                    // return Some(survey.data.surveys.clone().ship_handler]);
-                    return None;
+                    return Some(survey.data.surveys[0].clone());
                 } else {
                     return None;
                 }
@@ -510,27 +509,31 @@ impl ShipWrapper {
         &self,
     ) -> Option<(schemas::ShipCargo, schemas::Cooldown, schemas::Extraction)> {
         let survey = self.create_survey().await;
-        let mut unlocked = self.ship_handler.lock().await;
-        let ship_data = match survey {
-            Some(survey) => match unlocked
-                .spacetraders
-                .extract_resources(&self.ship_id, Some(survey))
-                .await
-            {
-                Some(data) => Some(data.data),
-                None => {
-                    error!("{} Failed to extract resources", self.ship_id);
-                    None
-                }
-            },
-            None => None,
+        let ship = match self
+            .ship_handler
+            .lock()
+            .await
+            .spacetraders
+            .extract_resources(&self.ship_id, survey)
+            .await
+        {
+            Some(data) => Some(data.data),
+            None => {
+                error!("{} Failed to extract resources", self.ship_id);
+                None
+            }
         };
 
-        if ship_data.is_some() {
-            let ship_data = ship_data.unwrap();
-            unlocked.ships.get_mut(&self.ship_id).unwrap().cargo = ship_data.cargo.clone();
-            let (cooldown, extraction) = (ship_data.cooldown, ship_data.extraction);
-            Some((ship_data.cargo, cooldown, extraction))
+        if let Some(ship) = ship {
+            self.ship_handler
+                .lock()
+                .await
+                .ships
+                .get_mut(&self.ship_id)
+                .unwrap()
+                .cargo = ship.cargo.clone();
+            let (cooldown, extraction) = (ship.cooldown, ship.extraction);
+            Some((ship.cargo, cooldown, extraction))
         } else {
             None
         }
