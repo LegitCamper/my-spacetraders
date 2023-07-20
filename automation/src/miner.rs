@@ -83,7 +83,7 @@ pub async fn mine_astroid(ship_data: ShipWrapper) {
                     break;
                 }
             } else {
-                error!("{}: Semething went wrong extracting", ship_data.ship_id);
+                error!("{} Extracting failed", ship_data.ship_id);
                 break;
             }
         }
@@ -156,6 +156,10 @@ pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
             ship_data.ship_id, item.symbol
         );
         // Assuming this is correct unless I travel elsewhere I should just jettison
+        info!(
+            "{} Jettison {} {:?}",
+            ship_data.ship_id, item.units, item.symbol
+        );
         ship_data
             .ship_handler
             .lock()
