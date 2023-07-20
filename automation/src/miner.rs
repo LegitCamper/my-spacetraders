@@ -154,7 +154,21 @@ pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
         warn!(
             "{} Unable to find location to sell {:?}",
             ship_data.ship_id, item.symbol
-        )
+        );
+        // Assuming this is correct unless I travel elsewhere I should just jettison
+        ship_data
+            .ship_handler
+            .lock()
+            .await
+            .spacetraders
+            .jettison_cargo(
+                &ship_data.ship_id,
+                requests::JettisonCargo {
+                    symbol: item.symbol.clone(),
+                    units: item.units,
+                },
+            )
+            .await;
     }
 }
 
