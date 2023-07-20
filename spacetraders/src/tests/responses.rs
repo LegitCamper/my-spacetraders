@@ -1,10 +1,10 @@
 use crate::{
     enums::{self, FlightMode, ShipType, TradeSymbol},
     requests::{
-        ExtractResources, ExtractResourcesSurvey, ExtractResourcesSurveyDeposits, InstallMount,
-        JettisonCargo, JumpShip, NavigateShip, PatchShipNav, PurchaseCargo, PurchaseShip,
-        RemoveMount, SellCargo, ShipRefine, TransferCargo, WarpShip,
+        ExtractResources, InstallMount, JettisonCargo, JumpShip, NavigateShip, PatchShipNav,
+        PurchaseCargo, PurchaseShip, RemoveMount, SellCargo, ShipRefine, TransferCargo, WarpShip,
     },
+    responses::schemas::SurveyDeposit,
     Method, SpaceTraders, SystemString, WaypointString,
 };
 
@@ -351,16 +351,16 @@ async fn extract_resources() {
             .extract_resources(
                 STRING,
                 Some(ExtractResources {
-                    survey: ExtractResourcesSurvey {
-                        signature: STRING.into(),
-                        symbol: STRING.into(),
-                        deposits: vec![ExtractResourcesSurveyDeposits {
-                            symbol: STRING.into(),
-                        }],
-                        // TODO: make into datatime
-                        expiration: "2019-08-24T14:15:22Z".into(),
-                        size: enums::DepositSize::Small,
-                    },
+                    signature: STRING.into(),
+                    symbol: STRING.into(),
+                    deposits: vec![
+                        (SurveyDeposit {
+                            symbol: STRING.to_string(),
+                        }),
+                    ],
+                    // TODO: make into datatime
+                    expiration: chrono::offset::Utc::now(),
+                    size: enums::DepositSize::Small,
                 }),
             )
             .await;

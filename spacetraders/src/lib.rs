@@ -9,7 +9,7 @@ use requests::{
     ShipRefine, TransferCargo, WarpShip,
 };
 use responses::{
-    GetStatus, {agents, contracts, factions, fleet, systems},
+    schemas, GetStatus, {agents, contracts, factions, fleet, systems},
 };
 
 use async_recursion::async_recursion;
@@ -605,7 +605,7 @@ impl SpaceTraders {
     pub async fn extract_resources(
         &self,
         ship_symbol: &str,
-        data: Option<ExtractResources>,
+        data: Option<schemas::Survey>,
     ) -> Option<fleet::ExtractResources> {
         match data {
             Some(data) => serde_json::from_str(

@@ -126,10 +126,24 @@ impl ShipDataAbstractor {
                         .waypoint_symbol
                         .clone();
                     let survey = unlocked.spacetraders.create_survey(ship_id).await.unwrap();
-                    unlocked
-                        .surveys
-                        .insert(ship_posistion, survey.data.surveys.clone());
-                    // match
+
+                    match unlocked.surveys.get(&ship.nav.waypoint_symbol) {
+                        Some(_) => {
+                            for survey in survey.data.surveys.iter() {
+                                unlocked
+                                    .surveys
+                                    .get_mut(&ship.nav.waypoint_symbol)
+                                    .unwrap()
+                                    .push(survey.clone());
+                            }
+                        }
+                        None => {
+                            unlocked
+                                .surveys
+                                .insert(ship_posistion, survey.data.surveys.clone());
+                            ()
+                        }
+                    }
                     // return Some(survey.data.surveys.clone()[0]);
                     return None;
                 } else {
@@ -432,18 +446,21 @@ impl ShipDataAbstractor {
         &self,
         ship_id: &str,
     ) -> Option<(schemas::ShipCargo, schemas::Cooldown, schemas::Extraction)> {
-        self.create_survey(ship_id).await;
+        let survey = self.create_survey(ship_id).await;
         let mut unlocked = self.0.lock().await;
-        let ship_data = match unlocked
-            .spacetraders
-            .extract_resources(ship_id, survey)
-            .await
-        {
-            Some(data) => Some(data.data),
-            None => {
-                error!("{} Failed to extract resources", ship_id);
-                None
-            }
+        let ship_data = match survey {
+            Some(survey) => match unlocked
+                .spacetraders
+                .extract_resources(ship_id, Some(survey))
+                .await
+            {
+                Some(data) => Some(data.data),
+                None => {
+                    error!("{} Failed to extract resources", ship_id);
+                    None
+                }
+            },
+            None => None,
         };
 
         if ship_data.is_some() {

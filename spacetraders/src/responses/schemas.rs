@@ -535,7 +535,7 @@ pub struct ShipyardTransaction {
     pub timestamp: String,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Survey {
     pub signature: String,
     pub symbol: String,
@@ -546,7 +546,7 @@ pub struct Survey {
     pub size: enums::DepositSize,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SurveyDeposit {
     pub symbol: String, // maybe change to enum TradeSymbol
 }

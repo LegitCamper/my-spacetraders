@@ -1,5 +1,7 @@
 use serde::Serialize;
 
+use crate::responses::schemas::Survey;
+
 use super::enums::{DepositSize, FactionSymbols, FlightMode, ShipType, TradeSymbol};
 
 #[derive(Debug, Serialize)]
@@ -43,22 +45,7 @@ pub struct ShipRefine {
     pub produce: TradeSymbol,
 }
 
-#[derive(Serialize, Debug)]
-pub struct ExtractResources {
-    pub survey: ExtractResourcesSurvey,
-}
-#[derive(Serialize, Debug)]
-pub struct ExtractResourcesSurvey {
-    pub signature: String,
-    pub symbol: String,
-    pub deposits: Vec<ExtractResourcesSurveyDeposits>,
-    pub expiration: String, // datetime
-    pub size: DepositSize,
-}
-#[derive(Serialize, Debug)]
-pub struct ExtractResourcesSurveyDeposits {
-    pub symbol: String,
-}
+pub use crate::responses::schemas::Survey as ExtractResources;
 
 #[derive(Serialize, Debug)]
 pub struct JettisonCargo {
