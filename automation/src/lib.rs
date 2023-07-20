@@ -29,7 +29,7 @@ pub struct ShipHandlerData {
     pub spacetraders: SpaceTraders,
     pub ships: HashMap<String, Ship>,
     pub contracts: HashMap<String, Contract>,
-    pub surveys: HashMap<WaypointString, CreateSurveyData>,
+    pub surveys: HashMap<WaypointString, Vec<schemas::Survey>>,
     pub waypoints: HashMap<WaypointString, schemas::Waypoint>,
     // TODO: definatly cache market stuff to optimize refuel func
     pub credits: f64,

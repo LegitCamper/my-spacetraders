@@ -70,16 +70,6 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
 
         info!("{} Starting mining astroid", ship_id);
 
-        'inner: for mount in ship.mounts.iter() {
-            if mount.symbol == enums::ShipMount::MountSurveyorI
-                || mount.symbol == enums::ShipMount::MountSurveyorIi
-                || mount.symbol == enums::ShipMount::MountSurveyorIii
-            {
-                let _surveys = ship_data.create_survey(ship_id).await;
-                break 'inner;
-            }
-        }
-
         loop {
             if let Some((cargo, cooldown, _extraction)) = ship_data.extract_resources(ship_id).await
             {

@@ -87,35 +87,57 @@ impl ShipDataAbstractor {
             .insert(contract_id.to_string(), contract)
     }
 
-    pub async fn get_survey(&self, waypoint: &WaypointString) -> Option<fleet::CreateSurveyData> {
-        trace!("Get Survey");
-        self.0.lock().await.surveys.get(waypoint).cloned()
-    }
-    pub async fn remove_survey(
-        &self,
-        waypoint: &WaypointString,
-    ) -> Option<fleet::CreateSurveyData> {
+    pub async fn remove_survey(&self, waypoint: &WaypointString) -> Option<schemas::Survey> {
         trace!("Remove Survey");
-        self.0.lock().await.surveys.remove(waypoint)
+        match self.0.lock().await.surveys.remove(waypoint) {
+            // TODO: maybe do something fancier here
+            Some(surveys) => Some(surveys[0].to_owned()),
+            None => None,
+        }
     }
-    pub async fn create_survey(&self, ship_id: &str) -> Option<Vec<schemas::Survey>> {
+    pub async fn create_survey(&self, ship_id: &str) -> Option<schemas::Survey> {
         trace!("Create Survey");
-        let unlocked = self.0.lock().await;
-        let ship_posistion = unlocked
-            .ships
-            .get(ship_id)
-            .unwrap()
-            .nav
-            .waypoint_symbol
-            .clone();
-        let survey = unlocked.spacetraders.create_survey(ship_id).await.unwrap();
-        self.0
-            .lock()
-            .await
-            .surveys
-            .insert(ship_posistion, survey.data.clone());
-        //TODO: when spacetraders lib has better error handling consider returning none here
-        Some(survey.data.surveys)
+
+        let ship = self.clone_ship(ship_id).await.unwrap();
+        let mut unlocked = self.0.lock().await;
+        let survey = unlocked.surveys.get(&ship.nav.waypoint_symbol);
+
+        if survey.is_some() {
+            let survey = survey.unwrap();
+            if survey.len() >= 1 {
+                Some(survey[0].clone())
+            // TODO:       ^^^^ maybe do something fancier here
+            } else {
+                drop(unlocked);
+                self.remove_survey(&ship.nav.waypoint_symbol).await;
+                None
+            }
+        } else {
+            for mount in ship.mounts.iter() {
+                if mount.symbol == enums::ShipMount::MountSurveyorI
+                    || mount.symbol == enums::ShipMount::MountSurveyorIi
+                    || mount.symbol == enums::ShipMount::MountSurveyorIii
+                {
+                    let ship_posistion = unlocked
+                        .ships
+                        .get(ship_id)
+                        .unwrap()
+                        .nav
+                        .waypoint_symbol
+                        .clone();
+                    let survey = unlocked.spacetraders.create_survey(ship_id).await.unwrap();
+                    unlocked
+                        .surveys
+                        .insert(ship_posistion, survey.data.surveys.clone());
+                    // match
+                    // return Some(survey.data.surveys.clone()[0]);
+                    return None;
+                } else {
+                    return None;
+                }
+            }
+            None
+        }
     }
 
     pub async fn orbit_ship(&self, ship_id: &str) {
@@ -410,8 +432,13 @@ impl ShipDataAbstractor {
         &self,
         ship_id: &str,
     ) -> Option<(schemas::ShipCargo, schemas::Cooldown, schemas::Extraction)> {
+        self.create_survey(ship_id).await;
         let mut unlocked = self.0.lock().await;
-        let ship_data = match unlocked.spacetraders.extract_resources(ship_id, None).await {
+        let ship_data = match unlocked
+            .spacetraders
+            .extract_resources(ship_id, survey)
+            .await
+        {
             Some(data) => Some(data.data),
             None => {
                 error!("{} Failed to extract resources", ship_id);
