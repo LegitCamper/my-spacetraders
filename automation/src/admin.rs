@@ -6,21 +6,21 @@ use spacetraders::{
     responses,
 };
 
-use super::func::ShipDataAbstractor;
+use super::func::ShipWrapper;
 
 use log::{info, trace, warn};
 use tokio::sync::mpsc;
 
 pub async fn admin_stuff(
     ship_id: &str,
-    ship_data: ShipDataAbstractor,
+    ship_data: ShipWrapper,
     _ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
     trace!("Look at contracts");
 
     let mut contracts = ship_data
-        .0
+        .ship_handler
         .lock()
         .await
         .spacetraders
@@ -31,7 +31,7 @@ pub async fn admin_stuff(
     if contracts.meta.total > 1 {
         for num in 2..contracts.meta.total {
             let paged_contracts = ship_data
-                .0
+                .ship_handler
                 .lock()
                 .await
                 .spacetraders
@@ -77,13 +77,13 @@ pub async fn admin_stuff(
 
 pub async fn buy_ship(
     ship_id: &str,
-    ship_data: ShipDataAbstractor,
+    ship_data: ShipWrapper,
     ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
     trace!("Buy mining ship");
 
-    let ship = ship_data.clone_ship(ship_id).await.unwrap();
+    let ship = ship_data.clone_ship().await.unwrap();
 
     let waypoints = ship_data.get_waypoints(&ship.nav.system_symbol).await;
 
@@ -91,11 +91,11 @@ pub async fn buy_ship(
         for r#trait in waypoint.traits.iter() {
             if r#trait.symbol == enums::WaypointTrait::Shipyard {
                 ship_data
-                    .travel_waypoint(ship_id, waypoint.symbol.waypoint.as_str())
+                    .travel_waypoint(waypoint.symbol.waypoint.as_str())
                     .await;
 
                 let shipyard = ship_data
-                    .0
+                    .ship_handler
                     .lock()
                     .await
                     .spacetraders
@@ -106,7 +106,7 @@ pub async fn buy_ship(
                     for ship_type in ship_types {
                         if shipyard_ship.r#type == *ship_type {
                             if shipyard_ship.purchase_price < ship_data.get_credits().await {
-                                let mut unlocked = ship_data.0.lock().await;
+                                let mut unlocked = ship_data.ship_handler.lock().await;
 
                                 let new_ship = unlocked
                                     .spacetraders

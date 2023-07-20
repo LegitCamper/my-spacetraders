@@ -6,7 +6,7 @@ use spacetraders::{
     responses::schemas,
 };
 
-use super::func::ShipDataAbstractor;
+use super::func::ShipWrapper;
 
 use log::{info, trace, warn}; // error
 use tokio::time::{sleep, Duration};
@@ -28,10 +28,10 @@ pub fn sort_distance(
     mine_distances
 }
 
-pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
+pub async fn mine_astroid(ship_id: &str, ship_data: ShipWrapper) {
     trace!("{} Mining Astroid", ship_id);
 
-    let ship = ship_data.clone_ship(ship_id).await.unwrap();
+    let ship = ship_data.clone_ship().await.unwrap();
     let waypoints = ship_data.get_waypoints(&ship.nav.system_symbol).await;
     let ship_waypoint = ship_data.get_waypoint(&ship.nav.waypoint_symbol).await;
 
@@ -57,22 +57,21 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
 
     for (waypoint, _distance) in mine_distances.iter() {
         let ship = ship_data
-            .travel_waypoint(ship_id, waypoint.symbol.waypoint.as_str())
+            .travel_waypoint(waypoint.symbol.waypoint.as_str())
             .await
             .unwrap();
 
         if ship.nav.status == enums::ShipNavStatus::Docked {
-            ship_data.orbit_ship(ship_id).await;
+            ship_data.orbit_ship().await;
         } else if ship.nav.status == enums::ShipNavStatus::InTransit {
-            ship_data.wait_flight_duration(ship_id).await;
-            ship_data.orbit_ship(ship_id).await;
+            ship_data.wait_flight_duration().await;
+            ship_data.orbit_ship().await;
         }
 
         info!("{} Starting mining astroid", ship_id);
 
         loop {
-            if let Some((cargo, cooldown, _extraction)) = ship_data.extract_resources(ship_id).await
-            {
+            if let Some((cargo, cooldown, _extraction)) = ship_data.extract_resources().await {
                 if cargo.capacity - cargo.units > 1 {
                     info!(
                         "{} is on cooldown from mining for {} seconds",
@@ -88,10 +87,10 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipDataAbstractor) {
     }
 }
 
-pub async fn sell_mining_cargo(ship_id: &str, ship_data: ShipDataAbstractor) {
+pub async fn sell_mining_cargo(ship_id: &str, ship_data: ShipWrapper) {
     trace!("Sell Mining Cargo");
 
-    let ship = ship_data.clone_ship(ship_id).await.unwrap();
+    let ship = ship_data.clone_ship().await.unwrap();
     let waypoints = ship_data.get_waypoints(&ship.nav.system_symbol).await;
     let ship_waypoint = ship_data.get_waypoint(&ship.nav.waypoint_symbol).await;
 
@@ -122,7 +121,7 @@ pub async fn sell_mining_cargo(ship_id: &str, ship_data: ShipDataAbstractor) {
     for item in ship.cargo.inventory.clone().iter() {
         'inner: for (waypoint, _distance) in mine_distances.iter() {
             let market = ship_data
-                .0
+                .ship_handler
                 .lock()
                 .await
                 .spacetraders
@@ -158,28 +157,28 @@ pub async fn sell_mining_cargo(ship_id: &str, ship_data: ShipDataAbstractor) {
 
 pub async fn sell_mining_item(
     ship_id: &str,
-    ship_data: ShipDataAbstractor,
+    ship_data: ShipWrapper,
     item: &schemas::ShipCargoItem,
     waypoint: &schemas::Waypoint,
 ) {
     trace!("Sell Mining Item");
 
     let ship = ship_data
-        .travel_waypoint(ship_id, waypoint.symbol.waypoint.as_str())
+        .travel_waypoint(waypoint.symbol.waypoint.as_str())
         .await
         .unwrap();
 
     if ship.nav.status == enums::ShipNavStatus::InOrbit {
-        ship_data.dock_ship(ship_id).await;
+        ship_data.dock_ship().await;
     } else if ship.nav.status == enums::ShipNavStatus::InTransit {
-        ship_data.wait_flight_duration(ship_id).await;
-        ship_data.dock_ship(ship_id).await;
+        ship_data.wait_flight_duration().await;
+        ship_data.dock_ship().await;
     }
 
     info!("{} is selling {} {:?}", ship_id, item.units, item.symbol);
 
     {
-        let mut unlocked = ship_data.0.lock().await;
+        let mut unlocked = ship_data.ship_handler.lock().await;
 
         let temp_ship_data = unlocked
             .spacetraders

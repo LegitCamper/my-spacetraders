@@ -14,7 +14,7 @@ pub mod explorer;
 mod func;
 mod miner;
 use cache::AllEuclideanDistances;
-use func::ShipDataAbstractor;
+use func::ShipWrapper;
 
 use log::{info, trace};
 use std::{collections::HashMap, sync::Arc};
@@ -24,7 +24,7 @@ use tokio::{
 };
 
 #[derive(Debug)]
-pub struct ShipHandlerData {
+pub struct ShipHandler {
     pub handles: Vec<task::JoinHandle<()>>,
     pub spacetraders: SpaceTraders,
     pub ships: HashMap<String, Ship>,
@@ -36,7 +36,7 @@ pub struct ShipHandlerData {
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }
 
-pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandlerData>>) {
+pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandler>>) {
     trace!("Start Ship Handler");
     let (tx, mut rx) = mpsc::channel(100);
 
@@ -74,18 +74,13 @@ pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandlerData>>) 
 
 pub async fn ship_handler(
     ship_id: &str,
-    ship_handler_data: Arc<Mutex<ShipHandlerData>>,
+    ship_handler_data: Arc<Mutex<ShipHandler>>,
     channel: mpsc::Sender<Ship>,
 ) {
     trace!("Ship Handler");
-    let ship_data = ShipDataAbstractor::new(ship_handler_data);
+    let ship_data = ShipWrapper::new(ship_handler_data, ship_id);
 
-    let role = ship_data
-        .clone_ship(ship_id)
-        .await
-        .unwrap()
-        .registration
-        .role;
+    let role = ship_data.clone_ship().await.unwrap().registration.role;
 
     match role {
         enums::ShipRole::Fabricator => todo!(),
@@ -105,11 +100,7 @@ pub async fn ship_handler(
     };
 }
 
-async fn contractor_loop(
-    ship_id: &str,
-    ship_data: ShipDataAbstractor,
-    channel: mpsc::Sender<Ship>,
-) {
+async fn contractor_loop(ship_id: &str, ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
     loop {
         admin::admin_stuff(
             ship_id,
@@ -122,14 +113,14 @@ async fn contractor_loop(
     }
 }
 
-async fn miner_loop(ship_id: &str, ship_data: ShipDataAbstractor, _channel: mpsc::Sender<Ship>) {
+async fn miner_loop(ship_id: &str, ship_data: ShipWrapper, _channel: mpsc::Sender<Ship>) {
     loop {
         miner::mine_astroid(ship_id, ship_data.clone()).await;
         miner::sell_mining_cargo(ship_id, ship_data.clone()).await;
     }
 }
 
-async fn explorer_loop(ship_id: &str, ship_data: ShipDataAbstractor, channel: mpsc::Sender<Ship>) {
+async fn explorer_loop(ship_id: &str, ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
     loop {
         admin::admin_stuff(
             ship_id,

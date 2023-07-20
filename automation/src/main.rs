@@ -1,5 +1,5 @@
-use automation::{start_ship_handler, ShipHandlerData};
-use spacetraders::{self, SpaceTraders}; // responses::schemas
+use automation::{start_ship_handler, ShipHandler};
+use spacetraders::{self, responses, SpaceTraders}; // responses::schemas
 
 use clap::Parser;
 use log::trace;
@@ -11,7 +11,7 @@ use tokio::{
     task::{self, JoinHandle},
 };
 
-async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>, JoinHandle<()>) {
+async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandler>>, JoinHandle<()>) {
     trace!("Starting automation");
     let space_traders: SpaceTraders = match token {
         Some(token) => {
@@ -22,7 +22,7 @@ async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandlerData>>
 
     let credits = space_traders.agent().await.unwrap().data.credits;
     let euclidean_distances = automation::cache::build_euclidean_distance(&space_traders).await;
-    let ship_handler_data = Arc::new(Mutex::new(ShipHandlerData {
+    let ship_handler_data = Arc::new(Mutex::new(ShipHandler {
         handles: vec![],
         spacetraders: space_traders,
         ships: HashMap::new(),
@@ -50,7 +50,7 @@ struct Args {
 #[tokio::main]
 async fn main() {
     SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
+        // .with_level(log::LevelFilter::Info)
         .with_colors(true)
         .init()
         .unwrap();
