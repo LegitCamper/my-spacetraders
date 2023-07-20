@@ -4,7 +4,7 @@ use spacetraders::{
     // SpaceTraders,
     enums,
     requests,
-    responses::{fleet, schemas},
+    responses::schemas,
     SystemString,
     WaypointString,
 };

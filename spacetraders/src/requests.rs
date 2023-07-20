@@ -1,8 +1,6 @@
 use serde::Serialize;
 
-use crate::responses::schemas::Survey;
-
-use super::enums::{DepositSize, FactionSymbols, FlightMode, ShipType, TradeSymbol};
+use super::enums::{FactionSymbols, FlightMode, ShipType, TradeSymbol};
 
 #[derive(Debug, Serialize)]
 pub enum Requests {

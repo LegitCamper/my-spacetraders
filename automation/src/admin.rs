@@ -12,7 +12,6 @@ use log::{info, trace, warn};
 use tokio::sync::mpsc;
 
 pub async fn admin_stuff(
-    ship_id: &str,
     ship_data: ShipWrapper,
     _ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
@@ -69,14 +68,13 @@ pub async fn admin_stuff(
             }
             if contractor_ship {
             } else {
-                buy_ship(ship_id, ship_data.clone(), &needed_ship, channel.clone()).await
+                buy_ship(ship_data.clone(), &needed_ship, channel.clone()).await
             }
         }
     }
 }
 
 pub async fn buy_ship(
-    ship_id: &str,
     ship_data: ShipWrapper,
     ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,

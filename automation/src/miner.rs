@@ -28,8 +28,8 @@ pub fn sort_distance(
     mine_distances
 }
 
-pub async fn mine_astroid(ship_id: &str, ship_data: ShipWrapper) {
-    trace!("{} Mining Astroid", ship_id);
+pub async fn mine_astroid(ship_data: ShipWrapper) {
+    trace!("{} Mining Astroid", ship_data.ship_id);
 
     let ship = ship_data.clone_ship().await.unwrap();
     let waypoints = ship_data.get_waypoints(&ship.nav.system_symbol).await;
@@ -50,7 +50,7 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipWrapper) {
         }
     }
     if mine_distances.is_empty() {
-        warn!("{} Failed to find mineable location", ship_id);
+        warn!("{} Failed to find mineable location", ship_data.ship_id);
         return;
     }
     mine_distances = sort_distance(mine_distances);
@@ -68,14 +68,14 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipWrapper) {
             ship_data.orbit_ship().await;
         }
 
-        info!("{} Starting mining astroid", ship_id);
+        info!("{} Starting mining astroid", ship_data.ship_id);
 
         loop {
             if let Some((cargo, cooldown, _extraction)) = ship_data.extract_resources().await {
                 if cargo.capacity - cargo.units > 1 {
                     info!(
                         "{} is on cooldown from mining for {} seconds",
-                        ship_id, cooldown.remaining_seconds
+                        ship_data.ship_id, cooldown.remaining_seconds
                     );
                     sleep(Duration::from_secs(cooldown.remaining_seconds.into())).await;
                     continue;
@@ -87,7 +87,7 @@ pub async fn mine_astroid(ship_id: &str, ship_data: ShipWrapper) {
     }
 }
 
-pub async fn sell_mining_cargo(ship_id: &str, ship_data: ShipWrapper) {
+pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
     trace!("Sell Mining Cargo");
 
     let ship = ship_data.clone_ship().await.unwrap();
@@ -111,7 +111,7 @@ pub async fn sell_mining_cargo(ship_id: &str, ship_data: ShipWrapper) {
         }
     }
     if mine_distances.is_empty() {
-        warn!("{} Failed to find a market location", ship_id);
+        warn!("{} Failed to find a market location", ship_data.ship_id);
         return;
     }
     let mine_distances = sort_distance(mine_distances);
@@ -131,26 +131,26 @@ pub async fn sell_mining_cargo(ship_id: &str, ship_data: ShipWrapper) {
                 .data;
             for tradegood in market.imports.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(ship_id, ship_data.clone(), item, waypoint).await;
+                    sell_mining_item(&ship_data.ship_id, ship_data.clone(), item, waypoint).await;
                     continue 'inner;
                 }
             }
             for tradegood in market.exchange.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(ship_id, ship_data.clone(), item, waypoint).await;
+                    sell_mining_item(&ship_data.ship_id, ship_data.clone(), item, waypoint).await;
                     break 'inner;
                 }
             }
             for tradegood in market.trade_goods.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(ship_id, ship_data.clone(), item, waypoint).await;
+                    sell_mining_item(&ship_data.ship_id, ship_data.clone(), item, waypoint).await;
                     break 'inner;
                 }
             }
         }
         warn!(
             "{} Unable to find location to sell {:?}",
-            ship_id, item.symbol
+            ship_data.ship_id, item.symbol
         )
     }
 }

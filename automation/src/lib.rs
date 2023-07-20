@@ -1,9 +1,6 @@
 use spacetraders::{
     enums,
-    responses::{
-        fleet::CreateSurveyData,
-        schemas::{self, Contract, Ship},
-    },
+    responses::schemas::{self, Contract, Ship},
     SpaceTraders, WaypointString,
 };
 
@@ -85,25 +82,24 @@ pub async fn ship_handler(
     match role {
         enums::ShipRole::Fabricator => todo!(),
         enums::ShipRole::Harvester => todo!(),
-        enums::ShipRole::Hauler => contractor_loop(ship_id, ship_data.clone(), channel).await,
+        enums::ShipRole::Hauler => contractor_loop(ship_data.clone(), channel).await,
         enums::ShipRole::Interceptor => todo!(),
-        enums::ShipRole::Excavator => miner_loop(ship_id, ship_data.clone(), channel).await,
+        enums::ShipRole::Excavator => miner_loop(ship_data.clone(), channel).await,
         enums::ShipRole::Transport => todo!(),
         enums::ShipRole::Repair => todo!(),
         enums::ShipRole::Surveyor => todo!(),
-        enums::ShipRole::Command => explorer_loop(ship_id, ship_data.clone(), channel).await,
+        enums::ShipRole::Command => explorer_loop(ship_data.clone(), channel).await,
         enums::ShipRole::Carrier => todo!(),
         enums::ShipRole::Patrol => todo!(),
-        enums::ShipRole::Satellite => explorer_loop(ship_id, ship_data.clone(), channel).await,
-        enums::ShipRole::Explorer => explorer_loop(ship_id, ship_data.clone(), channel).await,
+        enums::ShipRole::Satellite => explorer_loop(ship_data.clone(), channel).await,
+        enums::ShipRole::Explorer => explorer_loop(ship_data.clone(), channel).await,
         enums::ShipRole::Refinery => todo!(),
     };
 }
 
-async fn contractor_loop(ship_id: &str, ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
+async fn contractor_loop(ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
     loop {
         admin::admin_stuff(
-            ship_id,
             ship_data.clone(),
             &[enums::ShipType::ShipMiningDrone],
             channel.clone(),
@@ -113,17 +109,16 @@ async fn contractor_loop(ship_id: &str, ship_data: ShipWrapper, channel: mpsc::S
     }
 }
 
-async fn miner_loop(ship_id: &str, ship_data: ShipWrapper, _channel: mpsc::Sender<Ship>) {
+async fn miner_loop(ship_data: ShipWrapper, _channel: mpsc::Sender<Ship>) {
     loop {
-        miner::mine_astroid(ship_id, ship_data.clone()).await;
-        miner::sell_mining_cargo(ship_id, ship_data.clone()).await;
+        miner::mine_astroid(ship_data.clone()).await;
+        miner::sell_mining_cargo(ship_data.clone()).await;
     }
 }
 
-async fn explorer_loop(ship_id: &str, ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
+async fn explorer_loop(ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
     loop {
         admin::admin_stuff(
-            ship_id,
             ship_data.clone(),
             &[enums::ShipType::ShipMiningDrone],
             channel.clone(),

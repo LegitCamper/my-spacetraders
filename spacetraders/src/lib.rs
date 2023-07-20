@@ -4,9 +4,9 @@ pub mod responses;
 mod tests;
 
 use requests::{
-    DeliverCargoToContract, ExtractResources, InstallMount, JettisonCargo, JumpShip, NavigateShip,
-    PatchShipNav, PurchaseCargo, PurchaseShip, RegisterNewAgent, RemoveMount, Requests, SellCargo,
-    ShipRefine, TransferCargo, WarpShip,
+    DeliverCargoToContract, InstallMount, JettisonCargo, JumpShip, NavigateShip, PatchShipNav,
+    PurchaseCargo, PurchaseShip, RegisterNewAgent, RemoveMount, Requests, SellCargo, ShipRefine,
+    TransferCargo, WarpShip,
 };
 use responses::{
     schemas, GetStatus, {agents, contracts, factions, fleet, systems},
