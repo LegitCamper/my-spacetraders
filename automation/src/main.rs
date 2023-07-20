@@ -50,7 +50,7 @@ struct Args {
 #[tokio::main]
 async fn main() {
     SimpleLogger::new()
-        // .with_level(log::LevelFilter::Info)
+        .with_level(log::LevelFilter::Info)
         .with_colors(true)
         .init()
         .unwrap();

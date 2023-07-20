@@ -8,7 +8,7 @@ use spacetraders::{
 
 use super::func::ShipWrapper;
 
-use log::{info, trace, warn}; // error
+use log::{error, info, trace, warn};
 use tokio::time::{sleep, Duration};
 
 pub fn sort_distance(
@@ -82,6 +82,9 @@ pub async fn mine_astroid(ship_data: ShipWrapper) {
                 } else {
                     break;
                 }
+            } else {
+                error!("{}: Semething went wrong extracting", ship_data.ship_id);
+                break;
             }
         }
     }
