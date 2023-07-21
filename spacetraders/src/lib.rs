@@ -34,7 +34,7 @@ use std::{
 use tokio::{
     sync::{mpsc, oneshot},
     task,
-    time::{interval, Duration},
+    time::interval,
 };
 use url::Url;
 
@@ -77,7 +77,8 @@ impl SpaceTradersInterface {
             SpaceTradersEnv::Mock => MOCKURL,
         };
 
-        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
+        let retry_policy = ExponentialBackoff::builder()
+            .build_with_total_retry_duration(std::time::Duration::from_secs(60));
 
         SpaceTradersInterface {
             token,
@@ -191,7 +192,7 @@ impl SpaceTraders {
 
         let (channel_sender, mut channel_receiver) = mpsc::channel(120);
 
-        let mut interval = interval(Duration::from_millis(500));
+        let mut interval = interval(tokio::time::Duration::from_millis(500));
 
         SpaceTraders {
             interface: space_trader.clone(),
