@@ -17,6 +17,14 @@ jobs:
         run: sudo apt-get update && apt-get install -y build-essential pkg-config libssl-dev
         
       - uses: actions/checkout@v2
+      
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
           
       - name: Docker meta
         id: meta
