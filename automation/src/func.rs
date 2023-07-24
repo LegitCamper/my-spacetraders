@@ -300,7 +300,7 @@ impl ShipWrapper {
                 .unwrap();
 
             if waypoint.data.chart.submitted_by.is_empty() {
-                unlocked.spacetraders.create_chart(&self.ship_id).await;
+                let _ = unlocked.spacetraders.create_chart(&self.ship_id).await;
             }
         }
     }
@@ -378,7 +378,7 @@ impl ShipWrapper {
                 )
                 .await;
 
-            if temp_ship_data.is_some() {
+            if temp_ship_data.is_ok() {
                 let temp_ship_data = temp_ship_data.unwrap().data;
 
                 (
@@ -431,24 +431,26 @@ impl ShipWrapper {
                         && ship.fuel.current != ship.fuel.capacity
                     {
                         if ship.nav.status == enums::ShipNavStatus::Docked {
-                            self.ship_handler
+                            let _ = self
+                                .ship_handler
                                 .lock()
                                 .await
                                 .spacetraders
                                 .refuel_ship(
                                     &self.ship_id,
-                                    Some(requests::RefuelShip { units: fuel_amount }),
+                                    Ok(requests::RefuelShip { units: fuel_amount }),
                                 )
                                 .await;
                         } else if ship.nav.status == enums::ShipNavStatus::InOrbit {
                             self.dock_ship().await;
-                            self.ship_handler
+                            let _ = self
+                                .ship_handler
                                 .lock()
                                 .await
                                 .spacetraders
                                 .refuel_ship(
                                     &self.ship_id,
-                                    Some(requests::RefuelShip { units: fuel_amount }),
+                                    Ok(requests::RefuelShip { units: fuel_amount }),
                                 )
                                 .await;
                             self.orbit_ship().await;
@@ -517,8 +519,8 @@ impl ShipWrapper {
             .extract_resources(&self.ship_id, survey)
             .await
         {
-            Some(data) => Some(data.data),
-            None => {
+            Ok(data) => Some(data.data),
+            Err(_) => {
                 error!("{} Failed to extract resources", self.ship_id);
                 None
             }
@@ -538,6 +540,25 @@ impl ShipWrapper {
             None
         }
     }
+    // pub async fn pathfind(self)
+    // pub async fn buy_mount(self, module: enums::ShipModule) {
+    //     let ship = self.clone_ship().await.unwrap();
+    //     for r#trait in self
+    //         .get_waypoint(&ship.nav.waypoint_symbol)
+    //         .await
+    //         .traits
+    //         .iter()
+    //     {
+    //         if r#trait == enums::WaypointTrait::Marketplace {
+    //             self.buy_from_marketplace(module).await
+    //         }
+    //     }
+    // }
+    // pub async fn buy_from_marketplace(self, trade_good: enums::ShipModule) { // enums::TradeSymbol
+    //                                                                          // TODO: need to write an adapter to convert enums::ShipModule to enums::TradeSymbol
+    //                                                                          // This asumes you are already at the marketplace
+    //     self.ship_handler.lock().await.spacetraders.
+    // }
     // pub async fn get_market()
     // TODO: cache market data
 }

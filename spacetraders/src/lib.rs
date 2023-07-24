@@ -27,10 +27,8 @@ use serde::{
     de::{Error as OtherError, Unexpected},
     Deserialize, Deserializer, Serialize,
 };
-use std::{
-    collections::HashMap,
-    sync::{atomic::AtomicBool, Arc},
-};
+use thiserror::Error;
+
 use tokio::{
     sync::{mpsc, oneshot},
     task,
@@ -41,14 +39,8 @@ use url::Url;
 const LIVEURL: &str = "https://api.spacetraders.io/v2";
 const MOCKURL: &str = "https://stoplight.io/mocks/spacetraders/spacetraders/96627693";
 
-// TODO: better error handling
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Error {
-    InsufficientFunds(HashMap<String, u32>),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Method {
+enum Method {
     Post,
     Get,
     Patch,
@@ -67,7 +59,6 @@ pub struct SpaceTradersInterface {
     pub client: ClientWithMiddleware,
     pub url: String,
     pub enviroment: SpaceTradersEnv,
-    has_errored: Arc<AtomicBool>,
 }
 
 impl SpaceTradersInterface {
@@ -87,7 +78,6 @@ impl SpaceTradersInterface {
                 .build(),
             url: String::from(url),
             enviroment,
-            has_errored: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -151,7 +141,7 @@ impl SpaceTradersInterface {
         let response = client.send().await;
         let response = match response {
             Err(msg) => {
-                error!("{}", msg);
+                error!("Reqwest Client Error: {}", msg);
                 None
             }
             Ok(msg) => Some(msg),
@@ -160,7 +150,7 @@ impl SpaceTradersInterface {
         .await;
         match response {
             Err(msg) => {
-                error!("{}", msg);
+                error!("Error from response: {}", msg);
                 None
             }
             Ok(msg) => Some(msg),
@@ -219,7 +209,7 @@ impl SpaceTraders {
 
     // TODO: find most efficient starting faction
     #[async_recursion]
-    #[allow(clippy::should_implement_trait)]
+    // #[allow(clippy::should_implement_trait)]
     pub async fn default() -> Self {
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = RegisterNewAgent {
@@ -259,7 +249,7 @@ impl SpaceTraders {
         )
     }
 
-    pub async fn make_request(
+    async fn make_request(
         &self,
         method: Method,
         url: String,
@@ -278,7 +268,7 @@ impl SpaceTraders {
 
         match oneshot_receiver.await {
             Err(error) => {
-                error!("{}", error);
+                error!("Error Request Channel: {}", error);
                 None
             }
             Ok(data) => Some(data?),
@@ -286,609 +276,889 @@ impl SpaceTraders {
     }
 
     // Status
-    pub async fn get_status(&self) -> Option<GetStatus> {
-        serde_json::from_str(&self.make_request(Method::Get, "".to_string(), None).await?).ok()
+    pub async fn get_status(&self) -> Result<GetStatus, SpacetradersError> {
+        handle_response(
+            self.make_request(Method::Get, "".to_string(), None)
+                .await
+                .as_deref(),
+        )
     }
 
     // Agents
-    pub async fn agent(&self) -> Option<agents::Agent> {
-        serde_json::from_str(
-            &self
-                .make_request(Method::Get, "/my/agent".to_string(), None)
-                .await?,
+    pub async fn agent(&self) -> Result<agents::Agent, SpacetradersError> {
+        handle_response(
+            self.make_request(Method::Get, "/my/agent".to_string(), None)
+                .await
+                .as_deref(),
         )
-        .ok()
     }
 
     // Systems
-    pub async fn list_systems(&self, page: Option<u32>) -> Option<systems::Systems> {
+    pub async fn list_systems(
+        &self,
+        page: Option<u32>,
+    ) -> Result<systems::Systems, SpacetradersError> {
         let page_num = page.unwrap_or(1);
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!("/systems?limit=20&page={}", page_num),
-                    None,
-                )
-                .await?,
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!("/systems?limit=20&page={}", page_num),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn get_system(&self, system_symbol: &SystemString) -> Option<systems::System> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!("/systems/{}", system_symbol.system),
-                    None,
-                )
-                .await?,
+    pub async fn get_system(
+        &self,
+        system_symbol: &SystemString,
+    ) -> Result<systems::System, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!("/systems/{}", system_symbol.system),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn list_waypoints(
         &self,
         system_symbol: &SystemString,
         page: Option<u32>,
-    ) -> Option<systems::Waypoints> {
+    ) -> Result<systems::Waypoints, SpacetradersError> {
         let page_num = page.unwrap_or(1);
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!(
-                        "/systems/{}/waypoints?limit=20&page={}",
-                        system_symbol.system, page_num
-                    ),
-                    None,
-                )
-                .await?,
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!(
+                    "/systems/{}/waypoints?limit=20&page={}",
+                    system_symbol.system, page_num
+                ),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn get_waypoint(
         &self,
         system_symbol: &SystemString,
         waypoint_symbol: &WaypointString,
-    ) -> Option<systems::Waypoint> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!(
-                        "/systems/{}/waypoints/{}",
-                        system_symbol.system, waypoint_symbol.waypoint
-                    ),
-                    None,
-                )
-                .await?,
+    ) -> Result<systems::Waypoint, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!(
+                    "/systems/{}/waypoints/{}",
+                    system_symbol.system, waypoint_symbol.waypoint
+                ),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn get_market(
         &self,
         system_symbol: &SystemString,
         waypoint_symbol: &WaypointString,
-    ) -> Option<systems::Market> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!(
-                        "/systems/{}/waypoints/{}/market",
-                        system_symbol.system, waypoint_symbol.waypoint
-                    ),
-                    None,
-                )
-                .await?,
+    ) -> Result<systems::Market, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!(
+                    "/systems/{}/waypoints/{}/market",
+                    system_symbol.system, waypoint_symbol.waypoint
+                ),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn get_shipyard(
         &self,
         system_symbol: &SystemString,
         waypoint_symbol: &WaypointString,
-    ) -> Option<systems::Shipyard> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!(
-                        "/systems/{}/waypoints/{}/shipyard",
-                        system_symbol.system, waypoint_symbol.waypoint
-                    ),
-                    None,
-                )
-                .await?,
+    ) -> Result<systems::Shipyard, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!(
+                    "/systems/{}/waypoints/{}/shipyard",
+                    system_symbol.system, waypoint_symbol.waypoint
+                ),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn jump_gate(
         &self,
         system_symbol: &SystemString,
         waypoint_symbol: &WaypointString,
-    ) -> Option<systems::JumpGate> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!(
-                        "/systems/{}/waypoints/{}/jump-gate",
-                        system_symbol.system, waypoint_symbol.waypoint
-                    ),
-                    None,
-                )
-                .await?,
+    ) -> Result<systems::JumpGate, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!(
+                    "/systems/{}/waypoints/{}/jump-gate",
+                    system_symbol.system, waypoint_symbol.waypoint
+                ),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
 
     // Contracts
-    pub async fn list_contracts(&self, page_num: Option<u32>) -> Option<contracts::Contracts> {
+    pub async fn list_contracts(
+        &self,
+        page_num: Option<u32>,
+    ) -> Result<contracts::Contracts, SpacetradersError> {
         let page_num = page_num.unwrap_or(1);
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!("/my/contracts?limit=20&page={}", page_num),
-                    None,
-                )
-                .await?,
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!("/my/contracts.as_deref()limit=20&page={}", page_num),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn get_contract(&self, contract_id: &str) -> Option<contracts::Contract> {
-        serde_json::from_str(
-            &self
-                .make_request(Method::Get, format!("/my/contracts/{}", contract_id), None)
-                .await?,
+    pub async fn get_contract(
+        &self,
+        contract_id: &str,
+    ) -> Result<contracts::Contract, SpacetradersError> {
+        handle_response(
+            self.make_request(Method::Get, format!("/my/contracts/{}", contract_id), None)
+                .await
+                .as_deref(),
         )
-        .ok()
     }
-    pub async fn accept_contract(&self, contract_id: &str) -> Option<contracts::AcceptContract> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/contracts/{}/accept", contract_id),
-                    None,
-                )
-                .await?,
+    pub async fn accept_contract(
+        &self,
+        contract_id: &str,
+    ) -> Result<contracts::AcceptContract, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/contracts/{}/accept", contract_id),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn deliver_contract(
         &self,
         contract_id: &str,
         data: DeliverCargoToContract,
-    ) -> Option<contracts::DeliverContract> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/contracts/{}/deliver", contract_id),
-                    Some(Requests::DeliverCargoToContract(data)),
-                )
-                .await?,
+    ) -> Result<contracts::DeliverContract, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/contracts/{}/deliver", contract_id),
+                Some(Requests::DeliverCargoToContract(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn fulfill_contract(&self, contract_id: &str) -> Option<contracts::FulfillContract> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/contracts/{}/fulfill", contract_id),
-                    None,
-                )
-                .await?,
+    pub async fn fulfill_contract(
+        &self,
+        contract_id: &str,
+    ) -> Result<contracts::FulfillContract, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/contracts/{}/fulfill", contract_id),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
 
     // Fleet
-    pub async fn list_ships(&self) -> Option<fleet::Ships> {
-        serde_json::from_str(
-            &self
-                .make_request(Method::Get, String::from("/my/ships"), None)
-                .await?,
+    pub async fn list_ships(&self) -> Result<fleet::Ships, SpacetradersError> {
+        handle_response(
+            self.make_request(Method::Get, String::from("/my/ships"), None)
+                .await
+                .as_deref(),
         )
-        .ok()
     }
-    pub async fn purchase_ship(&self, data: PurchaseShip) -> Option<fleet::PurchaseShip> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    String::from("/my/ships"),
-                    Some(Requests::PurchaseShip(data)),
-                )
-                .await?,
+    pub async fn purchase_ship(
+        &self,
+        data: PurchaseShip,
+    ) -> Result<fleet::PurchaseShip, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                String::from("/my/ships"),
+                Some(Requests::PurchaseShip(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn get_ship(&self, ship_symbol: &str) -> Option<fleet::Ship> {
-        serde_json::from_str(
-            &self
-                .make_request(Method::Get, format!("/my/ships/{}", ship_symbol), None)
-                .await?,
+    pub async fn get_ship(&self, ship_symbol: &str) -> Result<fleet::Ship, SpacetradersError> {
+        handle_response(
+            self.make_request(Method::Get, format!("/my/ships/{}", ship_symbol), None)
+                .await
+                .as_deref(),
         )
-        .ok()
     }
-    pub async fn get_ship_cargo(&self, ship_symbol: &str) -> Option<fleet::ShipCargo> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!("/my/ships/{}/cargo", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn get_ship_cargo(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::ShipCargo, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!("/my/ships/{}/cargo", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn orbit_ship(&self, ship_symbol: &str) -> Option<fleet::OrbitShip> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/orbit", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn orbit_ship(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::OrbitShip, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/orbit", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn ship_refine(
         &self,
         ship_symbol: &str,
         data: ShipRefine,
-    ) -> Option<fleet::ShipRefine> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/refine", ship_symbol),
-                    Some(Requests::ShipRefine(data)),
-                )
-                .await?,
+    ) -> Result<fleet::ShipRefine, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/refine", ship_symbol),
+                Some(Requests::ShipRefine(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn create_chart(&self, ship_symbol: &str) -> Option<fleet::CreateChart> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/chart", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn create_chart(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::CreateChart, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/chart", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn get_ship_cooldown(&self, ship_symbol: &str) -> Option<fleet::GetShipCooldown> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!("/my/ships/{}/cooldown", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn get_ship_cooldown(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::GetShipCooldown, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!("/my/ships/{}/cooldown", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn dock_ship(&self, ship_symbol: &str) -> Option<fleet::DockShip> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/dock", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn dock_ship(&self, ship_symbol: &str) -> Result<fleet::DockShip, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/dock", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn create_survey(&self, ship_symbol: &str) -> Option<fleet::CreateSurvey> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/survey", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn create_survey(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::CreateSurvey, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/survey", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn extract_resources(
         &self,
         ship_symbol: &str,
         data: Option<schemas::Survey>,
-    ) -> Option<fleet::ExtractResources> {
+    ) -> Result<fleet::ExtractResources, SpacetradersError> {
         match data {
-            Some(data) => serde_json::from_str(
-                &self
-                    .make_request(
-                        Method::Post,
-                        format!("/my/ships/{}/extract", ship_symbol),
-                        Some(Requests::ExtractResources(data)),
-                    )
-                    .await?,
-            )
-            .ok(),
-            None => serde_json::from_str(
-                &self
-                    .make_request(
-                        Method::Post,
-                        format!("/my/ships/{}/extract", ship_symbol),
-                        None,
-                    )
-                    .await?,
-            )
-            .ok(),
+            Some(data) => handle_response(
+                self.make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/extract", ship_symbol),
+                    Some(Requests::ExtractResources(data)),
+                )
+                .await
+                .as_deref(),
+            ),
+            None => handle_response(
+                self.make_request(
+                    Method::Post,
+                    format!("/my/ships/{}/extract", ship_symbol),
+                    None,
+                )
+                .await
+                .as_deref(),
+            ),
         }
     }
     pub async fn jettison_cargo(
         &self,
         ship_symbol: &str,
         data: JettisonCargo,
-    ) -> Option<fleet::JettisonCargo> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/jettison", ship_symbol),
-                    Some(Requests::JettisonCargo(data)),
-                )
-                .await?,
+    ) -> Result<fleet::JettisonCargo, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/jettison", ship_symbol),
+                Some(Requests::JettisonCargo(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn jump_ship(&self, ship_symbol: &str, data: JumpShip) -> Option<fleet::JumpShip> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/jump", ship_symbol),
-                    Some(Requests::JumpShip(data)),
-                )
-                .await?,
+    pub async fn jump_ship(
+        &self,
+        ship_symbol: &str,
+        data: JumpShip,
+    ) -> Result<fleet::JumpShip, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/jump", ship_symbol),
+                Some(Requests::JumpShip(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn navigate_ship(
         &self,
         ship_symbol: &str,
         data: NavigateShip,
-    ) -> Option<fleet::NavigateShip> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/navigate", ship_symbol),
-                    Some(Requests::NavigateShip(data)),
-                )
-                .await?,
+    ) -> Result<fleet::NavigateShip, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/navigate", ship_symbol),
+                Some(Requests::NavigateShip(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn patch_ship_nav(
         &self,
         ship_symbol: &str,
         data: PatchShipNav,
-    ) -> Option<fleet::PatchShipNav> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Patch,
-                    format!("/my/ships/{}/nav", ship_symbol),
-                    Some(Requests::PatchShipNav(data)),
-                )
-                .await?,
+    ) -> Result<fleet::PatchShipNav, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Patch,
+                format!("/my/ships/{}/nav", ship_symbol),
+                Some(Requests::PatchShipNav(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn get_ship_nav(&self, ship_symbol: &str) -> Option<fleet::GetShipNav> {
-        serde_json::from_str(
-            &self
-                .make_request(Method::Get, format!("/my/ships/{}/nav", ship_symbol), None)
-                .await?,
+    pub async fn get_ship_nav(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::GetShipNav, SpacetradersError> {
+        handle_response(
+            self.make_request(Method::Get, format!("/my/ships/{}/nav", ship_symbol), None)
+                .await
+                .as_deref(),
         )
-        .ok()
     }
-    pub async fn warp_ship(&self, ship_symbol: &str, data: WarpShip) -> Option<fleet::WarpShip> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/warp", ship_symbol),
-                    Some(Requests::WarpShip(data)),
-                )
-                .await?,
+    pub async fn warp_ship(
+        &self,
+        ship_symbol: &str,
+        data: WarpShip,
+    ) -> Result<fleet::WarpShip, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/warp", ship_symbol),
+                Some(Requests::WarpShip(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn sell_cargo(&self, ship_symbol: &str, data: SellCargo) -> Option<fleet::SellCargo> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/sell", ship_symbol),
-                    Some(Requests::SellCargo(data)),
-                )
-                .await?,
+    pub async fn sell_cargo(
+        &self,
+        ship_symbol: &str,
+        data: SellCargo,
+    ) -> Result<fleet::SellCargo, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/sell", ship_symbol),
+                Some(Requests::SellCargo(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn scan_systems(&self, ship_symbol: &str) -> Option<fleet::ScanSystems> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/scan/systems", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn scan_systems(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::ScanSystems, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/scan/systems", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn scan_waypoints(&self, ship_symbol: &str) -> Option<fleet::ScanWaypoints> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/scan/waypoints", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn scan_waypoints(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::ScanWaypoints, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/scan/waypoints", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn scan_ships(&self, ship_symbol: &str) -> Option<fleet::ScanShips> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/scan/ships", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn scan_ships(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::ScanShips, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/scan/ships", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn refuel_ship(
         &self,
         ship_symbol: &str,
-        fuel_amount: Option<requests::RefuelShip>,
-    ) -> Option<fleet::RefuelShip> {
+        fuel_amount: Result<requests::RefuelShip, SpacetradersError>,
+    ) -> Result<fleet::RefuelShip, SpacetradersError> {
         let fuel_amount = fuel_amount.unwrap_or(requests::RefuelShip { units: 1 });
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/refuel", ship_symbol),
-                    Some(Requests::RefuelShip(fuel_amount)),
-                )
-                .await?,
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/refuel", ship_symbol),
+                Some(Requests::RefuelShip(fuel_amount)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn purchase_cargo(
         &self,
         ship_symbol: &str,
         data: PurchaseCargo,
-    ) -> Option<fleet::PurchaseCargo> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/purchase", ship_symbol),
-                    Some(Requests::PurchaseCargo(data)),
-                )
-                .await?,
+    ) -> Result<fleet::PurchaseCargo, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/purchase", ship_symbol),
+                Some(Requests::PurchaseCargo(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn transfer_cargo(
         &self,
         ship_symbol: &str,
         data: TransferCargo,
-    ) -> Option<fleet::TransferCargo> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/transfer", ship_symbol),
-                    Some(Requests::TransferCargo(data)),
-                )
-                .await?,
+    ) -> Result<fleet::TransferCargo, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/transfer", ship_symbol),
+                Some(Requests::TransferCargo(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn negotiate_contract(&self, ship_symbol: &str) -> Option<fleet::NegotiateContract> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/negotiate/contract", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn negotiate_contract(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::NegotiateContract, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/negotiate/contract", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
-    pub async fn get_mounts(&self, ship_symbol: &str) -> Option<fleet::GetMounts> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Get,
-                    format!("/my/ships/{}/mounts", ship_symbol),
-                    None,
-                )
-                .await?,
+    pub async fn get_mounts(
+        &self,
+        ship_symbol: &str,
+    ) -> Result<fleet::GetMounts, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Get,
+                format!("/my/ships/{}/mounts", ship_symbol),
+                None,
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn install_mount(
         &self,
         ship_symbol: &str,
         data: InstallMount,
-    ) -> Option<fleet::InstallMounts> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/mounts/install", ship_symbol),
-                    Some(Requests::InstallMount(data)),
-                )
-                .await?,
+    ) -> Result<fleet::InstallMounts, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/mounts/install", ship_symbol),
+                Some(Requests::InstallMount(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
     pub async fn remove_mount(
         &self,
         ship_symbol: &str,
         data: RemoveMount,
-    ) -> Option<fleet::RemoveMounts> {
-        serde_json::from_str(
-            &self
-                .make_request(
-                    Method::Post,
-                    format!("/my/ships/{}/mounts/remove", ship_symbol),
-                    Some(Requests::RemoveMount(data)),
-                )
-                .await?,
+    ) -> Result<fleet::RemoveMounts, SpacetradersError> {
+        handle_response(
+            self.make_request(
+                Method::Post,
+                format!("/my/ships/{}/mounts/remove", ship_symbol),
+                Some(Requests::RemoveMount(data)),
+            )
+            .await
+            .as_deref(),
         )
-        .ok()
     }
 
     // Factions
-    pub async fn list_factions(&self) -> Option<factions::Factions> {
-        serde_json::from_str(
-            &self
-                .make_request(Method::Get, String::from("/factions"), None)
-                .await?,
+    pub async fn list_factions(&self) -> Result<factions::Factions, SpacetradersError> {
+        handle_response(
+            self.make_request(Method::Get, String::from("/factions"), None)
+                .await
+                .as_deref(),
         )
-        .ok()
     }
-    pub async fn get_faction(&self, faction_symbol: &str) -> Option<factions::Faction> {
-        serde_json::from_str(
-            &self
-                .make_request(Method::Get, format!("/factions/{}", faction_symbol), None)
-                .await?,
+    pub async fn get_faction(
+        &self,
+        faction_symbol: &str,
+    ) -> Result<factions::Faction, SpacetradersError> {
+        handle_response(
+            self.make_request(Method::Get, format!("/factions/{}", faction_symbol), None)
+                .await
+                .as_deref(),
         )
-        .ok()
+    }
+}
+
+// simplifies the error handling of responses
+fn handle_response<T: for<'a> Deserialize<'a>>(
+    response: Option<&str>,
+) -> Result<T, SpacetradersError> {
+    match response {
+        Some(response) => match serde_json::from_str(&response) {
+            Ok(response) => Ok(response),
+            Err(_) => match parse_error(&response) {
+                Some(response) => {
+                    error!("SpaceTraders Error: {}", response);
+                    Err(response)
+                }
+                None => {
+                    error!("SpaceTraders Error (error): {}", SpacetradersError::Serde);
+                    Err(SpacetradersError::Serde)
+                }
+            },
+        },
+        None => {
+            error!(
+                "SpaceTraders Error (response): {}",
+                SpacetradersError::Serde
+            );
+            Err(SpacetradersError::Serde)
+        }
+    }
+}
+
+#[derive(Debug, Clone, Error, Eq, PartialEq)]
+pub enum SpacetradersError {
+    CooldownConflictError,
+    WaypointNoAccessError,
+
+    TokenEmptyError,
+    TokenMissingSubjectError,
+    TokenInvalidSubjectError,
+    MissingTokenRequestError,
+    InvalidTokenRequestError,
+    InvalidTokenSubjectError,
+    AccountNotExistsError,
+    AgentNotExistsError,
+    AccountHasNoAgentError,
+    RegisterAgentExistsError,
+
+    NavigateInTransitError,
+    NavigateInvalidDestinationError,
+    NavigateOutsideSystemError,
+    NavigateInsufficientFuelError,
+    NavigateSameDestinationError,
+    ShipExtractInvalidWaypointError,
+    ShipExtractPermissionError,
+    ShipJumpNoSystemError,
+    ShipJumpSameSystemError,
+    ShipJumpMissingModuleError,
+    ShipJumpNoValidWaypointError,
+    ShipJumpMissingAntimatterError,
+    ShipInTransitError,
+    ShipMissingSensorArraysError,
+    PurchaseShipCreditsError,
+    ShipCargoExceedsLimitError,
+    ShipCargoMissingError,
+    ShipCargoUnitCountError,
+    ShipSurveyVerificationError,
+    ShipSurveyExpirationError,
+    ShipSurveyWaypointTypeError,
+    ShipSurveyOrbitError,
+    ShipSurveyExhaustedError,
+    ShipRefuelDockedError,
+    ShipRefuelInvalidWaypointError,
+    ShipMissingMountsError,
+    ShipCargoFullError,
+    ShipJumpFromGateToGateError,
+    WaypointChartedError,
+    ShipTransferShipNotFound,
+    ShipTransferAgentConflict,
+    ShipTransferSameShipConflict,
+    ShipTransferLocationConflict,
+    WarpInsideSystemError,
+    ShipNotInOrbitError,
+    ShipInvalidRefineryGoodError,
+    ShipInvalidRefineryTypeError,
+    ShipMissingRefineryError,
+    ShipMissingSurveyorError,
+
+    AcceptContractNotAuthorizedError,
+    AcceptContractConflictError,
+    FulfillContractDeliveryError,
+    ContractDeadlineError,
+    ContractFulfilledError,
+    ContractNotAcceptedError,
+    ContractNotAuthorizedError,
+    ShipDeliverTermsError,
+    ShipDeliverFulfilledError,
+    ShipDeliverInvalidLocationError,
+
+    MarketTradeInsufficientCreditsError,
+    MarketTradeNoPurchaseError,
+    MarketTradeNotSoldError,
+    MarketNotFoundError,
+    MarketTradeUnitLimitError,
+
+    Other,
+    Serde,
+}
+impl std::fmt::Display for SpacetradersError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+fn parse_error(error: &str) -> Option<SpacetradersError> {
+    if let Ok(error) = serde_json::from_str::<responses::Error>(error) {
+        if error.error.code == 4000 {
+            Some(SpacetradersError::CooldownConflictError)
+        } else if error.error.code == 4001 {
+            Some(SpacetradersError::WaypointNoAccessError)
+        } else if error.error.code == 4100 {
+            Some(SpacetradersError::TokenEmptyError)
+        } else if error.error.code == 4101 {
+            Some(SpacetradersError::TokenMissingSubjectError)
+        } else if error.error.code == 4102 {
+            Some(SpacetradersError::TokenInvalidSubjectError)
+        } else if error.error.code == 4103 {
+            Some(SpacetradersError::MissingTokenRequestError)
+        } else if error.error.code == 4104 {
+            Some(SpacetradersError::InvalidTokenRequestError)
+        } else if error.error.code == 4105 {
+            Some(SpacetradersError::InvalidTokenSubjectError)
+        } else if error.error.code == 4106 {
+            Some(SpacetradersError::AccountNotExistsError)
+        } else if error.error.code == 4107 {
+            Some(SpacetradersError::AgentNotExistsError)
+        } else if error.error.code == 4108 {
+            Some(SpacetradersError::AccountHasNoAgentError)
+        } else if error.error.code == 4109 {
+            Some(SpacetradersError::RegisterAgentExistsError)
+        } else if error.error.code == 4200 {
+            Some(SpacetradersError::NavigateInTransitError)
+        } else if error.error.code == 4201 {
+            Some(SpacetradersError::NavigateInvalidDestinationError)
+        } else if error.error.code == 4202 {
+            Some(SpacetradersError::NavigateOutsideSystemError)
+        } else if error.error.code == 4203 {
+            Some(SpacetradersError::NavigateInsufficientFuelError)
+        } else if error.error.code == 4204 {
+            Some(SpacetradersError::NavigateSameDestinationError)
+        } else if error.error.code == 4205 {
+            Some(SpacetradersError::ShipExtractInvalidWaypointError)
+        } else if error.error.code == 4206 {
+            Some(SpacetradersError::ShipExtractPermissionError)
+        } else if error.error.code == 4207 {
+            Some(SpacetradersError::ShipJumpNoSystemError)
+        } else if error.error.code == 4208 {
+            Some(SpacetradersError::ShipJumpSameSystemError)
+        } else if error.error.code == 4210 {
+            Some(SpacetradersError::ShipJumpMissingModuleError)
+        } else if error.error.code == 4211 {
+            Some(SpacetradersError::ShipJumpNoValidWaypointError)
+        } else if error.error.code == 4212 {
+            Some(SpacetradersError::ShipJumpMissingAntimatterError)
+        } else if error.error.code == 4214 {
+            Some(SpacetradersError::ShipInTransitError)
+        } else if error.error.code == 4215 {
+            Some(SpacetradersError::ShipMissingSensorArraysError)
+        } else if error.error.code == 4216 {
+            Some(SpacetradersError::PurchaseShipCreditsError)
+        } else if error.error.code == 4217 {
+            Some(SpacetradersError::ShipCargoExceedsLimitError)
+        } else if error.error.code == 4218 {
+            Some(SpacetradersError::ShipCargoMissingError)
+        } else if error.error.code == 4219 {
+            Some(SpacetradersError::ShipCargoUnitCountError)
+        } else if error.error.code == 4220 {
+            Some(SpacetradersError::ShipSurveyVerificationError)
+        } else if error.error.code == 4221 {
+            Some(SpacetradersError::ShipSurveyExpirationError)
+        } else if error.error.code == 4222 {
+            Some(SpacetradersError::ShipSurveyWaypointTypeError)
+        } else if error.error.code == 4223 {
+            Some(SpacetradersError::ShipSurveyOrbitError)
+        } else if error.error.code == 4224 {
+            Some(SpacetradersError::ShipSurveyExhaustedError)
+        } else if error.error.code == 4225 {
+            Some(SpacetradersError::ShipRefuelDockedError)
+        } else if error.error.code == 4226 {
+            Some(SpacetradersError::ShipRefuelInvalidWaypointError)
+        } else if error.error.code == 4227 {
+            Some(SpacetradersError::ShipMissingMountsError)
+        } else if error.error.code == 4228 {
+            Some(SpacetradersError::ShipCargoFullError)
+        } else if error.error.code == 4229 {
+            Some(SpacetradersError::ShipJumpFromGateToGateError)
+        } else if error.error.code == 4230 {
+            Some(SpacetradersError::WaypointChartedError)
+        } else if error.error.code == 4231 {
+            Some(SpacetradersError::ShipTransferShipNotFound)
+        } else if error.error.code == 4232 {
+            Some(SpacetradersError::ShipTransferAgentConflict)
+        } else if error.error.code == 4233 {
+            Some(SpacetradersError::ShipTransferSameShipConflict)
+        } else if error.error.code == 4234 {
+            Some(SpacetradersError::ShipTransferLocationConflict)
+        } else if error.error.code == 4235 {
+            Some(SpacetradersError::WarpInsideSystemError)
+        } else if error.error.code == 4236 {
+            Some(SpacetradersError::ShipNotInOrbitError)
+        } else if error.error.code == 4237 {
+            Some(SpacetradersError::ShipInvalidRefineryGoodError)
+        } else if error.error.code == 4238 {
+            Some(SpacetradersError::ShipInvalidRefineryTypeError)
+        } else if error.error.code == 4239 {
+            Some(SpacetradersError::ShipMissingRefineryError)
+        } else if error.error.code == 4240 {
+            Some(SpacetradersError::ShipMissingSurveyorError)
+        } else if error.error.code == 4500 {
+            Some(SpacetradersError::AcceptContractNotAuthorizedError)
+        } else if error.error.code == 4501 {
+            Some(SpacetradersError::AcceptContractConflictError)
+        } else if error.error.code == 4502 {
+            Some(SpacetradersError::FulfillContractDeliveryError)
+        } else if error.error.code == 4503 {
+            Some(SpacetradersError::ContractDeadlineError)
+        } else if error.error.code == 4504 {
+            Some(SpacetradersError::ContractFulfilledError)
+        } else if error.error.code == 4505 {
+            Some(SpacetradersError::ContractNotAcceptedError)
+        } else if error.error.code == 4506 {
+            Some(SpacetradersError::ContractNotAuthorizedError)
+        } else if error.error.code == 4508 {
+            Some(SpacetradersError::ShipDeliverTermsError)
+        } else if error.error.code == 4509 {
+            Some(SpacetradersError::ShipDeliverFulfilledError)
+        } else if error.error.code == 4510 {
+            Some(SpacetradersError::ShipDeliverInvalidLocationError)
+        } else if error.error.code == 4600 {
+            Some(SpacetradersError::MarketTradeInsufficientCreditsError)
+        } else if error.error.code == 4601 {
+            Some(SpacetradersError::MarketTradeNoPurchaseError)
+        } else if error.error.code == 4602 {
+            Some(SpacetradersError::MarketTradeNotSoldError)
+        } else if error.error.code == 4603 {
+            Some(SpacetradersError::MarketNotFoundError)
+        } else if error.error.code == 4604 {
+            Some(SpacetradersError::MarketTradeUnitLimitError)
+        } else {
+            Some(SpacetradersError::Other)
+        }
+    } else {
+        None
     }
 }
 
 #[derive(Debug)]
 pub struct RequestMessage {
-    pub method: Method,
-    pub url: String,
-    pub data: Option<Requests>,
+    method: Method,
+    url: String,
+    data: Option<Requests>,
 }
 #[derive(Debug)]
 pub struct ChannelMessage {

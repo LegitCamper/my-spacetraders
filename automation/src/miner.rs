@@ -11,22 +11,36 @@ use super::func::ShipWrapper;
 use log::{error, info, trace, warn};
 use tokio::time::{sleep, Duration};
 
-pub fn sort_distance(
-    mut mine_distances: Vec<(&schemas::Waypoint, u64)>,
-) -> Vec<(&schemas::Waypoint, u64)> {
-    let mut swapped = true;
-    while swapped {
-        // No swap means array is sorted.
-        swapped = false;
-        for i in 1..mine_distances.len() {
-            if mine_distances[i - 1].1 > mine_distances[i].1 {
-                mine_distances.swap(i - 1, i);
-                swapped = true
-            }
-        }
-    }
-    mine_distances
-}
+// enum MinerTask {
+//     GasMiner,
+//     AstroidMiner,
+//     Contractor,
+// }
+
+// pub async fn mine(ship_data: ShipWrapper, contractor: bool) {
+//     trace!("{} Mine", ship_data.ship_id);
+
+//     let mut miner_task: MinerTask;
+
+//     if contractor {
+//         miner_task = MinerTask::Contractor;
+//     } else {
+//         for mount in ship_data.clone_ship().await.unwrap().mounts.into_iter() {
+//             if mount.symbol == enums::ShipMount::MountGasSiphonI
+//                 || mount.symbol == enums::ShipMount::MountGasSiphonIi
+//                 || mount.symbol == enums::ShipMount::MountGasSiphonIii
+//             {
+//                 miner_task = MinerTask::GasMiner
+//             }
+//             if mount.symbol == enums::ShipMount::MountMiningLaserI
+//                 || mount.symbol == enums::ShipMount::MountMiningLaserIi
+//                 || mount.symbol == enums::ShipMount::MountMiningLaserIii
+//             {
+//                 miner_task = MinerTask::AstroidMiner
+//             }
+//         }
+//     }
+// }
 
 pub async fn mine_astroid(ship_data: ShipWrapper) {
     trace!("{} Mining Astroid", ship_data.ship_id);
@@ -39,6 +53,7 @@ pub async fn mine_astroid(ship_data: ShipWrapper) {
     for waypoint in waypoints.iter() {
         if waypoint.r#type == enums::WaypointType::AsteroidField
             || waypoint.r#type == enums::WaypointType::DebrisField
+        // TODO: definatly look into other minable location
         {
             let distance = ship_data.euclidean_distance(
                 waypoint.x,
@@ -90,6 +105,23 @@ pub async fn mine_astroid(ship_data: ShipWrapper) {
     }
 }
 
+pub fn sort_distance(
+    mut mine_distances: Vec<(&schemas::Waypoint, u64)>,
+) -> Vec<(&schemas::Waypoint, u64)> {
+    let mut swapped = true;
+    while swapped {
+        // No swap means array is sorted.
+        swapped = false;
+        for i in 1..mine_distances.len() {
+            if mine_distances[i - 1].1 > mine_distances[i].1 {
+                mine_distances.swap(i - 1, i);
+                swapped = true
+            }
+        }
+    }
+    mine_distances
+}
+
 pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
     trace!("Sell Mining Cargo");
 
@@ -120,7 +152,7 @@ pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
     let mine_distances = sort_distance(mine_distances);
 
     // TODO: make sure not to sell goods used for contracts
-    // TODO: consider demand and gas to get to where prices are better
+    // TODO: consider demand and fuel to get to where prices are better
     for item in ship.cargo.inventory.clone().iter() {
         'inner: for (waypoint, _distance) in mine_distances.iter() {
             let market = ship_data
@@ -160,7 +192,7 @@ pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
             "{} Jettison {} {:?}",
             ship_data.ship_id, item.units, item.symbol
         );
-        ship_data
+        let _ = ship_data
             .ship_handler
             .lock()
             .await
@@ -211,7 +243,7 @@ pub async fn sell_mining_item(
                 },
             )
             .await;
-        if temp_ship_data.is_some() {
+        if temp_ship_data.is_ok() {
             let temp_ship_data = temp_ship_data.unwrap().data;
 
             unlocked.ships.get_mut(ship_id).unwrap().cargo = temp_ship_data.cargo;
