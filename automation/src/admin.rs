@@ -8,7 +8,7 @@ use spacetraders::{
 
 use super::func::ShipWrapper;
 
-use log::{info, trace, warn};
+use log::{error, info, trace, warn};
 use tokio::sync::mpsc;
 
 pub async fn admin_stuff(
@@ -18,14 +18,20 @@ pub async fn admin_stuff(
 ) {
     trace!("Look at contracts");
 
-    let mut contracts = ship_data
+    let mut contracts = match ship_data
         .ship_handler
         .lock()
         .await
         .spacetraders
         .list_contracts(None)
         .await
-        .unwrap();
+    {
+        Ok(contracts) => contracts,
+        Err(_) => {
+            error!("{} Failed to get Contracts", ship_data.ship_id);
+            return;
+        }
+    };
 
     if contracts.meta.total > 1 {
         for num in 2..contracts.meta.total {

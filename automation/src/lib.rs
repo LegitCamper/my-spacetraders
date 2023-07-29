@@ -118,7 +118,13 @@ async fn miner_loop(ship_data: ShipWrapper, _channel: mpsc::Sender<Ship>) {
 
 async fn explorer_loop(ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
     loop {
-        admin::admin_stuff(
+        // admin::admin_stuff(
+        //     ship_data.clone(),
+        //     &[enums::ShipType::ShipMiningDrone],
+        //     channel.clone(),
+        // )
+        // .await;
+        admin::buy_ship(
             ship_data.clone(),
             &[enums::ShipType::ShipMiningDrone],
             channel.clone(),

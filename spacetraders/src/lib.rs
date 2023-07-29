@@ -142,18 +142,28 @@ impl SpaceTradersInterface {
         let response = match response {
             Err(msg) => {
                 error!("Reqwest Client Error: {}", msg);
-                None
+                Err(msg)
             }
-            Ok(msg) => Some(msg),
-        }?
-        .text()
-        .await;
+            Ok(msg) => Ok(msg),
+        };
         match response {
-            Err(msg) => {
-                error!("Error from response: {}", msg);
-                None
-            }
-            Ok(msg) => Some(msg),
+            Ok(response) => match response.text().await {
+                Err(err) => {
+                    error!("Error from response: {}", err);
+                    None
+                }
+                Ok(msg) => Some(msg),
+            },
+            Err(msg) => match msg {
+                reqwest_middleware::Error::Middleware(err) => {
+                    error!("Error from reqwest middleware: {}", err);
+                    None
+                }
+                reqwest_middleware::Error::Reqwest(err) => {
+                    error!("Error from reqwest: {}", err);
+                    None
+                }
+            },
         }
     }
 
@@ -908,15 +918,26 @@ fn handle_response<T: for<'a> Deserialize<'a>>(
     response: Option<&str>,
 ) -> Result<T, SpacetradersError> {
     match response {
-        Some(response) => match serde_json::from_str(&response) {
+        Some(response_str) => match serde_json::from_str(&response_str) {
             Ok(response) => Ok(response),
-            Err(_) => match parse_error(&response) {
+            Err(error_str) => match parse_error(&response_str) {
                 Some(response) => {
-                    error!("SpaceTraders Error: {}", response);
-                    Err(response)
+                    if response != SpacetradersError::Other {
+                        error!("SpaceTraders Error: {}", response);
+                        Err(response)
+                    } else {
+                        error!(
+                            "SpaceTraders Error: Other - {}\n{}",
+                            error_str, response_str
+                        );
+                        Err(response)
+                    }
                 }
                 None => {
-                    error!("SpaceTraders Error (error): {}", SpacetradersError::Serde);
+                    error!(
+                        "SpaceTraders Error (Could not parse error code): {}",
+                        SpacetradersError::Serde
+                    );
                     Err(SpacetradersError::Serde)
                 }
             },
@@ -1004,16 +1025,17 @@ pub enum SpacetradersError {
     MarketNotFoundError,
     MarketTradeUnitLimitError,
 
-    Other,
+    Reqwest,
     Serde,
+    Other,
 }
 impl std::fmt::Display for SpacetradersError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-fn parse_error(error: &str) -> Option<SpacetradersError> {
-    if let Ok(error) = serde_json::from_str::<responses::Error>(error) {
+fn parse_error(error_str: &str) -> Option<SpacetradersError> {
+    if let Ok(error) = serde_json::from_str::<responses::Error>(error_str) {
         if error.error.code == 4000 {
             Some(SpacetradersError::CooldownConflictError)
         } else if error.error.code == 4001 {
