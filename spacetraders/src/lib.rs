@@ -56,13 +56,14 @@ pub enum SpaceTradersEnv {
 #[derive(Debug, Clone)]
 pub struct SpaceTradersInterface {
     token: String,
+    pub email: Option<String>,
     pub client: ClientWithMiddleware,
     pub url: String,
     pub enviroment: SpaceTradersEnv,
 }
 
 impl SpaceTradersInterface {
-    pub fn new(token: String, enviroment: SpaceTradersEnv) -> Self {
+    pub fn new(token: String, email: Option<String>, enviroment: SpaceTradersEnv) -> Self {
         let url = match enviroment {
             SpaceTradersEnv::Live => LIVEURL,
             SpaceTradersEnv::Mock => MOCKURL,
@@ -73,6 +74,7 @@ impl SpaceTradersInterface {
 
         SpaceTradersInterface {
             token,
+            email,
             client: ClientBuilder::new(reqwest::Client::new())
                 .with(RetryTransientMiddleware::new_with_policy(retry_policy))
                 .build(),
@@ -187,8 +189,13 @@ pub struct SpaceTraders {
 }
 
 impl SpaceTraders {
-    pub async fn new(token: &str, enviroment: SpaceTradersEnv) -> Self {
-        let space_trader = SpaceTradersInterface::new(token.to_string(), enviroment);
+    pub async fn new(token: &str, email: Option<&str>, enviroment: SpaceTradersEnv) -> Self {
+        let space_trader = match email {
+            Some(email) => {
+                SpaceTradersInterface::new(token.to_string(), Some(email.to_string()), enviroment)
+            }
+            None => SpaceTradersInterface::new(token.to_string(), None, enviroment),
+        };
 
         let (channel_sender, mut channel_receiver) = mpsc::channel(120);
 
@@ -238,7 +245,7 @@ impl SpaceTraders {
             .await
         {
             Ok(registration) => {
-                SpaceTraders::new(&registration.data.token, SpaceTradersEnv::Live).await
+                SpaceTraders::new(&registration.data.token, None, SpaceTradersEnv::Live).await
             }
             Err(_) => {
                 error!("Transitive error occured creating new agent. Trying again");
@@ -249,7 +256,7 @@ impl SpaceTraders {
 
     #[allow(dead_code)]
     async fn testing() -> Self {
-        SpaceTraders::new("undefined", SpaceTradersEnv::Mock).await
+        SpaceTraders::new("undefined", None, SpaceTradersEnv::Mock).await
     }
 
     pub fn diagnose(&self) -> String {

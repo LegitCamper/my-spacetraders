@@ -11,11 +11,20 @@ use tokio::{
     task::{self, JoinHandle},
 };
 
-async fn start_automation(token: Option<String>) -> (Arc<Mutex<ShipHandler>>, JoinHandle<()>) {
+async fn start_automation(
+    token: Option<String>,
+    email: Option<String>,
+    _username: Option<String>,
+) -> (Arc<Mutex<ShipHandler>>, JoinHandle<()>) {
     trace!("Starting automation");
     let space_traders: SpaceTraders = match token {
         Some(token) => {
-            spacetraders::SpaceTraders::new(&token, spacetraders::SpaceTradersEnv::Live).await
+            spacetraders::SpaceTraders::new(
+                &token,
+                email.as_deref(),
+                spacetraders::SpaceTradersEnv::Live,
+            )
+            .await
         }
         None => spacetraders::SpaceTraders::default().await,
     };
@@ -45,6 +54,12 @@ struct Args {
     /// (otherwise generate new agent)
     #[arg(short, long)]
     token: Option<String>,
+    /// Email to register new agent to
+    #[arg(short, long)]
+    email: Option<String>,
+    /// Email to register new agent to
+    #[arg(short, long)]
+    username: Option<String>,
 }
 
 #[tokio::main]
@@ -59,10 +74,8 @@ async fn main() {
 
     let args = Args::parse();
 
-    let (ship_hander_data, ship_handler_handle) = match args.token {
-        None => start_automation(None).await,
-        Some(token) => start_automation(Some(token)).await,
-    };
+    let (ship_hander_data, ship_handler_handle) =
+        start_automation(args.token, args.email, args.username).await;
 
     tokio::select! {
         _ = signal::ctrl_c() => {}
