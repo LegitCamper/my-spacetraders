@@ -431,16 +431,18 @@ impl ShipWrapper {
                         && ship.fuel.current != ship.fuel.capacity
                     {
                         if ship.nav.status == enums::ShipNavStatus::Docked {
-                            let _ = self
-                                .ship_handler
-                                .lock()
-                                .await
-                                .spacetraders
-                                .refuel_ship(
-                                    &self.ship_id,
-                                    Ok(requests::RefuelShip { units: fuel_amount }),
-                                )
-                                .await;
+                            for _ in 0..((ship.fuel.capacity as f32 / 100 as f32).ceil() as u32) {
+                                let _ = self
+                                    .ship_handler
+                                    .lock()
+                                    .await
+                                    .spacetraders
+                                    .refuel_ship(
+                                        &self.ship_id,
+                                        Ok(requests::RefuelShip { units: fuel_amount }),
+                                    )
+                                    .await;
+                            }
                         } else if ship.nav.status == enums::ShipNavStatus::InOrbit {
                             self.dock_ship().await;
                             let _ = self
