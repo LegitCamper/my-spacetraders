@@ -1539,6 +1539,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serial_test",
+ "simple_logger",
  "thiserror",
  "tokio",
  "url",

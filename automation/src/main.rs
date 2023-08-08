@@ -29,8 +29,17 @@ async fn start_automation(
         None => spacetraders::SpaceTraders::default().await,
     };
 
+    let headquarters = space_traders
+        .agent()
+        .await
+        .expect("Failed to get Agent")
+        .data
+        .headquarters;
+
     let credits = space_traders.agent().await.unwrap().data.credits;
     let euclidean_distances = automation::cache::build_euclidean_distance(&space_traders).await;
+    let gate_nodes = automation::cache::get_gate_network(&space_traders, headquarters).await;
+    println!("{gate_nodes:?}");
     let ship_handler_data = Arc::new(Mutex::new(ShipHandler {
         handles: vec![],
         spacetraders: space_traders,

@@ -18,12 +18,12 @@ pub async fn admin_stuff(
 ) {
     trace!("Look at contracts");
 
-    let mut contracts = match ship_data
+    let contracts = match ship_data
         .ship_handler
         .lock()
         .await
         .spacetraders
-        .list_contracts(None)
+        .list_contracts()
         .await
     {
         Ok(contracts) => contracts,
@@ -32,23 +32,6 @@ pub async fn admin_stuff(
             return;
         }
     };
-
-    if contracts.meta.total > 1 {
-        for num in 2..contracts.meta.total {
-            let paged_contracts = ship_data
-                .ship_handler
-                .lock()
-                .await
-                .spacetraders
-                .list_contracts(Some(num))
-                .await
-                .unwrap()
-                .data;
-            for paged_contract in paged_contracts.iter() {
-                contracts.data.push(paged_contract.clone())
-            }
-        }
-    }
 
     let mut needed_ship = vec![];
 
@@ -115,7 +98,7 @@ pub async fn buy_ship(
                                 let new_ship = unlocked
                                     .spacetraders
                                     .purchase_ship(requests::PurchaseShip {
-                                        ship_type: shipyard_ship.r#type,
+                                        ship_type: shipyard_ship.r#type.clone(),
                                         waypoint_symbol: waypoint.symbol.clone().waypoint,
                                     })
                                     .await

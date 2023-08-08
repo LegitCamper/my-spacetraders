@@ -1,11 +1,14 @@
+use crate::func::GateNode;
 use spacetraders::{
+    enums,
     responses::schemas, // systems
     SpaceTraders,
+    WaypointString,
 };
 
 use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};
-use log::{info, trace};
+use log::{error, info, trace};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{remove_file, File},
@@ -76,14 +79,8 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
             let new_space_traders = SpaceTraders::default().await;
             let systems = systems.clone();
             systems_handles.push(task::spawn(async move {
-                for page in 1..task_numers {
-                    for system in new_space_traders
-                        .list_systems(Some(page))
-                        .await
-                        .unwrap()
-                        .data
-                        .iter()
-                    {
+                for _ in 1..task_numers {
+                    for system in new_space_traders.list_systems().await.unwrap().data.iter() {
                         systems.lock().await.push(system.clone());
                     }
                 }
@@ -200,4 +197,38 @@ async fn euclidean_distance(
         }
     }
     closest_systems
+}
+
+pub async fn get_gate_network(
+    space_traders: &SpaceTraders,
+    symbol: WaypointString,
+) -> Option<GateNode> {
+    trace!("Get Gate Network");
+    let root_gate = space_traders.jump_gate(&symbol).await;
+    match root_gate {
+        Ok(root_gate) => {
+            let mut gate_nodes = GateNode::new(symbol.to_system(), None);
+
+            for connected_system in root_gate.data.connected_systems.into_iter() {
+                let waypoints = space_traders.list_waypoints(&connected_system.symbol).await;
+
+                if let Ok(waypoints) = waypoints {
+                    for waypoint in waypoints.data.iter() {
+                        if waypoint.r#type == enums::WaypointType::JumpGate {
+                            let gate = space_traders.jump_gate(&waypoint.symbol).await;
+                            if let Ok(_gate) = gate {
+                                gate_nodes.add_child(waypoint.symbol.to_system(), None);
+                            }
+                        }
+                    }
+                };
+            }
+
+            Some(gate_nodes)
+        }
+        Err(err) => {
+            error!("{err}");
+            None
+        }
+    }
 }

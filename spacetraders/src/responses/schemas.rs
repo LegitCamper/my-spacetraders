@@ -166,9 +166,9 @@ pub struct JumpGate {
     #[serde(alias = "connectedSystems")]
     pub connected_systems: Vec<JumpGateConnectedSystems>,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct JumpGateConnectedSystems {
-    pub symbol: String,
+    pub symbol: SystemString,
     #[serde(alias = "sectorSymbol")]
     pub sector_symbol: String,
     #[serde(default)]
@@ -332,7 +332,7 @@ pub struct ShipCargo {
 #[derive(Deserialize, Clone, Debug)]
 pub struct ShipCargoItem {
     pub symbol: enums::TradeSymbol,
-    pub name: String,
+    pub name: enums::TradeSymbol,
     // description: String,
     pub units: i32,
 }
@@ -571,7 +571,7 @@ pub struct SystemFaction {
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct SystemWaypoint {
-    pub symbol: String,
+    pub symbol: WaypointString,
     pub r#type: enums::WaypointType,
     pub x: i32,
     pub y: i32,

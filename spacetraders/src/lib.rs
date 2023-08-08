@@ -226,7 +226,6 @@ impl SpaceTraders {
 
     // TODO: find most efficient starting faction
     #[async_recursion]
-    // #[allow(clippy::should_implement_trait)]
     pub async fn default() -> Self {
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = RegisterNewAgent {
@@ -311,7 +310,8 @@ impl SpaceTraders {
     }
 
     // Systems
-    pub async fn list_systems(
+
+    async fn list_systems_page(
         &self,
         page: Option<u32>,
     ) -> Result<systems::Systems, SpacetradersError> {
@@ -325,6 +325,21 @@ impl SpaceTraders {
             .await
             .as_deref(),
         )
+    }
+    pub async fn list_systems(&self) -> Result<systems::Systems, SpacetradersError> {
+        match self.list_systems_page(None).await {
+            Ok(mut systems) => {
+                // if systems.meta.total > 1 {
+                for page_num in 2..systems.meta.total {
+                    if let Ok(more_waypoints) = self.list_systems_page(Some(page_num)).await {
+                        systems.data.extend(more_waypoints.data);
+                    }
+                }
+                // }
+                Ok(systems)
+            }
+            Err(err) => Err(err),
+        }
     }
     pub async fn get_system(
         &self,
@@ -340,7 +355,7 @@ impl SpaceTraders {
             .as_deref(),
         )
     }
-    pub async fn list_waypoints(
+    async fn list_waypoints_page(
         &self,
         system_symbol: &SystemString,
         page: Option<u32>,
@@ -358,6 +373,27 @@ impl SpaceTraders {
             .await
             .as_deref(),
         )
+    }
+    pub async fn list_waypoints(
+        &self,
+        system_symbol: &SystemString,
+    ) -> Result<systems::Waypoints, SpacetradersError> {
+        match self.list_waypoints_page(system_symbol, None).await {
+            Ok(mut waypoints) => {
+                // if waypoints.meta.total > 1 {
+                for page_num in 2..waypoints.meta.total {
+                    if let Ok(more_waypoints) = self
+                        .list_waypoints_page(system_symbol, Some(page_num))
+                        .await
+                    {
+                        waypoints.data.extend(more_waypoints.data);
+                    }
+                }
+                // }
+                Ok(waypoints)
+            }
+            Err(err) => Err(err),
+        }
     }
     pub async fn get_waypoint(
         &self,
@@ -415,15 +451,14 @@ impl SpaceTraders {
     }
     pub async fn jump_gate(
         &self,
-        system_symbol: &SystemString,
-        waypoint_symbol: &WaypointString,
+        symbol: &WaypointString,
     ) -> Result<systems::JumpGate, SpacetradersError> {
         handle_response(
             self.make_request(
                 Method::Get,
                 format!(
                     "/systems/{}/waypoints/{}/jump-gate",
-                    system_symbol.system, waypoint_symbol.waypoint
+                    symbol.system, symbol.waypoint
                 ),
                 None,
             )
@@ -433,7 +468,7 @@ impl SpaceTraders {
     }
 
     // Contracts
-    pub async fn list_contracts(
+    async fn list_contracts_page(
         &self,
         page_num: Option<u32>,
     ) -> Result<contracts::Contracts, SpacetradersError> {
@@ -447,6 +482,21 @@ impl SpaceTraders {
             .await
             .as_deref(),
         )
+    }
+    pub async fn list_contracts(&self) -> Result<contracts::Contracts, SpacetradersError> {
+        match self.list_contracts_page(None).await {
+            Ok(mut contracts) => {
+                // if contracts.meta.total > 1 {
+                for page_num in 2..contracts.meta.total {
+                    if let Ok(more_contracts) = self.list_contracts_page(Some(page_num)).await {
+                        contracts.data.extend(more_contracts.data);
+                    }
+                }
+                // }
+                Ok(contracts)
+            }
+            Err(err) => Err(err),
+        }
     }
     pub async fn get_contract(
         &self,
@@ -925,9 +975,9 @@ fn handle_response<T: for<'a> Deserialize<'a>>(
     response: Option<&str>,
 ) -> Result<T, SpacetradersError> {
     match response {
-        Some(response_str) => match serde_json::from_str(&response_str) {
+        Some(response_str) => match serde_json::from_str(response_str) {
             Ok(response) => Ok(response),
-            Err(error_str) => match parse_error(&response_str) {
+            Err(error_str) => match parse_error(response_str) {
                 Some(response) => {
                     if response != SpacetradersError::Other {
                         error!("SpaceTraders Error: {}", response);
@@ -942,8 +992,9 @@ fn handle_response<T: for<'a> Deserialize<'a>>(
                 }
                 None => {
                     error!(
-                        "SpaceTraders Error (Could not parse error code): {}",
-                        SpacetradersError::Serde
+                        "SpaceTraders Error (Could not parse json): {}, details: {}",
+                        SpacetradersError::Serde,
+                        response_str
                     );
                     Err(SpacetradersError::Serde)
                 }

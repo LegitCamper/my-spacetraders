@@ -18,6 +18,33 @@ use tokio::{
     time::{sleep, Duration},
 };
 
+#[derive(Debug)]
+pub struct GateNode {
+    pub symbol: SystemString,
+    pub data: Option<schemas::JumpGateConnectedSystems>,
+    pub children: HashMap<SystemString, GateNode>,
+}
+impl GateNode {
+    pub fn new(symbol: SystemString, data: Option<schemas::JumpGateConnectedSystems>) -> Self {
+        GateNode {
+            symbol,
+            data,
+            children: HashMap::new(),
+        }
+    }
+    pub fn add_child(
+        &mut self,
+        key: SystemString,
+        value: Option<schemas::JumpGateConnectedSystems>,
+    ) -> GateNode {
+        let node = GateNode::new(key.clone(), value.clone());
+        self.children
+            .entry(key.clone())
+            .or_insert_with(|| GateNode::new(key, value));
+        node
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ShipWrapper {
     pub ship_handler: Arc<Mutex<ShipHandler>>,
@@ -105,11 +132,12 @@ impl ShipWrapper {
 
     pub async fn remove_survey(&self, waypoint: &WaypointString) -> Option<schemas::Survey> {
         trace!("Remove Survey");
-        match self.ship_handler.lock().await.surveys.remove(waypoint) {
-            // TODO: maybe do something fancier here
-            Some(surveys) => Some(surveys[0].to_owned()),
-            None => None,
-        }
+        self.ship_handler
+            .lock()
+            .await
+            .surveys
+            .remove(waypoint)
+            .map(|surveys| surveys[0].to_owned())
     }
     pub async fn create_survey(&self) -> Option<schemas::Survey> {
         trace!("Create Survey");
@@ -120,7 +148,7 @@ impl ShipWrapper {
 
         if survey.is_some() {
             let survey = survey.unwrap();
-            if survey.len() >= 1 {
+            if !survey.is_empty() {
                 Some(survey[0].clone())
             // TODO:       ^^^^ maybe do something fancier here - should check if this is expired
             } else {
@@ -161,7 +189,6 @@ impl ShipWrapper {
                             unlocked
                                 .surveys
                                 .insert(ship_posistion, survey.data.surveys.clone());
-                            ()
                         }
                     }
                     return Some(survey.data.surveys[0].clone());
@@ -240,24 +267,7 @@ impl ShipWrapper {
         trace!("Get Waypoints");
         let mut unlocked = self.ship_handler.lock().await;
 
-        let mut waypoints = unlocked
-            .spacetraders
-            .list_waypoints(system, None)
-            .await
-            .unwrap();
-        if waypoints.meta.total > 1 {
-            for num in 2..waypoints.meta.total {
-                let paged_waypoints = unlocked
-                    .spacetraders
-                    .list_waypoints(system, Some(num))
-                    .await
-                    .unwrap()
-                    .data;
-                for paged_waypoint in paged_waypoints.iter() {
-                    waypoints.data.push(paged_waypoint.clone())
-                }
-            }
-        }
+        let waypoints = unlocked.spacetraders.list_waypoints(system).await.unwrap();
         let mut return_vec = Vec::new();
         for new_waypoint in waypoints.data.iter() {
             let waypoints = unlocked.waypoints.clone();
@@ -431,7 +441,7 @@ impl ShipWrapper {
                         && ship.fuel.current != ship.fuel.capacity
                     {
                         if ship.nav.status == enums::ShipNavStatus::Docked {
-                            for _ in 0..((ship.fuel.capacity as f32 / 100 as f32).ceil() as u32) {
+                            for _ in 0..((ship.fuel.capacity as f32 / 100_f32).ceil() as u32) {
                                 let _ = self
                                     .ship_handler
                                     .lock()

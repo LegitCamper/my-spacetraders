@@ -10,27 +10,26 @@ use crate::{spacetraders_date_format, spacetraders_datetime_format};
 use chrono::{offset::Utc, DateTime};
 use serde::Deserialize;
 
-// currently fails tests because it trys "string" :facepalm:
 #[derive(Deserialize, Debug)]
 pub struct GetStatus {
     pub status: String,
-    pub version: String,
+    // pub version: String,
     #[serde(alias = "resetDate")]
     #[serde(with = "spacetraders_date_format")]
     pub reset_date: DateTime<Utc>,
     // pub description: String,
     pub stats: GetStatusStats,
-    pub leaderboards: GetStatusLeaderboards,
-    #[serde(alias = "serverResets")]
-    pub server_resets: GetStatusServerResets,
-    pub announcements: Vec<GetStatusAnnouncements>,
-    pub links: Vec<GetStatusLinks>,
+    // pub leaderboards: GetStatusLeaderboards,
+    // #[serde(alias = "serverResets")]
+    // pub server_resets: GetStatusServerResets,
+    // pub announcements: Vec<GetStatusAnnouncements>,
+    // pub links: Vec<GetStatusLinks>,
 }
 #[derive(Deserialize, Debug)]
 pub struct GetStatusStats {
     pub agents: i64,
     pub ships: i64,
-    pub systems: u32,
+    pub systems: i64,
     pub waypoints: i64,
 }
 #[derive(Deserialize, Debug)]
