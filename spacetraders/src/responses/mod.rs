@@ -13,17 +13,17 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug)]
 pub struct GetStatus {
     pub status: String,
-    // pub version: String,
+    pub version: String,
     #[serde(alias = "resetDate")]
     #[serde(with = "spacetraders_date_format")]
     pub reset_date: DateTime<Utc>,
     // pub description: String,
     pub stats: GetStatusStats,
-    // pub leaderboards: GetStatusLeaderboards,
-    // #[serde(alias = "serverResets")]
-    // pub server_resets: GetStatusServerResets,
-    // pub announcements: Vec<GetStatusAnnouncements>,
-    // pub links: Vec<GetStatusLinks>,
+    pub leaderboards: GetStatusLeaderboards,
+    #[serde(alias = "serverResets")]
+    pub server_resets: GetStatusServerResets,
+    pub announcements: Vec<GetStatusAnnouncements>,
+    pub links: Vec<GetStatusLinks>,
 }
 #[derive(Deserialize, Debug)]
 pub struct GetStatusStats {

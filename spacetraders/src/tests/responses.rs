@@ -91,7 +91,7 @@ async fn list_systems() {
     log();
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_systems().await.unwrap();
+        spacetraders.list_systems(true).await.unwrap();
     }
 }
 #[tokio::test]
@@ -116,10 +116,13 @@ async fn list_waypoints() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
         spacetraders
-            .list_waypoints(&SystemString {
-                system: STRING.to_string(),
-                sector: STRING.to_string(),
-            })
+            .list_waypoints(
+                &SystemString {
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+                true,
+            )
             .await
             .unwrap();
     }
@@ -213,7 +216,7 @@ async fn list_contracts() {
     log();
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_contracts().await.unwrap();
+        spacetraders.list_contracts(true).await.unwrap();
     }
 }
 #[tokio::test]
@@ -400,7 +403,7 @@ async fn extract_resources() {
                     symbol: STRING.into(),
                     deposits: vec![
                         (SurveyDeposit {
-                            symbol: STRING.to_string(),
+                            symbol: enums::TradeSymbol::Aluminum,
                         }),
                     ],
                     // TODO: make into datatime

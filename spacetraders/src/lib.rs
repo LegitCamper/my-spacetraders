@@ -135,7 +135,10 @@ impl SpaceTradersInterface {
                 Requests::TransferCargo(json) => client.json(&json),
                 Requests::InstallMount(json) => client.json(&json),
                 Requests::RemoveMount(json) => client.json(&json),
-                Requests::DeliverCargoToContract(json) => client.json(&json),
+                Requests::DeliverCargoToContract(json) => {
+                    error!("{:?}", json);
+                    client.json(&json)
+                }
             },
             None => client.header(CONTENT_LENGTH, "0"),
         };
@@ -326,16 +329,16 @@ impl SpaceTraders {
             .as_deref(),
         )
     }
-    pub async fn list_systems(&self) -> Result<systems::Systems, SpacetradersError> {
+    pub async fn list_systems(&self, test: bool) -> Result<systems::Systems, SpacetradersError> {
         match self.list_systems_page(None).await {
             Ok(mut systems) => {
-                // if systems.meta.total > 1 {
-                for page_num in 2..systems.meta.total {
-                    if let Ok(more_waypoints) = self.list_systems_page(Some(page_num)).await {
-                        systems.data.extend(more_waypoints.data);
+                if systems.meta.total > 1 && !test {
+                    for page_num in 2..systems.meta.total {
+                        if let Ok(more_waypoints) = self.list_systems_page(Some(page_num)).await {
+                            systems.data.extend(more_waypoints.data);
+                        }
                     }
                 }
-                // }
                 Ok(systems)
             }
             Err(err) => Err(err),
@@ -377,19 +380,20 @@ impl SpaceTraders {
     pub async fn list_waypoints(
         &self,
         system_symbol: &SystemString,
+        test: bool,
     ) -> Result<systems::Waypoints, SpacetradersError> {
         match self.list_waypoints_page(system_symbol, None).await {
             Ok(mut waypoints) => {
-                // if waypoints.meta.total > 1 {
-                for page_num in 2..waypoints.meta.total {
-                    if let Ok(more_waypoints) = self
-                        .list_waypoints_page(system_symbol, Some(page_num))
-                        .await
-                    {
-                        waypoints.data.extend(more_waypoints.data);
+                if waypoints.meta.total > 1 && !test {
+                    for page_num in 2..waypoints.meta.total {
+                        if let Ok(more_waypoints) = self
+                            .list_waypoints_page(system_symbol, Some(page_num))
+                            .await
+                        {
+                            waypoints.data.extend(more_waypoints.data);
+                        }
                     }
                 }
-                // }
                 Ok(waypoints)
             }
             Err(err) => Err(err),
@@ -476,23 +480,26 @@ impl SpaceTraders {
         handle_response(
             self.make_request(
                 Method::Get,
-                format!("/my/contracts.as_deref()limit=20&page={}", page_num),
+                format!("/my/contracts?limit=20&page={}", page_num),
                 None,
             )
             .await
             .as_deref(),
         )
     }
-    pub async fn list_contracts(&self) -> Result<contracts::Contracts, SpacetradersError> {
+    pub async fn list_contracts(
+        &self,
+        test: bool,
+    ) -> Result<contracts::Contracts, SpacetradersError> {
         match self.list_contracts_page(None).await {
             Ok(mut contracts) => {
-                // if contracts.meta.total > 1 {
-                for page_num in 2..contracts.meta.total {
-                    if let Ok(more_contracts) = self.list_contracts_page(Some(page_num)).await {
-                        contracts.data.extend(more_contracts.data);
+                if contracts.meta.total > 1 && !test {
+                    for page_num in 2..contracts.meta.total {
+                        if let Ok(more_contracts) = self.list_contracts_page(Some(page_num)).await {
+                            contracts.data.extend(more_contracts.data);
+                        }
                     }
                 }
-                // }
                 Ok(contracts)
             }
             Err(err) => Err(err),
@@ -1367,6 +1374,7 @@ impl<'de> Deserialize<'de> for SectorString {
 
 pub mod spacetraders_datetime_format {
     use chrono::{DateTime, TimeZone, Utc};
+    use log::error;
     use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = "%+";
@@ -1384,12 +1392,18 @@ pub mod spacetraders_datetime_format {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Utc.datetime_from_str(&s, FORMAT)
-            .map_err(serde::de::Error::custom)
+        match Utc.datetime_from_str(&s, FORMAT) {
+            Ok(date) => Ok(date),
+            Err(_) => {
+                // error!("Failed deserializing chrono - defaulting to now!");
+                Ok(chrono::offset::Utc::now())
+            }
+        }
     }
 }
 pub mod spacetraders_date_format {
     use chrono::{DateTime, TimeZone, Utc};
+    use log::error;
     use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = "%+";
@@ -1408,8 +1422,14 @@ pub mod spacetraders_date_format {
     {
         let s = String::deserialize(deserializer)?;
         let s = format!("{}{}", s, "T01:00:00Z");
-        Utc.datetime_from_str(&s, FORMAT)
-            .map_err(serde::de::Error::custom)
+
+        match Utc.datetime_from_str(&s, FORMAT) {
+            Ok(date) => Ok(date),
+            Err(_) => {
+                // error!("Failed deserializing chrono - defaulting to now!");
+                Ok(chrono::offset::Utc::now())
+            }
+        }
     }
 }
 // pub mod spacetraders_time_format {

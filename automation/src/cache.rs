@@ -52,11 +52,11 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
             Ok(data) => {
                 info!("{} integrity check good", DISTANCESDB_FILE);
 
-                if data.date < space_traders.get_status().await.unwrap().reset_date {
-                    info!("{} is outdated", DISTANCESDB_FILE);
-                    remove_file(DISTANCESDB_FILE).unwrap();
-                    return build_euclidean_distance(space_traders).await;
-                }
+                // if data.date < space_traders.get_status().await.unwrap().reset_date {
+                //     info!("{} is outdated", DISTANCESDB_FILE);
+                //     remove_file(DISTANCESDB_FILE).unwrap();
+                //     return build_euclidean_distance(space_traders).await;
+                // }
 
                 data
             }
@@ -80,7 +80,13 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
             let systems = systems.clone();
             systems_handles.push(task::spawn(async move {
                 for _ in 1..task_numers {
-                    for system in new_space_traders.list_systems().await.unwrap().data.iter() {
+                    for system in new_space_traders
+                        .list_systems(false)
+                        .await
+                        .unwrap()
+                        .data
+                        .iter()
+                    {
                         systems.lock().await.push(system.clone());
                     }
                 }
@@ -210,7 +216,9 @@ pub async fn get_gate_network(
             let mut gate_nodes = GateNode::new(symbol.to_system(), None);
 
             for connected_system in root_gate.data.connected_systems.into_iter() {
-                let waypoints = space_traders.list_waypoints(&connected_system.symbol).await;
+                let waypoints = space_traders
+                    .list_waypoints(&connected_system.symbol, false)
+                    .await;
 
                 if let Ok(waypoints) = waypoints {
                     for waypoint in waypoints.data.iter() {

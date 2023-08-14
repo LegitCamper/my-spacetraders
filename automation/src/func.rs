@@ -267,7 +267,11 @@ impl ShipWrapper {
         trace!("Get Waypoints");
         let mut unlocked = self.ship_handler.lock().await;
 
-        let waypoints = unlocked.spacetraders.list_waypoints(system).await.unwrap();
+        let waypoints = unlocked
+            .spacetraders
+            .list_waypoints(system, false)
+            .await
+            .unwrap();
         let mut return_vec = Vec::new();
         for new_waypoint in waypoints.data.iter() {
             let waypoints = unlocked.waypoints.clone();

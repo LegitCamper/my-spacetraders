@@ -23,7 +23,7 @@ pub async fn admin_stuff(
         .lock()
         .await
         .spacetraders
-        .list_contracts()
+        .list_contracts(false)
         .await
     {
         Ok(contracts) => contracts,

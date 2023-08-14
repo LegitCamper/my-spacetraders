@@ -206,7 +206,6 @@ pub enum ShipMount {
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TradeSymbol {
     PreciousStones,
