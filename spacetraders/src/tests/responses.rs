@@ -61,7 +61,8 @@ async fn get_new_registration() {
                     },
                 )),
             )
-            .await;
+            .await
+            .unwrap();
     }
 }
 
@@ -503,7 +504,7 @@ async fn warp_ship() {
             .warp_ship(
                 STRING,
                 WarpShip {
-                    ship_symbol: STRING.to_string(),
+                    waypoint_symbol: STRING.to_string(),
                 },
             )
             .await

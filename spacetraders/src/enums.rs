@@ -1,4 +1,3 @@
-use rand_derive::Rand;
 use serde::{Deserialize, Serialize};
 
 // USE THE COMMAND 'ccase -t pascal enums' TO TRANSFORM THE DOCS TO RUST ENUMS
@@ -405,7 +404,7 @@ pub enum ShipCrewRotation {
     Relaxed,
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug, Rand)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FactionSymbols {
     #[default]
@@ -428,6 +427,7 @@ pub enum FactionSymbols {
     Ancients,
     Shadow,
     Ethereal,
+    Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]

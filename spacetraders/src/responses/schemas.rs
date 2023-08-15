@@ -33,7 +33,7 @@ pub struct Agent {
 pub struct Chart {
     #[serde(alias = "waypointSymbol")]
     #[serde(default)]
-    pub waypoint_symbol: String, // WaypointString,
+    pub waypoint_symbol: String, //TODO: WaypointString,
     #[serde(alias = "submittedBy")]
     #[serde(default)]
     pub submitted_by: String,

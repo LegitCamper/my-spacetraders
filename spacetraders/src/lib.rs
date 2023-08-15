@@ -135,10 +135,7 @@ impl SpaceTradersInterface {
                 Requests::TransferCargo(json) => client.json(&json),
                 Requests::InstallMount(json) => client.json(&json),
                 Requests::RemoveMount(json) => client.json(&json),
-                Requests::DeliverCargoToContract(json) => {
-                    error!("{:?}", json);
-                    client.json(&json)
-                }
+                Requests::DeliverCargoToContract(json) => client.json(&json),
             },
             None => client.header(CONTENT_LENGTH, "0"),
         };
@@ -232,7 +229,8 @@ impl SpaceTraders {
     pub async fn default() -> Self {
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = RegisterNewAgent {
-            faction: rand::thread_rng().gen::<enums::FactionSymbols>(),
+            // faction: rand::thread_rng().gen::<enums::FactionSymbols>(),
+            faction: enums::FactionSymbols::Cosmic,
             symbol: username,
             email: None,
         };
@@ -982,31 +980,38 @@ fn handle_response<T: for<'a> Deserialize<'a>>(
     response: Option<&str>,
 ) -> Result<T, SpacetradersError> {
     match response {
-        Some(response_str) => match serde_json::from_str(response_str) {
-            Ok(response) => Ok(response),
-            Err(error_str) => match parse_error(response_str) {
-                Some(response) => {
-                    if response != SpacetradersError::Other {
-                        error!("SpaceTraders Error: {}", response);
-                        Err(response)
-                    } else {
-                        error!(
-                            "SpaceTraders Error: Other - {}\n{}",
-                            error_str, response_str
-                        );
-                        Err(response)
-                    }
+        Some(response_str) => {
+            let jd = &mut serde_json::Deserializer::from_str(response_str);
+            match serde_path_to_error::deserialize(jd) {
+                Ok(response) => Ok(response),
+                Err(error_str) => {
+                    let result = match parse_error(response_str) {
+                        Some(response) => {
+                            if response != SpacetradersError::Other {
+                                error!("SpaceTraders Error: {}", response);
+                                Err(response)
+                            } else {
+                                error!(
+                                    "SpaceTraders Error: Other - {}\n{}",
+                                    error_str, response_str
+                                );
+                                Err(response)
+                            }
+                        }
+                        None => {
+                            error!(
+                                "SpaceTraders Error (Could not parse json): {}, details: {}",
+                                SpacetradersError::Serde,
+                                response_str
+                            );
+                            Err(SpacetradersError::Serde)
+                        }
+                    };
+                    error!("Serde Path Error: {}", error_str.path().to_string());
+                    result
                 }
-                None => {
-                    error!(
-                        "SpaceTraders Error (Could not parse json): {}, details: {}",
-                        SpacetradersError::Serde,
-                        response_str
-                    );
-                    Err(SpacetradersError::Serde)
-                }
-            },
-        },
+            }
+        }
         None => {
             error!(
                 "SpaceTraders Error (response): {}",
