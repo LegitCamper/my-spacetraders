@@ -229,7 +229,6 @@ impl SpaceTraders {
     pub async fn default() -> Self {
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = RegisterNewAgent {
-            // faction: rand::thread_rng().gen::<enums::FactionSymbols>(),
             faction: enums::FactionSymbols::Cosmic,
             symbol: username,
             email: None,
