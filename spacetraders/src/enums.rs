@@ -11,7 +11,6 @@ pub enum ListContractsType {
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum WaypointTrait {
     Uncharted,
@@ -75,11 +74,11 @@ pub enum WaypointTrait {
     Stripped,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum WaypointType {
     Planet,
@@ -93,11 +92,11 @@ pub enum WaypointType {
     GravityWell,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SystemType {
     NeutronStar,
@@ -112,11 +111,11 @@ pub enum SystemType {
     Unstable,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipType {
     ShipProbe,
@@ -131,6 +130,7 @@ pub enum ShipType {
     ShipRefiningFreighter,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
@@ -152,6 +152,7 @@ pub enum ShipRole {
     Satellite,
     Explorer,
     Refinery,
+    //#[serde(untagged)]
     // Untagged(String),
 }
 
@@ -165,11 +166,11 @@ pub enum ShipReactor {
     ReactorAntimatterI,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipNavStatus {
     InTransit,
@@ -177,11 +178,11 @@ pub enum ShipNavStatus {
     Docked,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipMount {
     MountGasSiphonI,
@@ -201,6 +202,7 @@ pub enum ShipMount {
     MountTurretI,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
@@ -319,11 +321,11 @@ pub enum TradeSymbol {
     MountTurretI,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipModule {
     ModuleMineralProcessorI,
@@ -345,11 +347,11 @@ pub enum ShipModule {
     ModuleShieldGeneratorIi,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipFrame {
     FrameProbe,
@@ -369,11 +371,11 @@ pub enum ShipFrame {
     FrameCarrier,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipEngine {
     EngineImpulseDriveI,
@@ -382,7 +384,8 @@ pub enum ShipEngine {
     EngineHyperDriveI,
     #[default]
     Default,
-    Other(String),
+    #[serde(untagged)]
+    Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
@@ -394,6 +397,7 @@ pub enum FlightMode {
     Stealth,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 
@@ -427,11 +431,11 @@ pub enum FactionSymbols {
     Ancients,
     Shadow,
     Ethereal,
+    #[serde(untagged)]
     Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
-#[serde(untagged)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FactionTrait {
     Bureaucratic,
@@ -495,6 +499,7 @@ pub enum FactionTrait {
     Entrepreneurial,
     #[default]
     Default,
+    #[serde(untagged)]
     Untagged(String),
 }
 

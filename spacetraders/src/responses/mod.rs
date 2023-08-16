@@ -43,7 +43,7 @@ pub struct GetStatusLeaderboards {
 pub struct GetStatusLeaderboardsMostCredits {
     #[serde(alias = "agentSymbol")]
     pub agent_symbol: String,
-    pub credits: i64,
+    pub credits: i128,
 }
 #[derive(Deserialize, Debug)]
 pub struct GetStatusLeaderboardsMostSubmittedCharts {

@@ -7,24 +7,10 @@ use crate::{
     },
     responses::schemas::SurveyDeposit,
     Method, SpaceTraders, SystemString, WaypointString,
+    tests::log,
 };
 
 use serial_test::serial;
-use simple_logger::SimpleLogger;
-use std::sync::Once;
-
-#[allow(dead_code)]
-static INIT: Once = Once::new();
-
-fn log() {
-    INIT.call_once(|| {
-        SimpleLogger::new()
-            .with_level(log::LevelFilter::Info)
-            .with_colors(true)
-            .init()
-            .unwrap();
-    });
-}
 
 const TIMES_TO_RUN: i32 = 10;
 const STRING: &str = "X1-OE";
