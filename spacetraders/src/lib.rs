@@ -198,7 +198,7 @@ impl SpaceTraders {
 
         let (channel_sender, mut channel_receiver) = mpsc::channel(120);
 
-        let mut interval = interval(tokio::time::Duration::from_millis(500));
+        let mut interval = interval(tokio::time::Duration::from_millis(100));
 
         SpaceTraders {
             interface: space_trader.clone(),
