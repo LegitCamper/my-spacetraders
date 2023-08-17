@@ -18,33 +18,6 @@ use tokio::{
     time::{sleep, Duration},
 };
 
-#[derive(Debug)]
-pub struct GateNode {
-    pub symbol: SystemString,
-    pub data: Option<schemas::JumpGateConnectedSystems>,
-    pub children: HashMap<SystemString, GateNode>,
-}
-impl GateNode {
-    pub fn new(symbol: SystemString, data: Option<schemas::JumpGateConnectedSystems>) -> Self {
-        GateNode {
-            symbol,
-            data,
-            children: HashMap::new(),
-        }
-    }
-    pub fn add_child(
-        &mut self,
-        key: SystemString,
-        value: Option<schemas::JumpGateConnectedSystems>,
-    ) -> GateNode {
-        let node = GateNode::new(key.clone(), value.clone());
-        self.children
-            .entry(key.clone())
-            .or_insert_with(|| GateNode::new(key, value));
-        node
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct ShipWrapper {
     pub ship_handler: Arc<Mutex<ShipHandler>>,

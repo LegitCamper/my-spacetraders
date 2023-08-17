@@ -15,7 +15,6 @@ use responses::{
 use async_recursion::async_recursion;
 use core::panic;
 use log::error;
-use rand::Rng;
 use random_string::generate;
 use reqwest::{
     header::{HeaderValue, AUTHORIZATION, CONTENT_LENGTH},
@@ -1378,7 +1377,7 @@ impl<'de> Deserialize<'de> for SectorString {
 
 pub mod spacetraders_datetime_format {
     use chrono::{DateTime, TimeZone, Utc};
-    use log::error;
+    // use log::error;
     use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = "%+";
@@ -1407,7 +1406,7 @@ pub mod spacetraders_datetime_format {
 }
 pub mod spacetraders_date_format {
     use chrono::{DateTime, TimeZone, Utc};
-    use log::error;
+    // use log::error;
     use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = "%+";

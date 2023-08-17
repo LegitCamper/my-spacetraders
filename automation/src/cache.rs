@@ -1,4 +1,3 @@
-use crate::func::GateNode;
 use spacetraders::{
     enums,
     responses::schemas, // systems
@@ -8,7 +7,8 @@ use spacetraders::{
 
 use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};
-use log::{error, info, trace};
+use indextree::{Arena, NodeId};
+use log::{info, trace};
 use serde::{Deserialize, Serialize};
 use std::{
     fs::{remove_file, File},
@@ -20,11 +20,25 @@ use tokio::{
     task::{self, JoinHandle},
 };
 
+const DISTANCESDB_FILE: &str = "distances.cbor";
+const GATESDB_FILE: &str = "gates.cbor";
+
 #[derive(Debug, Deserialize, Serialize)]
-pub struct SerdeEuclideanDistances {
+struct CachedData<T> {
     date: DateTime<Utc>,
-    distances: Vec<AllEuclideanDistances>,
+    data: T,
 }
+pub fn cache_data<T: Serialize>(data: T, file_name: &str) {
+    ciborium::into_writer(
+        &CachedData {
+            date: chrono::offset::Utc::now(),
+            data,
+        },
+        &File::create(file_name).unwrap(),
+    )
+    .unwrap();
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AllEuclideanDistances {
     pub name: String,
@@ -33,16 +47,16 @@ pub struct AllEuclideanDistances {
     pub euclidean_distance: Vec<EuclideanDistances>,
 }
 
-const DISTANCESDB_FILE: &str = "distances.cbor";
-
 #[async_recursion]
 pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEuclideanDistances> {
     trace!("Building Euclidean Distances");
 
     if Path::new(DISTANCESDB_FILE).is_file() {
-        let distance_file: Result<SerdeEuclideanDistances, ciborium::de::Error<std::io::Error>> =
-            ciborium::from_reader(&File::open(DISTANCESDB_FILE).unwrap());
-        let distances: SerdeEuclideanDistances = match distance_file {
+        let distance_file: Result<
+            CachedData<Vec<AllEuclideanDistances>>,
+            ciborium::de::Error<std::io::Error>,
+        > = ciborium::from_reader(&File::open(DISTANCESDB_FILE).unwrap());
+        let distances: CachedData<Vec<AllEuclideanDistances>> = match distance_file {
             Err(_) => {
                 info!("removing currupted {}", DISTANCESDB_FILE);
 
@@ -62,7 +76,7 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
             }
         };
 
-        distances.distances
+        distances.data
     } else {
         //TODO: should multithread this to download quicker
         let num_systems = space_traders.get_status().await.unwrap().stats.systems;
@@ -132,14 +146,7 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
 
         info!("Writing new distances to {}", DISTANCESDB_FILE);
 
-        ciborium::into_writer(
-            &SerdeEuclideanDistances {
-                date: chrono::offset::Utc::now(),
-                distances: all_euclidean_distance.clone(),
-            },
-            &File::create(DISTANCESDB_FILE).unwrap(),
-        )
-        .unwrap();
+        cache_data(all_euclidean_distance.clone(), DISTANCESDB_FILE);
 
         all_euclidean_distance.to_vec()
     }
@@ -208,35 +215,60 @@ async fn euclidean_distance(
 pub async fn get_gate_network(
     space_traders: &SpaceTraders,
     symbol: WaypointString,
-) -> Option<GateNode> {
+) -> Option<Arena<schemas::JumpGate>> {
     trace!("Get Gate Network");
-    let root_gate = space_traders.jump_gate(&symbol).await;
-    match root_gate {
-        Ok(root_gate) => {
-            let mut gate_nodes = GateNode::new(symbol.to_system(), None);
+    let mut arena = Arena::new();
 
-            for connected_system in root_gate.data.connected_systems.into_iter() {
-                let waypoints = space_traders
-                    .list_waypoints(&connected_system.symbol, false)
-                    .await;
+    let root_gate = space_traders.jump_gate(&symbol).await.ok()?;
+    for connected_system in root_gate.data.connected_systems.iter() {
+        for waypoint in space_traders
+            .list_waypoints(&connected_system.symbol, false)
+            .await
+            .ok()?
+            .data
+            .iter()
+        {
+            recurse_gate_network(space_traders, &mut arena, &waypoint, None).await;
+        }
+    }
+    info!("Finished getting all gates - writing to {}", GATESDB_FILE);
+    // cache_data(arena, GATESDB_FILE); // TODO: get this to write to a file
 
-                if let Ok(waypoints) = waypoints {
-                    for waypoint in waypoints.data.iter() {
-                        if waypoint.r#type == enums::WaypointType::JumpGate {
-                            let gate = space_traders.jump_gate(&waypoint.symbol).await;
-                            if let Ok(_gate) = gate {
-                                gate_nodes.add_child(waypoint.symbol.to_system(), None);
-                            }
-                        }
-                    }
-                };
+    Some(arena)
+}
+
+#[async_recursion]
+async fn recurse_gate_network(
+    space_traders: &SpaceTraders,
+    arena: &mut Arena<schemas::JumpGate>,
+    waypoint: &schemas::Waypoint,
+    parent: Option<NodeId>,
+) {
+    // let space_traders = &SpaceTraders::default().await;
+    if waypoint.r#type == enums::WaypointType::JumpGate {
+        let gate = space_traders.jump_gate(&waypoint.symbol).await.unwrap();
+
+        let new_parent = match parent {
+            None => arena.new_node(gate.data.clone()),
+            Some(parent) => {
+                let new_node = arena.new_node(gate.data.clone());
+                parent.append(new_node, arena);
+
+                let node = arena.get(new_node).unwrap();
+                arena.get_node_id(node).unwrap()
             }
+        };
 
-            Some(gate_nodes)
+        for gate_children in gate.data.connected_systems.iter() {
+            let waypoints = space_traders
+                .list_waypoints(&gate_children.symbol, false)
+                .await
+                .unwrap();
+            for waypoint in waypoints.data.iter() {
+                recurse_gate_network(space_traders, arena, &waypoint, Some(new_parent)).await;
+            }
         }
-        Err(err) => {
-            error!("{err}");
-            None
-        }
+        info!("{:?}", arena.count()); // TODO: remove this
+        return;
     }
 }

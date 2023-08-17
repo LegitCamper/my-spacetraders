@@ -4,6 +4,7 @@ use std::sync::Once;
 #[allow(dead_code)]
 static INIT: Once = Once::new();
 
+#[allow(unused)]
 fn log() {
     INIT.call_once(|| {
         SimpleLogger::new()

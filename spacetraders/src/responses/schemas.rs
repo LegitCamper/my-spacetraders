@@ -150,7 +150,7 @@ pub struct FactionTrait {
     // description: String,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Clone, Debug)]
 pub struct JumpGate {
     #[serde(alias = "jumpRange")]
     pub jump_range: f64,
