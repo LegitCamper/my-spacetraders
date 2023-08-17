@@ -78,7 +78,6 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
 
         distances.data
     } else {
-        //TODO: should multithread this to download quicker
         let num_systems = space_traders.get_status().await.unwrap().stats.systems;
 
         info!(
@@ -87,29 +86,29 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
         );
 
         let systems: Arc<Mutex<Vec<schemas::System>>> = Arc::new(Mutex::new(Vec::new()));
-        let mut systems_handles: Vec<JoinHandle<()>> = Vec::new();
+        // let mut systems_handles: Vec<JoinHandle<()>> = Vec::new();
 
-        for task_numers in 1..(((num_systems / 20) + 1) / 100) {
-            let new_space_traders = SpaceTraders::default().await;
-            let systems = systems.clone();
-            systems_handles.push(task::spawn(async move {
-                for _ in 1..task_numers {
-                    for system in new_space_traders
-                        .list_systems(false)
-                        .await
-                        .unwrap()
-                        .data
-                        .iter()
-                    {
-                        systems.lock().await.push(system.clone());
-                    }
-                }
-            }));
+        // for task_numers in 1..(((num_systems / 20) + 1) / 100) {
+        let new_space_traders = SpaceTraders::default().await;
+        let systems = systems.clone();
+        // systems_handles.push(task::spawn(async move {
+        // for _ in 1..task_numers {
+        for system in new_space_traders
+            .list_systems(false)
+            .await
+            .unwrap()
+            .data
+            .iter()
+        {
+            systems.lock().await.push(system.clone());
         }
+        // }
+        // }));
+        // }
 
-        for handle in systems_handles.into_iter() {
-            handle.await.unwrap();
-        }
+        // for handle in systems_handles.into_iter() {
+        // handle.await.unwrap();
+        // }
 
         info!("Calclulating System Distances");
 
