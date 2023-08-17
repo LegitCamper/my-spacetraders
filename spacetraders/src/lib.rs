@@ -15,7 +15,6 @@ use responses::{
 use async_recursion::async_recursion;
 use core::panic;
 use log::error;
-use rand::Rng;
 use random_string::generate;
 use reqwest::{
     header::{HeaderValue, AUTHORIZATION, CONTENT_LENGTH},
@@ -199,7 +198,7 @@ impl SpaceTraders {
 
         let (channel_sender, mut channel_receiver) = mpsc::channel(120);
 
-        let mut interval = interval(tokio::time::Duration::from_millis(500));
+        let mut interval = interval(tokio::time::Duration::from_millis(100));
 
         SpaceTraders {
             interface: space_trader.clone(),
@@ -226,11 +225,10 @@ impl SpaceTraders {
 
     // TODO: find most efficient starting faction
     #[async_recursion]
-    // #[allow(clippy::should_implement_trait)]
     pub async fn default() -> Self {
         let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
         let post_message = RegisterNewAgent {
-            faction: rand::thread_rng().gen::<enums::FactionSymbols>(),
+            faction: enums::FactionSymbols::Cosmic,
             symbol: username,
             email: None,
         };
@@ -311,7 +309,8 @@ impl SpaceTraders {
     }
 
     // Systems
-    pub async fn list_systems(
+
+    async fn list_systems_page(
         &self,
         page: Option<u32>,
     ) -> Result<systems::Systems, SpacetradersError> {
@@ -325,6 +324,21 @@ impl SpaceTraders {
             .await
             .as_deref(),
         )
+    }
+    pub async fn list_systems(&self, test: bool) -> Result<systems::Systems, SpacetradersError> {
+        match self.list_systems_page(None).await {
+            Ok(mut systems) => {
+                if systems.meta.total > 1 && !test {
+                    for page_num in 2..systems.meta.total {
+                        if let Ok(more_waypoints) = self.list_systems_page(Some(page_num)).await {
+                            systems.data.extend(more_waypoints.data);
+                        }
+                    }
+                }
+                Ok(systems)
+            }
+            Err(err) => Err(err),
+        }
     }
     pub async fn get_system(
         &self,
@@ -340,7 +354,7 @@ impl SpaceTraders {
             .as_deref(),
         )
     }
-    pub async fn list_waypoints(
+    async fn list_waypoints_page(
         &self,
         system_symbol: &SystemString,
         page: Option<u32>,
@@ -358,6 +372,28 @@ impl SpaceTraders {
             .await
             .as_deref(),
         )
+    }
+    pub async fn list_waypoints(
+        &self,
+        system_symbol: &SystemString,
+        test: bool,
+    ) -> Result<systems::Waypoints, SpacetradersError> {
+        match self.list_waypoints_page(system_symbol, None).await {
+            Ok(mut waypoints) => {
+                if waypoints.meta.total > 1 && !test {
+                    for page_num in 2..waypoints.meta.total {
+                        if let Ok(more_waypoints) = self
+                            .list_waypoints_page(system_symbol, Some(page_num))
+                            .await
+                        {
+                            waypoints.data.extend(more_waypoints.data);
+                        }
+                    }
+                }
+                Ok(waypoints)
+            }
+            Err(err) => Err(err),
+        }
     }
     pub async fn get_waypoint(
         &self,
@@ -415,15 +451,14 @@ impl SpaceTraders {
     }
     pub async fn jump_gate(
         &self,
-        system_symbol: &SystemString,
-        waypoint_symbol: &WaypointString,
+        symbol: &WaypointString,
     ) -> Result<systems::JumpGate, SpacetradersError> {
         handle_response(
             self.make_request(
                 Method::Get,
                 format!(
                     "/systems/{}/waypoints/{}/jump-gate",
-                    system_symbol.system, waypoint_symbol.waypoint
+                    symbol.system, symbol.waypoint
                 ),
                 None,
             )
@@ -433,7 +468,7 @@ impl SpaceTraders {
     }
 
     // Contracts
-    pub async fn list_contracts(
+    async fn list_contracts_page(
         &self,
         page_num: Option<u32>,
     ) -> Result<contracts::Contracts, SpacetradersError> {
@@ -441,12 +476,30 @@ impl SpaceTraders {
         handle_response(
             self.make_request(
                 Method::Get,
-                format!("/my/contracts.as_deref()limit=20&page={}", page_num),
+                format!("/my/contracts?limit=20&page={}", page_num),
                 None,
             )
             .await
             .as_deref(),
         )
+    }
+    pub async fn list_contracts(
+        &self,
+        test: bool,
+    ) -> Result<contracts::Contracts, SpacetradersError> {
+        match self.list_contracts_page(None).await {
+            Ok(mut contracts) => {
+                if contracts.meta.total > 1 && !test {
+                    for page_num in 2..contracts.meta.total {
+                        if let Ok(more_contracts) = self.list_contracts_page(Some(page_num)).await {
+                            contracts.data.extend(more_contracts.data);
+                        }
+                    }
+                }
+                Ok(contracts)
+            }
+            Err(err) => Err(err),
+        }
     }
     pub async fn get_contract(
         &self,
@@ -925,30 +978,38 @@ fn handle_response<T: for<'a> Deserialize<'a>>(
     response: Option<&str>,
 ) -> Result<T, SpacetradersError> {
     match response {
-        Some(response_str) => match serde_json::from_str(&response_str) {
-            Ok(response) => Ok(response),
-            Err(error_str) => match parse_error(&response_str) {
-                Some(response) => {
-                    if response != SpacetradersError::Other {
-                        error!("SpaceTraders Error: {}", response);
-                        Err(response)
-                    } else {
-                        error!(
-                            "SpaceTraders Error: Other - {}\n{}",
-                            error_str, response_str
-                        );
-                        Err(response)
-                    }
+        Some(response_str) => {
+            let jd = &mut serde_json::Deserializer::from_str(response_str);
+            match serde_path_to_error::deserialize(jd) {
+                Ok(response) => Ok(response),
+                Err(error_str) => {
+                    let result = match parse_error(response_str) {
+                        Some(response) => {
+                            if response != SpacetradersError::Other {
+                                error!("SpaceTraders Error: {}", response);
+                                Err(response)
+                            } else {
+                                error!(
+                                    "SpaceTraders Error: Other - {}\n{}",
+                                    error_str, response_str
+                                );
+                                Err(response)
+                            }
+                        }
+                        None => {
+                            error!(
+                                "SpaceTraders Error (Could not parse json): {}, details: {}",
+                                SpacetradersError::Serde,
+                                response_str
+                            );
+                            Err(SpacetradersError::Serde)
+                        }
+                    };
+                    error!("Serde Path Error: {}", error_str.path().to_string());
+                    result
                 }
-                None => {
-                    error!(
-                        "SpaceTraders Error (Could not parse error code): {}",
-                        SpacetradersError::Serde
-                    );
-                    Err(SpacetradersError::Serde)
-                }
-            },
-        },
+            }
+        }
         None => {
             error!(
                 "SpaceTraders Error (response): {}",
@@ -1316,6 +1377,7 @@ impl<'de> Deserialize<'de> for SectorString {
 
 pub mod spacetraders_datetime_format {
     use chrono::{DateTime, TimeZone, Utc};
+    // use log::error;
     use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = "%+";
@@ -1333,12 +1395,18 @@ pub mod spacetraders_datetime_format {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Utc.datetime_from_str(&s, FORMAT)
-            .map_err(serde::de::Error::custom)
+        match Utc.datetime_from_str(&s, FORMAT) {
+            Ok(date) => Ok(date),
+            Err(_) => {
+                // error!("Failed deserializing chrono - defaulting to now!");
+                Ok(chrono::offset::Utc::now())
+            }
+        }
     }
 }
 pub mod spacetraders_date_format {
     use chrono::{DateTime, TimeZone, Utc};
+    // use log::error;
     use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = "%+";
@@ -1357,8 +1425,14 @@ pub mod spacetraders_date_format {
     {
         let s = String::deserialize(deserializer)?;
         let s = format!("{}{}", s, "T01:00:00Z");
-        Utc.datetime_from_str(&s, FORMAT)
-            .map_err(serde::de::Error::custom)
+
+        match Utc.datetime_from_str(&s, FORMAT) {
+            Ok(date) => Ok(date),
+            Err(_) => {
+                // error!("Failed deserializing chrono - defaulting to now!");
+                Ok(chrono::offset::Utc::now())
+            }
+        }
     }
 }
 // pub mod spacetraders_time_format {

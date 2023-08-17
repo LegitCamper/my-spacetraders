@@ -7,24 +7,10 @@ use crate::{
     },
     responses::schemas::SurveyDeposit,
     Method, SpaceTraders, SystemString, WaypointString,
+    tests::log,
 };
 
 use serial_test::serial;
-use simple_logger::SimpleLogger;
-use std::sync::Once;
-
-#[allow(dead_code)]
-static INIT: Once = Once::new();
-
-fn log() {
-    INIT.call_once(|| {
-        SimpleLogger::new()
-            .with_level(log::LevelFilter::Info)
-            .with_colors(true)
-            .init()
-            .unwrap();
-    });
-}
 
 const TIMES_TO_RUN: i32 = 10;
 const STRING: &str = "X1-OE";
@@ -61,7 +47,8 @@ async fn get_new_registration() {
                     },
                 )),
             )
-            .await;
+            .await
+            .unwrap();
     }
 }
 
@@ -91,7 +78,7 @@ async fn list_systems() {
     log();
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_systems().await.unwrap();
+        spacetraders.list_systems(true).await.unwrap();
     }
 }
 #[tokio::test]
@@ -116,10 +103,13 @@ async fn list_waypoints() {
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
         spacetraders
-            .list_waypoints(&SystemString {
-                system: STRING.to_string(),
-                sector: STRING.to_string(),
-            })
+            .list_waypoints(
+                &SystemString {
+                    system: STRING.to_string(),
+                    sector: STRING.to_string(),
+                },
+                true,
+            )
             .await
             .unwrap();
     }
@@ -213,7 +203,7 @@ async fn list_contracts() {
     log();
     let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_contracts().await.unwrap();
+        spacetraders.list_contracts(true).await.unwrap();
     }
 }
 #[tokio::test]
@@ -400,7 +390,7 @@ async fn extract_resources() {
                     symbol: STRING.into(),
                     deposits: vec![
                         (SurveyDeposit {
-                            symbol: STRING.to_string(),
+                            symbol: enums::TradeSymbol::Aluminum,
                         }),
                     ],
                     // TODO: make into datatime
@@ -500,7 +490,7 @@ async fn warp_ship() {
             .warp_ship(
                 STRING,
                 WarpShip {
-                    ship_symbol: STRING.to_string(),
+                    waypoint_symbol: STRING.to_string(),
                 },
             )
             .await

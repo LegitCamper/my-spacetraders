@@ -10,7 +10,6 @@ use crate::{spacetraders_date_format, spacetraders_datetime_format};
 use chrono::{offset::Utc, DateTime};
 use serde::Deserialize;
 
-// currently fails tests because it trys "string" :facepalm:
 #[derive(Deserialize, Debug)]
 pub struct GetStatus {
     pub status: String,
@@ -30,7 +29,7 @@ pub struct GetStatus {
 pub struct GetStatusStats {
     pub agents: i64,
     pub ships: i64,
-    pub systems: u32,
+    pub systems: i64,
     pub waypoints: i64,
 }
 #[derive(Deserialize, Debug)]
@@ -44,7 +43,7 @@ pub struct GetStatusLeaderboards {
 pub struct GetStatusLeaderboardsMostCredits {
     #[serde(alias = "agentSymbol")]
     pub agent_symbol: String,
-    pub credits: i64,
+    pub credits: i128,
 }
 #[derive(Deserialize, Debug)]
 pub struct GetStatusLeaderboardsMostSubmittedCharts {

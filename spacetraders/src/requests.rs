@@ -1,3 +1,5 @@
+pub use crate::responses::schemas::Survey as ExtractResources;
+
 use serde::Serialize;
 
 use super::enums::{FactionSymbols, FlightMode, ShipType, TradeSymbol};
@@ -23,6 +25,7 @@ pub enum Requests {
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct RegisterNewAgent {
     pub faction: FactionSymbols,
     pub symbol: String,
@@ -31,91 +34,93 @@ pub struct RegisterNewAgent {
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct PurchaseShip {
-    #[serde(rename = "shipType")]
     pub ship_type: ShipType,
-    #[serde(rename = "waypointSymbol")]
     pub waypoint_symbol: String,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct ShipRefine {
     pub produce: TradeSymbol,
 }
 
-pub use crate::responses::schemas::Survey as ExtractResources;
-
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct JettisonCargo {
     pub symbol: TradeSymbol,
     pub units: i32,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct JumpShip {
-    #[serde(rename = "systemSymbol")]
     pub system_symbol: String,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct NavigateShip {
-    #[serde(rename = "waypointSymbol")]
     pub waypoint_symbol: String,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct PatchShipNav {
-    #[serde(rename = "flightMode")]
     pub ship_symbol: FlightMode,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct WarpShip {
-    #[serde(rename = "waypointSymbol")]
-    pub ship_symbol: String,
+    pub waypoint_symbol: String,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct SellCargo {
     pub symbol: TradeSymbol,
     pub units: i32,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct PurchaseCargo {
     pub symbol: TradeSymbol,
     pub units: i32,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct RefuelShip {
     pub units: i32,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct TransferCargo {
-    #[serde(rename = "tradeSymbol")]
     pub trade_symbol: TradeSymbol,
     pub units: i32,
-    #[serde(rename = "shipSymbol")]
     pub ship_symbol: String,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct InstallMount {
     pub symbol: String,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct RemoveMount {
     pub symbol: String,
 }
 
 #[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct DeliverCargoToContract {
-    #[serde(rename = "shipSymbol")]
     pub ship_symbol: ShipType,
-    #[serde(rename = "tradeSymbol")]
     pub trade_symbol: TradeSymbol,
     pub units: i64,
 }

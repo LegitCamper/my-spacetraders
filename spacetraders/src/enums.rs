@@ -1,9 +1,8 @@
-use rand_derive::Rand;
 use serde::{Deserialize, Serialize};
 
 // USE THE COMMAND 'ccase -t pascal enums' TO TRANSFORM THE DOCS TO RUST ENUMS
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ListContractsType {
     Procurement,
@@ -75,6 +74,8 @@ pub enum WaypointTrait {
     Stripped,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
@@ -92,7 +93,7 @@ pub enum WaypointType {
     #[default]
     Default,
     #[serde(untagged)]
-    Untagged,
+    Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
@@ -110,9 +111,11 @@ pub enum SystemType {
     Unstable,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipType {
     ShipProbe,
@@ -127,9 +130,11 @@ pub enum ShipType {
     ShipRefiningFreighter,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipRole {
     Fabricator,
@@ -147,9 +152,11 @@ pub enum ShipRole {
     Satellite,
     Explorer,
     Refinery,
+    //#[serde(untagged)]
+    // Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipReactor {
     ReactorSolarI,
@@ -159,9 +166,11 @@ pub enum ShipReactor {
     ReactorAntimatterI,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipNavStatus {
     InTransit,
@@ -169,9 +178,11 @@ pub enum ShipNavStatus {
     Docked,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipMount {
     MountGasSiphonI,
@@ -191,6 +202,8 @@ pub enum ShipMount {
     MountTurretI,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
@@ -308,11 +321,11 @@ pub enum TradeSymbol {
     MountTurretI,
     #[default]
     Default,
-    #[serde(alias = "string")]
-    String,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipModule {
     ModuleMineralProcessorI,
@@ -334,9 +347,11 @@ pub enum ShipModule {
     ModuleShieldGeneratorIi,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipFrame {
     FrameProbe,
@@ -356,6 +371,8 @@ pub enum ShipFrame {
     FrameCarrier,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
@@ -368,10 +385,10 @@ pub enum ShipEngine {
     #[default]
     Default,
     #[serde(untagged)]
-    Other(String),
+    Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FlightMode {
     Cruise,
@@ -380,16 +397,18 @@ pub enum FlightMode {
     Stealth,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ShipCrewRotation {
     Strict,
     Relaxed,
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug, Rand)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FactionSymbols {
     #[default]
@@ -413,10 +432,10 @@ pub enum FactionSymbols {
     Shadow,
     Ethereal,
     #[serde(untagged)]
-    Untagged,
+    Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FactionTrait {
     Bureaucratic,
@@ -480,16 +499,18 @@ pub enum FactionTrait {
     Entrepreneurial,
     #[default]
     Default,
+    #[serde(untagged)]
+    Untagged(String),
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum GetMarketType {
     Purchase,
     Sell,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum GetMarketSupplyType {
     Scarce,
@@ -498,7 +519,7 @@ pub enum GetMarketSupplyType {
     Abundant,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DepositSize {
     Small,

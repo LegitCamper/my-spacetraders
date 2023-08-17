@@ -105,11 +105,12 @@ impl ShipWrapper {
 
     pub async fn remove_survey(&self, waypoint: &WaypointString) -> Option<schemas::Survey> {
         trace!("Remove Survey");
-        match self.ship_handler.lock().await.surveys.remove(waypoint) {
-            // TODO: maybe do something fancier here
-            Some(surveys) => Some(surveys[0].to_owned()),
-            None => None,
-        }
+        self.ship_handler
+            .lock()
+            .await
+            .surveys
+            .remove(waypoint)
+            .map(|surveys| surveys[0].to_owned())
     }
     pub async fn create_survey(&self) -> Option<schemas::Survey> {
         trace!("Create Survey");
@@ -120,7 +121,7 @@ impl ShipWrapper {
 
         if survey.is_some() {
             let survey = survey.unwrap();
-            if survey.len() >= 1 {
+            if !survey.is_empty() {
                 Some(survey[0].clone())
             // TODO:       ^^^^ maybe do something fancier here - should check if this is expired
             } else {
@@ -161,7 +162,6 @@ impl ShipWrapper {
                             unlocked
                                 .surveys
                                 .insert(ship_posistion, survey.data.surveys.clone());
-                            ()
                         }
                     }
                     return Some(survey.data.surveys[0].clone());
@@ -240,24 +240,11 @@ impl ShipWrapper {
         trace!("Get Waypoints");
         let mut unlocked = self.ship_handler.lock().await;
 
-        let mut waypoints = unlocked
+        let waypoints = unlocked
             .spacetraders
-            .list_waypoints(system, None)
+            .list_waypoints(system, false)
             .await
             .unwrap();
-        if waypoints.meta.total > 1 {
-            for num in 2..waypoints.meta.total {
-                let paged_waypoints = unlocked
-                    .spacetraders
-                    .list_waypoints(system, Some(num))
-                    .await
-                    .unwrap()
-                    .data;
-                for paged_waypoint in paged_waypoints.iter() {
-                    waypoints.data.push(paged_waypoint.clone())
-                }
-            }
-        }
         let mut return_vec = Vec::new();
         for new_waypoint in waypoints.data.iter() {
             let waypoints = unlocked.waypoints.clone();
@@ -431,7 +418,7 @@ impl ShipWrapper {
                         && ship.fuel.current != ship.fuel.capacity
                     {
                         if ship.nav.status == enums::ShipNavStatus::Docked {
-                            for _ in 0..((ship.fuel.capacity as f32 / 100 as f32).ceil() as u32) {
+                            for _ in 0..((ship.fuel.capacity as f32 / 100_f32).ceil() as u32) {
                                 let _ = self
                                     .ship_handler
                                     .lock()
