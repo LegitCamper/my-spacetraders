@@ -52,9 +52,6 @@ pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandler>>) {
 
     // listens for new ship purchases and spawns new task to deal with them
     while let Some(msg) = rx.recv().await {
-        let new_ship_handler_data = Arc::clone(&ship_handler_data);
-        let channel = tx.clone();
-
         ship_handler_data
             .lock()
             .await
@@ -62,8 +59,10 @@ pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandler>>) {
             .insert(msg.symbol.clone(), msg.clone());
 
         info!("Starting new task for ship: {}", &msg.symbol);
-        let join_handle: task::JoinHandle<()> = task::spawn(async move {
-            ship_handler(msg.symbol.as_str(), new_ship_handler_data.clone(), channel).await
+        let join_handle: task::JoinHandle<()> = task::spawn({
+            let ship_handler_data = Arc::clone(&ship_handler_data);
+            let tx = tx.clone();
+            async move { ship_handler(msg.symbol.as_str(), ship_handler_data.clone(), tx).await }
         });
         ship_handler_data.lock().await.handles.push(join_handle);
     }
