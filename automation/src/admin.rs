@@ -12,7 +12,7 @@ use log::{error, info, trace, warn};
 use tokio::sync::mpsc;
 
 pub async fn admin_stuff(
-    ship_data: ShipWrapper,
+    ship_data: &ShipWrapper,
     _ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
@@ -20,7 +20,7 @@ pub async fn admin_stuff(
 
     let contracts = match ship_data
         .ship_handler
-        .lock()
+        .read()
         .await
         .spacetraders
         .list_contracts(false)
@@ -57,14 +57,14 @@ pub async fn admin_stuff(
             }
             if contractor_ship {
             } else {
-                buy_ship(ship_data.clone(), &needed_ship, channel.clone()).await
+                buy_ship(ship_data, &needed_ship, channel.clone()).await
             }
         }
     }
 }
 
 pub async fn buy_ship(
-    ship_data: ShipWrapper,
+    ship_data: &ShipWrapper,
     ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
@@ -83,7 +83,7 @@ pub async fn buy_ship(
 
                 let shipyard = ship_data
                     .ship_handler
-                    .lock()
+                    .read()
                     .await
                     .spacetraders
                     .get_shipyard(&waypoint.system_symbol, &waypoint.symbol)
@@ -93,7 +93,7 @@ pub async fn buy_ship(
                     for ship_type in ship_types {
                         if shipyard_ship.r#type == *ship_type {
                             if shipyard_ship.purchase_price < ship_data.get_credits().await {
-                                let mut unlocked = ship_data.ship_handler.lock().await;
+                                let mut unlocked = ship_data.ship_handler.write().await;
 
                                 let new_ship = unlocked
                                     .spacetraders

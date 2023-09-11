@@ -7,7 +7,7 @@ use simple_logger::SimpleLogger;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
     signal,
-    sync::Mutex,
+    sync::RwLock,
     task::{self, JoinHandle},
 };
 
@@ -15,7 +15,7 @@ async fn start_automation(
     token: Option<String>,
     email: Option<String>,
     _username: Option<String>,
-) -> (Arc<Mutex<ShipHandler>>, JoinHandle<()>) {
+) -> (Arc<RwLock<ShipHandler>>, JoinHandle<()>) {
     trace!("Starting automation");
     let space_traders: SpaceTraders = match token {
         Some(token) => {
@@ -40,7 +40,7 @@ async fn start_automation(
     let euclidean_distances = automation::cache::build_euclidean_distance(&space_traders).await;
     // let gate_nodes = automation::cache::get_gate_network(&space_traders, headquarters).await;
     // println!("{gate_nodes:?}");
-    let ship_handler_data = Arc::new(Mutex::new(ShipHandler {
+    let ship_handler_data = Arc::new(RwLock::new(ShipHandler {
         handles: vec![],
         spacetraders: space_traders,
         ships: HashMap::new(),
@@ -91,11 +91,11 @@ async fn main() {
     }
 
     ship_handler_handle.abort();
-    for handle in ship_hander_data.lock().await.handles.iter() {
+    for handle in ship_hander_data.read().await.handles.iter() {
         handle.abort();
     }
-    ship_hander_data.lock().await.spacetraders.task.abort();
-    println!("{}", ship_hander_data.lock().await.spacetraders.diagnose());
+    ship_hander_data.read().await.spacetraders.task.abort();
+    println!("{}", ship_hander_data.read().await.spacetraders.diagnose());
     println!("Exiting - Bye!");
     std::process::exit(0);
 }

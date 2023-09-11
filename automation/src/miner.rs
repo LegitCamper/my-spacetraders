@@ -42,7 +42,7 @@ use tokio::time::{sleep, Duration};
 //     }
 // }
 
-pub async fn mine_astroid(ship_data: ShipWrapper) {
+pub async fn mine_astroid(ship_data: &ShipWrapper) {
     trace!("{} Mining Astroid", ship_data.ship_id);
 
     let ship = ship_data.clone_ship().await.unwrap();
@@ -122,7 +122,7 @@ pub fn sort_distance(
     mine_distances
 }
 
-pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
+pub async fn sell_mining_cargo(ship_data: &ShipWrapper) {
     trace!("Sell Mining Cargo");
 
     let ship = ship_data.clone_ship().await.unwrap();
@@ -157,7 +157,7 @@ pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
         'inner: for (waypoint, _distance) in mine_distances.iter() {
             let market = ship_data
                 .ship_handler
-                .lock()
+                .read()
                 .await
                 .spacetraders
                 .get_market(&waypoint.system_symbol, &waypoint.symbol)
@@ -166,19 +166,19 @@ pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
                 .data;
             for tradegood in market.imports.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(&ship_data.ship_id, ship_data.clone(), item, waypoint).await;
+                    sell_mining_item(&ship_data.ship_id, ship_data, item, waypoint).await;
                     continue 'inner;
                 }
             }
             for tradegood in market.exchange.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(&ship_data.ship_id, ship_data.clone(), item, waypoint).await;
+                    sell_mining_item(&ship_data.ship_id, ship_data, item, waypoint).await;
                     break 'inner;
                 }
             }
             for tradegood in market.trade_goods.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(&ship_data.ship_id, ship_data.clone(), item, waypoint).await;
+                    sell_mining_item(&ship_data.ship_id, ship_data, item, waypoint).await;
                     break 'inner;
                 }
             }
@@ -194,7 +194,7 @@ pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
         );
         let _ = ship_data
             .ship_handler
-            .lock()
+            .read()
             .await
             .spacetraders
             .jettison_cargo(
@@ -210,7 +210,7 @@ pub async fn sell_mining_cargo(ship_data: ShipWrapper) {
 
 pub async fn sell_mining_item(
     ship_id: &str,
-    ship_data: ShipWrapper,
+    ship_data: &ShipWrapper,
     item: &schemas::ShipCargoItem,
     waypoint: &schemas::Waypoint,
 ) {
@@ -231,7 +231,7 @@ pub async fn sell_mining_item(
     info!("{} is selling {} {:?}", ship_id, item.units, item.symbol);
 
     {
-        let mut unlocked = ship_data.ship_handler.lock().await;
+        let mut unlocked = ship_data.ship_handler.write().await;
 
         let temp_ship_data = unlocked
             .spacetraders

@@ -14,17 +14,17 @@ use chrono::{offset, DateTime, Local};
 use log::{error, info, trace};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
-    sync::Mutex,
+    sync::RwLock,
     time::{sleep, Duration},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ShipWrapper {
-    pub ship_handler: Arc<Mutex<ShipHandler>>,
+    pub ship_handler: Arc<RwLock<ShipHandler>>,
     pub ship_id: String,
 }
 impl ShipWrapper {
-    pub fn new(ship_handler: Arc<Mutex<ShipHandler>>, ship_id: &str) -> Self {
+    pub fn new(ship_handler: Arc<RwLock<ShipHandler>>, ship_id: &str) -> Self {
         ShipWrapper {
             ship_handler,
             ship_id: ship_id.to_string(),
@@ -33,21 +33,21 @@ impl ShipWrapper {
 
     pub async fn get_credits(&self) -> f64 {
         trace!("Get Credits");
-        self.ship_handler.lock().await.credits
+        self.ship_handler.read().await.credits
     }
     pub async fn add_credits(&self, credits: f64) {
         trace!("Add Credits");
-        self.ship_handler.lock().await.credits += credits;
+        self.ship_handler.write().await.credits += credits;
     }
     pub async fn sub_credits(self, credits: f64) {
         trace!("Sub Credits");
-        self.ship_handler.lock().await.credits -= credits;
+        self.ship_handler.write().await.credits -= credits;
     }
 
     pub async fn clone_ship(&self) -> Option<schemas::Ship> {
         trace!("Clone ship");
         self.ship_handler
-            .lock()
+            .read()
             .await
             .ships
             .get(&self.ship_id)
@@ -56,7 +56,7 @@ impl ShipWrapper {
 
     pub async fn clone_ships(&self) -> HashMap<String, schemas::Ship> {
         trace!("Clone ships");
-        self.ship_handler.lock().await.ships.clone()
+        self.ship_handler.read().await.ships.clone()
     }
 
     pub async fn system_distance(
@@ -65,7 +65,7 @@ impl ShipWrapper {
         system2: &SystemString,
     ) -> Option<u64> {
         trace!("System Distance");
-        for system in self.ship_handler.lock().await.euclidean_distances.iter() {
+        for system in self.ship_handler.read().await.euclidean_distances.iter() {
             if system1.system == system.name {
                 for distances in system.euclidean_distance.iter() {
                     if system2.system == distances.name {
@@ -80,7 +80,7 @@ impl ShipWrapper {
     pub async fn get_contract(&self, contract_id: &str) -> Option<schemas::Contract> {
         trace!("Get Contract");
         self.ship_handler
-            .lock()
+            .read()
             .await
             .contracts
             .get(contract_id)
@@ -88,7 +88,11 @@ impl ShipWrapper {
     }
     pub async fn remove_contract(&self, contract_id: &str) -> Option<schemas::Contract> {
         trace!("Remove Contract");
-        self.ship_handler.lock().await.contracts.remove(contract_id)
+        self.ship_handler
+            .write()
+            .await
+            .contracts
+            .remove(contract_id)
     }
     pub async fn add_contract(
         &self,
@@ -97,7 +101,7 @@ impl ShipWrapper {
     ) -> Option<schemas::Contract> {
         trace!("Add Contract");
         self.ship_handler
-            .lock()
+            .write()
             .await
             .contracts
             .insert(contract_id.to_string(), contract)
@@ -106,7 +110,7 @@ impl ShipWrapper {
     pub async fn remove_survey(&self, waypoint: &WaypointString) -> Option<schemas::Survey> {
         trace!("Remove Survey");
         self.ship_handler
-            .lock()
+            .write()
             .await
             .surveys
             .remove(waypoint)
@@ -116,7 +120,7 @@ impl ShipWrapper {
         trace!("Create Survey");
 
         let ship = self.clone_ship().await.unwrap();
-        let mut unlocked = self.ship_handler.lock().await;
+        let mut unlocked = self.ship_handler.write().await;
         let survey = unlocked.surveys.get(&ship.nav.waypoint_symbol);
 
         if survey.is_some() {
@@ -177,14 +181,14 @@ impl ShipWrapper {
         trace!("Orbit Ship");
         let ship = self
             .ship_handler
-            .lock()
+            .read()
             .await
             .spacetraders
             .orbit_ship(&self.ship_id)
             .await
             .unwrap();
         self.ship_handler
-            .lock()
+            .write()
             .await
             .ships
             .get_mut(&self.ship_id)
@@ -197,14 +201,14 @@ impl ShipWrapper {
         trace!("Dock Ship");
         let ship = self
             .ship_handler
-            .lock()
+            .read()
             .await
             .spacetraders
             .dock_ship(&self.ship_id)
             .await
             .unwrap();
         self.ship_handler
-            .lock()
+            .write()
             .await
             .ships
             .get_mut(&self.ship_id)
@@ -215,7 +219,7 @@ impl ShipWrapper {
 
     pub async fn get_waypoint(&self, waypoint: &WaypointString) -> schemas::Waypoint {
         trace!("Get Waypoint");
-        let mut unlocked = self.ship_handler.lock().await;
+        let mut unlocked = self.ship_handler.write().await;
         match unlocked.waypoints.get(waypoint) {
             Some(data) => data.clone(),
             None => {
@@ -238,7 +242,7 @@ impl ShipWrapper {
     }
     pub async fn get_waypoints(&self, system: &SystemString) -> Vec<schemas::Waypoint> {
         trace!("Get Waypoints");
-        let mut unlocked = self.ship_handler.lock().await;
+        let mut unlocked = self.ship_handler.write().await;
 
         let waypoints = unlocked
             .spacetraders
@@ -268,7 +272,7 @@ impl ShipWrapper {
 
     pub async fn chart_waypoint(&self) {
         trace!("Chart Waypoint");
-        let unlocked = self.ship_handler.lock().await;
+        let unlocked = self.ship_handler.write().await;
 
         let ship_location = unlocked
             .ships
@@ -296,7 +300,7 @@ impl ShipWrapper {
         trace!("Wait Durtation");
         let local_time_to_stop: DateTime<Local> = self
             .ship_handler
-            .lock()
+            .read()
             .await
             .ships
             .get(&self.ship_id)
@@ -312,7 +316,7 @@ impl ShipWrapper {
             info!(
                 "{} is going to sleep for {} seconds",
                 self.ship_handler
-                    .lock()
+                    .read()
                     .await
                     .ships
                     .get(&self.ship_id)
@@ -334,7 +338,7 @@ impl ShipWrapper {
 
         let ship = self
             .ship_handler
-            .lock()
+            .read()
             .await
             .ships
             .get(&self.ship_id)
@@ -354,7 +358,7 @@ impl ShipWrapper {
             //TODO: consider fuel types here - eg stealth, drift
             let temp_ship_data = self
                 .ship_handler
-                .lock()
+                .read()
                 .await
                 .spacetraders
                 .navigate_ship(
@@ -370,14 +374,14 @@ impl ShipWrapper {
 
                 (
                     self.ship_handler
-                        .lock()
+                        .write()
                         .await
                         .ships
                         .get_mut(&self.ship_id)
                         .unwrap()
                         .nav,
                     self.ship_handler
-                        .lock()
+                        .write()
                         .await
                         .ships
                         .get_mut(&self.ship_id)
@@ -406,7 +410,7 @@ impl ShipWrapper {
             if r#trait.symbol == enums::WaypointTrait::Marketplace {
                 let market = self
                     .ship_handler
-                    .lock()
+                    .read()
                     .await
                     .spacetraders
                     .get_market(&waypoint.system_symbol, &waypoint.symbol)
@@ -421,7 +425,7 @@ impl ShipWrapper {
                             for _ in 0..((ship.fuel.capacity as f32 / 100_f32).ceil() as u32) {
                                 let _ = self
                                     .ship_handler
-                                    .lock()
+                                    .read()
                                     .await
                                     .spacetraders
                                     .refuel_ship(
@@ -434,7 +438,7 @@ impl ShipWrapper {
                             self.dock_ship().await;
                             let _ = self
                                 .ship_handler
-                                .lock()
+                                .read()
                                 .await
                                 .spacetraders
                                 .refuel_ship(
@@ -464,7 +468,7 @@ impl ShipWrapper {
 
         let ship = self
             .ship_handler
-            .lock()
+            .read()
             .await
             .ships
             .get(&self.ship_id)
@@ -502,7 +506,7 @@ impl ShipWrapper {
         let survey = self.create_survey().await;
         let ship = match self
             .ship_handler
-            .lock()
+            .read()
             .await
             .spacetraders
             .extract_resources(&self.ship_id, survey)
@@ -517,7 +521,7 @@ impl ShipWrapper {
 
         if let Some(ship) = ship {
             self.ship_handler
-                .lock()
+                .write()
                 .await
                 .ships
                 .get_mut(&self.ship_id)

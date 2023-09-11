@@ -16,7 +16,7 @@ use func::ShipWrapper;
 use log::{info, trace};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
-    sync::{mpsc, Mutex},
+    sync::{mpsc, RwLock},
     task,
 };
 
@@ -33,12 +33,12 @@ pub struct ShipHandler {
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }
 
-pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandler>>) {
+pub async fn start_ship_handler(ship_handler_data: Arc<RwLock<ShipHandler>>) {
     trace!("Start Ship Handler");
     let (tx, mut rx) = mpsc::channel(100);
 
     let ships = ship_handler_data
-        .lock()
+        .read()
         .await
         .spacetraders
         .list_ships()
@@ -52,25 +52,25 @@ pub async fn start_ship_handler(ship_handler_data: Arc<Mutex<ShipHandler>>) {
 
     // listens for new ship purchases and spawns new task to deal with them
     while let Some(msg) = rx.recv().await {
+        let new_ship_handler = ship_handler_data.clone();
         ship_handler_data
-            .lock()
+            .write()
             .await
             .ships
             .insert(msg.symbol.clone(), msg.clone());
 
         info!("Starting new task for ship: {}", &msg.symbol);
         let join_handle: task::JoinHandle<()> = task::spawn({
-            let ship_handler_data = Arc::clone(&ship_handler_data);
             let tx = tx.clone();
-            async move { ship_handler(msg.symbol.as_str(), ship_handler_data.clone(), tx).await }
+            async move { ship_handler(msg.symbol.as_str(), new_ship_handler, tx).await }
         });
-        ship_handler_data.lock().await.handles.push(join_handle);
+        ship_handler_data.write().await.handles.push(join_handle);
     }
 }
 
 pub async fn ship_handler(
     ship_id: &str,
-    ship_handler_data: Arc<Mutex<ShipHandler>>,
+    ship_handler_data: Arc<RwLock<ShipHandler>>,
     channel: mpsc::Sender<Ship>,
 ) {
     trace!("Ship Handler");
@@ -81,17 +81,17 @@ pub async fn ship_handler(
     match role {
         enums::ShipRole::Fabricator => todo!(),
         enums::ShipRole::Harvester => todo!(),
-        enums::ShipRole::Hauler => contractor_loop(ship_data.clone(), channel).await,
+        enums::ShipRole::Hauler => contractor_loop(ship_data, channel).await,
         enums::ShipRole::Interceptor => todo!(),
-        enums::ShipRole::Excavator => miner_loop(ship_data.clone(), channel).await,
+        enums::ShipRole::Excavator => miner_loop(ship_data, channel).await,
         enums::ShipRole::Transport => todo!(),
         enums::ShipRole::Repair => todo!(),
         enums::ShipRole::Surveyor => todo!(),
-        enums::ShipRole::Command => explorer_loop(ship_data.clone(), channel).await,
+        enums::ShipRole::Command => explorer_loop(ship_data, channel).await,
         enums::ShipRole::Carrier => todo!(),
         enums::ShipRole::Patrol => todo!(),
-        enums::ShipRole::Satellite => explorer_loop(ship_data.clone(), channel).await,
-        enums::ShipRole::Explorer => explorer_loop(ship_data.clone(), channel).await,
+        enums::ShipRole::Satellite => explorer_loop(ship_data, channel).await,
+        enums::ShipRole::Explorer => explorer_loop(ship_data, channel).await,
         enums::ShipRole::Refinery => todo!(),
     };
 }
@@ -99,7 +99,7 @@ pub async fn ship_handler(
 async fn contractor_loop(ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
     loop {
         admin::admin_stuff(
-            ship_data.clone(),
+            &ship_data,
             &[enums::ShipType::ShipMiningDrone],
             channel.clone(),
         )
@@ -110,8 +110,8 @@ async fn contractor_loop(ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
 
 async fn miner_loop(ship_data: ShipWrapper, _channel: mpsc::Sender<Ship>) {
     loop {
-        miner::mine_astroid(ship_data.clone()).await;
-        miner::sell_mining_cargo(ship_data.clone()).await;
+        miner::mine_astroid(&ship_data).await;
+        miner::sell_mining_cargo(&ship_data).await;
     }
 }
 
@@ -124,7 +124,7 @@ async fn explorer_loop(ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
         // )
         // .await;
         admin::buy_ship(
-            ship_data.clone(),
+            &ship_data,
             &[enums::ShipType::ShipMiningDrone],
             channel.clone(),
         )
