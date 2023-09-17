@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 // pub async fn get_contracts(
 //     ship_handler_data: Arc<Mutex<ShipHandlerData>>,
 // ) -> Vec<contracts::schemas::Contract> {

@@ -11,7 +11,7 @@ pub mod explorer;
 mod func;
 mod miner;
 use cache::AllEuclideanDistances;
-use func::ShipWrapper;
+use func::ShipAutomation;
 
 use log::{info, trace};
 use std::{collections::HashMap, sync::Arc};
@@ -21,7 +21,7 @@ use tokio::{
 };
 
 #[derive(Debug)]
-pub struct ShipHandler {
+pub struct Automation {
     pub handles: Vec<task::JoinHandle<()>>,
     pub spacetraders: SpaceTraders,
     pub ships: HashMap<String, Ship>,
@@ -33,18 +33,14 @@ pub struct ShipHandler {
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }
 
-pub async fn start_ship_handler(ship_handler_data: Arc<RwLock<ShipHandler>>) {
+pub async fn start_ship_handler(
+    st_interface: Arc<RwLock<SpaceTraders>>,
+    ship_automation: Arc<RwLock<Automation>>,
+) {
     trace!("Start Ship Handler");
     let (tx, mut rx) = mpsc::channel(100);
 
-    let ships = ship_handler_data
-        .read()
-        .await
-        .spacetraders
-        .list_ships()
-        .await
-        .unwrap()
-        .data;
+    let ships = st_interface.read().await.list_ships().await.unwrap().data;
 
     for ship in ships.into_iter() {
         tx.send(ship).await.unwrap();
@@ -52,8 +48,9 @@ pub async fn start_ship_handler(ship_handler_data: Arc<RwLock<ShipHandler>>) {
 
     // listens for new ship purchases and spawns new task to deal with them
     while let Some(msg) = rx.recv().await {
-        let new_ship_handler = ship_handler_data.clone();
-        ship_handler_data
+        let n_st_interface = st_interface.clone();
+        let n_ship_automation = ship_automation.clone();
+        n_ship_automation
             .write()
             .await
             .ships
@@ -62,19 +59,20 @@ pub async fn start_ship_handler(ship_handler_data: Arc<RwLock<ShipHandler>>) {
         info!("Starting new task for ship: {}", &msg.symbol);
         let join_handle: task::JoinHandle<()> = task::spawn({
             let tx = tx.clone();
-            async move { ship_handler(msg.symbol.as_str(), new_ship_handler, tx).await }
+            async move { ship_duty(n_st_interface, n_ship_automation, msg.symbol.as_str(), tx).await }
         });
-        ship_handler_data.write().await.handles.push(join_handle);
+        ship_automation.write().await.handles.push(join_handle);
     }
 }
 
-pub async fn ship_handler(
+pub async fn ship_duty(
+    st_interface: Arc<RwLock<SpaceTraders>>,
+    ship_automation: Arc<RwLock<Automation>>,
     ship_id: &str,
-    ship_handler_data: Arc<RwLock<ShipHandler>>,
     channel: mpsc::Sender<Ship>,
 ) {
     trace!("Ship Handler");
-    let ship_data = ShipWrapper::new(ship_handler_data, ship_id);
+    let ship_data = ShipAutomation::new(st_interface, ship_automation, ship_id);
 
     let role = ship_data.clone_ship().await.unwrap().registration.role;
 
@@ -96,7 +94,7 @@ pub async fn ship_handler(
     };
 }
 
-async fn contractor_loop(ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
+async fn contractor_loop(ship_data: ShipAutomation, channel: mpsc::Sender<Ship>) {
     loop {
         admin::admin_stuff(
             &ship_data,
@@ -108,14 +106,14 @@ async fn contractor_loop(ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
     }
 }
 
-async fn miner_loop(ship_data: ShipWrapper, _channel: mpsc::Sender<Ship>) {
+async fn miner_loop(ship_data: ShipAutomation, _channel: mpsc::Sender<Ship>) {
     loop {
         miner::mine_astroid(&ship_data).await;
         miner::sell_mining_cargo(&ship_data).await;
     }
 }
 
-async fn explorer_loop(ship_data: ShipWrapper, channel: mpsc::Sender<Ship>) {
+async fn explorer_loop(ship_data: ShipAutomation, channel: mpsc::Sender<Ship>) {
     loop {
         // admin::admin_stuff(
         //     ship_data.clone(),

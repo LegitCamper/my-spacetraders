@@ -6,7 +6,7 @@ use spacetraders::{
     responses::schemas,
 };
 
-use super::func::ShipWrapper;
+use super::func::ShipAutomation;
 
 use log::{error, info, trace, warn};
 use tokio::time::{sleep, Duration};
@@ -42,7 +42,7 @@ use tokio::time::{sleep, Duration};
 //     }
 // }
 
-pub async fn mine_astroid(ship_data: &ShipWrapper) {
+pub async fn mine_astroid(ship_data: &ShipAutomation) {
     trace!("{} Mining Astroid", ship_data.ship_id);
 
     let ship = ship_data.clone_ship().await.unwrap();
@@ -122,7 +122,7 @@ pub fn sort_distance(
     mine_distances
 }
 
-pub async fn sell_mining_cargo(ship_data: &ShipWrapper) {
+pub async fn sell_mining_cargo(ship_data: &ShipAutomation) {
     trace!("Sell Mining Cargo");
 
     let ship = ship_data.clone_ship().await.unwrap();
@@ -156,7 +156,7 @@ pub async fn sell_mining_cargo(ship_data: &ShipWrapper) {
     for item in ship.cargo.inventory.clone().iter() {
         'inner: for (waypoint, _distance) in mine_distances.iter() {
             let market = ship_data
-                .ship_handler
+                .ship_automation
                 .read()
                 .await
                 .spacetraders
@@ -193,7 +193,7 @@ pub async fn sell_mining_cargo(ship_data: &ShipWrapper) {
             ship_data.ship_id, item.units, item.symbol
         );
         let _ = ship_data
-            .ship_handler
+            .ship_automation
             .read()
             .await
             .spacetraders
@@ -210,7 +210,7 @@ pub async fn sell_mining_cargo(ship_data: &ShipWrapper) {
 
 pub async fn sell_mining_item(
     ship_id: &str,
-    ship_data: &ShipWrapper,
+    ship_data: &ShipAutomation,
     item: &schemas::ShipCargoItem,
     waypoint: &schemas::Waypoint,
 ) {
@@ -231,7 +231,7 @@ pub async fn sell_mining_item(
     info!("{} is selling {} {:?}", ship_id, item.units, item.symbol);
 
     {
-        let mut unlocked = ship_data.ship_handler.write().await;
+        let mut unlocked = ship_data.ship_automation.write().await;
 
         let temp_ship_data = unlocked
             .spacetraders
@@ -250,6 +250,7 @@ pub async fn sell_mining_item(
             let (_agent, transaction) = (temp_ship_data.agent, temp_ship_data.transaction);
 
             unlocked.credits += transaction.units;
+            ship_data.credits_generated += transaction.units
         }
     }
 }

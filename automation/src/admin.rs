@@ -6,23 +6,22 @@ use spacetraders::{
     responses,
 };
 
-use super::func::ShipWrapper;
+use super::func::ShipAutomation;
 
 use log::{error, info, trace, warn};
 use tokio::sync::mpsc;
 
 pub async fn admin_stuff(
-    ship_data: &ShipWrapper,
+    ship_data: &ShipAutomation,
     _ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
     trace!("Look at contracts");
 
     let contracts = match ship_data
-        .ship_handler
+        .st_interface
         .read()
         .await
-        .spacetraders
         .list_contracts(false)
         .await
     {
@@ -64,7 +63,7 @@ pub async fn admin_stuff(
 }
 
 pub async fn buy_ship(
-    ship_data: &ShipWrapper,
+    ship_data: &ShipAutomation,
     ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
@@ -82,10 +81,9 @@ pub async fn buy_ship(
                     .await;
 
                 let shipyard = ship_data
-                    .ship_handler
+                    .st_interface
                     .read()
                     .await
-                    .spacetraders
                     .get_shipyard(&waypoint.system_symbol, &waypoint.symbol)
                     .await;
 
@@ -93,10 +91,13 @@ pub async fn buy_ship(
                     for ship_type in ship_types {
                         if shipyard_ship.r#type == *ship_type {
                             if shipyard_ship.purchase_price < ship_data.get_credits().await {
-                                let mut unlocked = ship_data.ship_handler.write().await;
+                                // locking both as write to prevent access while mutating data
+                                let (unlocked_interface, mut unlocked_ship) = (
+                                    ship_data.st_interface.write().await,
+                                    ship_data.ship_automation.write().await,
+                                );
 
-                                let new_ship = unlocked
-                                    .spacetraders
+                                let new_ship = unlocked_interface
                                     .purchase_ship(requests::PurchaseShip {
                                         ship_type: shipyard_ship.r#type.clone(),
                                         waypoint_symbol: waypoint.symbol.clone().waypoint,
@@ -106,9 +107,9 @@ pub async fn buy_ship(
 
                                 channel.send(new_ship.data.ship.clone()).await.unwrap();
 
-                                unlocked.credits -= new_ship.data.transaction.price;
+                                unlocked_ship.credits -= new_ship.data.transaction.price;
 
-                                info!("buying ship, now at {} credits", unlocked.credits);
+                                info!("buying ship, now at {} credits", unlocked_ship.credits);
                                 return;
                             } else {
                                 warn!("Not enough money to buy ship");

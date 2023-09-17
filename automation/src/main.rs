@@ -1,4 +1,4 @@
-use automation::{start_ship_handler, ShipHandler};
+use automation::{start_st_interface, Automation};
 use spacetraders::{self, SpaceTraders}; // responses::schemas
 
 use clap::Parser;
@@ -15,9 +15,9 @@ async fn start_automation(
     token: Option<String>,
     email: Option<String>,
     _username: Option<String>,
-) -> (Arc<RwLock<ShipHandler>>, JoinHandle<()>) {
+) -> Arc<RwLock<Automation>> {
     trace!("Starting automation");
-    let space_traders: SpaceTraders = match token {
+    let st_interface: Arc<RwLock<SpaceTraders>> = Arc::new(RwLock::new(match token {
         Some(token) => {
             spacetraders::SpaceTraders::new(
                 &token,
@@ -27,22 +27,29 @@ async fn start_automation(
             .await
         }
         None => spacetraders::SpaceTraders::default().await,
-    };
+    }));
 
-    let headquarters = space_traders
+    let headquarters = st_interface
+        .read()
+        .await
         .agent()
         .await
-        .expect("Failed to get Agent")
+        .unwrap()
         .data
         .headquarters;
-
-    let credits = space_traders.agent().await.unwrap().data.credits;
-    let euclidean_distances = automation::cache::build_euclidean_distance(&space_traders).await;
+    let credits = st_interface
+        .read()
+        .await
+        .agent()
+        .await
+        .unwrap()
+        .data
+        .credits;
+    let euclidean_distances = automation::cache::build_euclidean_distance(&st_interface).await;
     // let gate_nodes = automation::cache::get_gate_network(&space_traders, headquarters).await;
     // println!("{gate_nodes:?}");
-    let ship_handler_data = Arc::new(RwLock::new(ShipHandler {
+    let ship_automation = Arc::new(RwLock::new(ShipAutomation {
         handles: vec![],
-        spacetraders: space_traders,
         ships: HashMap::new(),
         contracts: HashMap::new(),
         surveys: HashMap::new(),
@@ -51,9 +58,8 @@ async fn start_automation(
         euclidean_distances,
     }));
 
-    let ship_handler: JoinHandle<()> = task::spawn(start_ship_handler(ship_handler_data.clone()));
-
-    (ship_handler_data, ship_handler)
+    start_st_interface(ship_automation.clone(), st_interface.clone());
+    ship_automation
 }
 
 #[derive(Parser, Debug)]
@@ -79,23 +85,21 @@ async fn main() {
         .init()
         .unwrap();
 
-    trace!("Starting SpaceTraders cli");
+    trace!("Starting SpaceTraders Automation");
 
     let args = Args::parse();
-
-    let (ship_hander_data, ship_handler_handle) =
-        start_automation(args.token, args.email, args.username).await;
+    let ship_automation = start_automation(args.token, args.email, args.username).await;
 
     tokio::select! {
         _ = signal::ctrl_c() => {}
     }
 
-    ship_handler_handle.abort();
-    for handle in ship_hander_data.read().await.handles.iter() {
+    ship_automation.abort();
+    for handle in ship_automation.read().await.handles.iter() {
         handle.abort();
     }
-    ship_hander_data.read().await.spacetraders.task.abort();
-    println!("{}", ship_hander_data.read().await.spacetraders.diagnose());
+    ship_automation.read().await.spacetraders.task.abort();
+    println!("{}", ship_automation.read().await.spacetraders.diagnose());
     println!("Exiting - Bye!");
     std::process::exit(0);
 }
