@@ -44,10 +44,10 @@ pub async fn start_ship_handler(st_interface: SpaceTraders, automation_data: Aut
     // mutable/sharable versions
     // let st_interface = Arc::new(RwLock::new(st_interface));
     // let automation_data = Arc::new(RwLock::new(automation_data));
-    let shared_data = Arc::new(RwLock::new(SharedAutomationData {
+    let shared_data = Arc::new(RwLock::new(SharedAutomationData::new(
         st_interface,
         automation_data,
-    }));
+    )));
 
     // listens for new ship purchases and spawns new task to deal with them
     while let Some(msg) = rx.recv().await {
@@ -78,7 +78,7 @@ pub async fn start_ship_handler(st_interface: SpaceTraders, automation_data: Aut
 pub async fn ship_duty(ship_automation: ShipAutomation, channel: mpsc::Sender<Ship>) {
     trace!("Ship Handler");
 
-    let role = ship_automation
+    let role = &ship_automation
         .clone_ship()
         .await
         .unwrap()

@@ -8,7 +8,7 @@ use chrono::{offset, DateTime, Local};
 use log::{error, info, trace};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
-    sync::RwLock,
+    sync::RwLock, //RwLockReadGuard, RwLockWriteGuard
     time::{sleep, Duration},
 };
 
@@ -16,6 +16,17 @@ use tokio::{
 pub struct SharedAutomationData {
     pub st_interface: SpaceTraders,
     pub automation_data: Automation,
+}
+impl SharedAutomationData {
+    pub fn new(st_interface: SpaceTraders, automation_data: Automation) -> Self {
+        SharedAutomationData {
+            st_interface,
+            automation_data,
+        }
+    }
+    // TODO: simply shared_data.read().await calls
+    // pub fn write(&self) -
+    // pub fn read(&self) -> RwLockReadGuard<'_, T>
 }
 #[derive(Debug)]
 pub struct ShipAutomation {
