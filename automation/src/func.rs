@@ -169,43 +169,20 @@ impl ShipAutomation {
                     || mount.symbol == enums::ShipMount::MountSurveyorIi
                     || mount.symbol == enums::ShipMount::MountSurveyorIii
                 {
-                    let ship_posistion = unlocked
-                        .automation_data
-                        .ships
-                        .get(&self.ship_id)
-                        .unwrap()
-                        .nav
-                        .waypoint_symbol
-                        .clone();
                     let survey = unlocked
                         .st_interface
                         .create_survey(&self.ship_id)
                         .await
-                        .unwrap();
+                        .expect("Failed to create Survey");
 
-                    match unlocked
+                    let surveys = unlocked
                         .automation_data
                         .surveys
-                        .get(&ship.nav.waypoint_symbol)
-                    {
-                        Some(_) => {
-                            for survey in survey.data.surveys.iter() {
-                                unlocked
-                                    .automation_data
-                                    .surveys
-                                    .get_mut(&ship.nav.waypoint_symbol)
-                                    .unwrap()
-                                    .push(survey.clone());
-                            }
-                        }
-                        None => {
-                            unlocked
-                                .automation_data
-                                .surveys
-                                .insert(ship_posistion, survey.data.surveys.clone());
-                        }
-                    }
-                    return Some(survey.data.surveys[0].clone());
+                        .entry(ship.nav.waypoint_symbol)
+                        .and_modify(|vec| vec.append(&mut survey.data.surveys.clone()))
+                        .or_insert(survey.data.surveys);
+
+                    return Some(surveys[0].clone());
                 } else {
                     return None;
                 }

@@ -65,5 +65,5 @@ async fn main() {
     trace!("Starting SpaceTraders Automation");
 
     let args = Args::parse();
-    let ship_automation = start_automation(args.token, args.email, args.username).await;
+    start_automation(args.token, args.email, args.username).await;
 }
