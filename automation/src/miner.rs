@@ -17,15 +17,15 @@ use tokio::time::{sleep, Duration};
 //     Contractor,
 // }
 
-// pub async fn mine(ship_data: ShipWrapper, contractor: bool) {
-//     trace!("{} Mine", ship_data.ship_id);
+// pub async fn mine(automation_data: ShipWrapper, contractor: bool) {
+//     trace!("{} Mine", ship_automation.ship_id);
 
 //     let mut miner_task: MinerTask;
 
 //     if contractor {
 //         miner_task = MinerTask::Contractor;
 //     } else {
-//         for mount in ship_data.clone_ship().await.unwrap().mounts.into_iter() {
+//         for mount in ship_automation.clone_ship().await.unwrap().mounts.into_iter() {
 //             if mount.symbol == enums::ShipMount::MountGasSiphonI
 //                 || mount.symbol == enums::ShipMount::MountGasSiphonIi
 //                 || mount.symbol == enums::ShipMount::MountGasSiphonIii
@@ -42,12 +42,14 @@ use tokio::time::{sleep, Duration};
 //     }
 // }
 
-pub async fn mine_astroid(ship_data: &ShipAutomation) {
-    trace!("{} Mining Astroid", ship_data.ship_id);
+pub async fn mine_astroid(ship_automation: &ShipAutomation) {
+    trace!("{} Mining Astroid", ship_automation.ship_id);
 
-    let ship = ship_data.clone_ship().await.unwrap();
-    let waypoints = ship_data.get_waypoints(&ship.nav.system_symbol).await;
-    let ship_waypoint = ship_data.get_waypoint(&ship.nav.waypoint_symbol).await;
+    let ship = ship_automation.clone_ship().await.unwrap();
+    let waypoints = ship_automation.get_waypoints(&ship.nav.system_symbol).await;
+    let ship_waypoint = ship_automation
+        .get_waypoint(&ship.nav.waypoint_symbol)
+        .await;
 
     let mut mine_distances: Vec<(&schemas::Waypoint, u64)> = Vec::new();
     for waypoint in waypoints.iter() {
@@ -55,7 +57,7 @@ pub async fn mine_astroid(ship_data: &ShipAutomation) {
             || waypoint.r#type == enums::WaypointType::DebrisField
         // TODO: definatly look into other minable location
         {
-            let distance = ship_data.euclidean_distance(
+            let distance = ship_automation.euclidean_distance(
                 waypoint.x,
                 waypoint.y,
                 ship_waypoint.x,
@@ -65,32 +67,36 @@ pub async fn mine_astroid(ship_data: &ShipAutomation) {
         }
     }
     if mine_distances.is_empty() {
-        warn!("{} Failed to find mineable location", ship_data.ship_id);
+        warn!(
+            "{} Failed to find mineable location",
+            ship_automation.ship_id
+        );
         return;
     }
     mine_distances = sort_distance(mine_distances);
 
     for (waypoint, _distance) in mine_distances.iter() {
-        let ship = ship_data
+        let ship = ship_automation
             .travel_waypoint(waypoint.symbol.waypoint.as_str())
             .await
             .unwrap();
 
         if ship.nav.status == enums::ShipNavStatus::Docked {
-            ship_data.orbit_ship().await;
+            ship_automation.orbit_ship().await;
         } else if ship.nav.status == enums::ShipNavStatus::InTransit {
-            ship_data.wait_flight_duration().await;
-            ship_data.orbit_ship().await;
+            ship_automation.wait_flight_duration().await;
+            ship_automation.orbit_ship().await;
         }
 
-        info!("{} Starting mining astroid", ship_data.ship_id);
+        info!("{} Starting mining astroid", ship_automation.ship_id);
 
         loop {
-            if let Some((cargo, cooldown, _extraction)) = ship_data.extract_resources().await {
+            if let Some((cargo, cooldown, _extraction)) = ship_automation.extract_resources().await
+            {
                 if cargo.capacity - cargo.units > 1 {
                     info!(
                         "{} is on cooldown from mining for {} seconds",
-                        ship_data.ship_id, cooldown.remaining_seconds
+                        ship_automation.ship_id, cooldown.remaining_seconds
                     );
                     sleep(Duration::from_secs(cooldown.remaining_seconds.into())).await;
                     continue;
@@ -98,7 +104,7 @@ pub async fn mine_astroid(ship_data: &ShipAutomation) {
                     break;
                 }
             } else {
-                error!("{} Extracting failed", ship_data.ship_id);
+                error!("{} Extracting failed", ship_automation.ship_id);
                 break;
             }
         }
@@ -122,19 +128,21 @@ pub fn sort_distance(
     mine_distances
 }
 
-pub async fn sell_mining_cargo(ship_data: &ShipAutomation) {
+pub async fn sell_mining_cargo(ship_automation: &mut ShipAutomation) {
     trace!("Sell Mining Cargo");
 
-    let ship = ship_data.clone_ship().await.unwrap();
-    let waypoints = ship_data.get_waypoints(&ship.nav.system_symbol).await;
-    let ship_waypoint = ship_data.get_waypoint(&ship.nav.waypoint_symbol).await;
+    let ship = ship_automation.clone_ship().await.unwrap();
+    let waypoints = ship_automation.get_waypoints(&ship.nav.system_symbol).await;
+    let ship_waypoint = ship_automation
+        .get_waypoint(&ship.nav.waypoint_symbol)
+        .await;
 
     let mut mine_distances: Vec<(&schemas::Waypoint, u64)> = Vec::new();
     for waypoint in waypoints.iter() {
         for r#trait in waypoint.traits.iter() {
             if r#trait.symbol == enums::WaypointTrait::Marketplace {
                 {
-                    let distance = ship_data.euclidean_distance(
+                    let distance = ship_automation.euclidean_distance(
                         waypoint.x,
                         waypoint.y,
                         ship_waypoint.x,
@@ -146,7 +154,10 @@ pub async fn sell_mining_cargo(ship_data: &ShipAutomation) {
         }
     }
     if mine_distances.is_empty() {
-        warn!("{} Failed to find a market location", ship_data.ship_id);
+        warn!(
+            "{} Failed to find a market location",
+            ship_automation.ship_id
+        );
         return;
     }
     let mine_distances = sort_distance(mine_distances);
@@ -155,50 +166,68 @@ pub async fn sell_mining_cargo(ship_data: &ShipAutomation) {
     // TODO: consider demand and fuel to get to where prices are better
     for item in ship.cargo.inventory.clone().iter() {
         'inner: for (waypoint, _distance) in mine_distances.iter() {
-            let market = ship_data
-                .ship_automation
+            let market = ship_automation
+                .shared_data
                 .read()
                 .await
-                .spacetraders
+                .st_interface
                 .get_market(&waypoint.system_symbol, &waypoint.symbol)
                 .await
                 .unwrap()
                 .data;
             for tradegood in market.imports.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(&ship_data.ship_id, ship_data, item, waypoint).await;
+                    sell_mining_item(
+                        ship_automation.ship_id.clone().as_str(),
+                        ship_automation,
+                        item,
+                        waypoint,
+                    )
+                    .await;
                     continue 'inner;
                 }
             }
             for tradegood in market.exchange.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(&ship_data.ship_id, ship_data, item, waypoint).await;
+                    sell_mining_item(
+                        ship_automation.ship_id.clone().as_str(),
+                        ship_automation,
+                        item,
+                        waypoint,
+                    )
+                    .await;
                     break 'inner;
                 }
             }
             for tradegood in market.trade_goods.iter() {
                 if tradegood.symbol == item.symbol {
-                    sell_mining_item(&ship_data.ship_id, ship_data, item, waypoint).await;
+                    sell_mining_item(
+                        ship_automation.ship_id.clone().as_str(),
+                        ship_automation,
+                        item,
+                        waypoint,
+                    )
+                    .await;
                     break 'inner;
                 }
             }
         }
         warn!(
             "{} Unable to find location to sell {:?}",
-            ship_data.ship_id, item.symbol
+            ship_automation.ship_id, item.symbol
         );
         // Assuming this is correct unless I travel elsewhere I should just jettison
         info!(
             "{} Jettison {} {:?}",
-            ship_data.ship_id, item.units, item.symbol
+            ship_automation.ship_id, item.units, item.symbol
         );
-        let _ = ship_data
-            .ship_automation
+        let _ = ship_automation
+            .shared_data
             .read()
             .await
-            .spacetraders
+            .st_interface
             .jettison_cargo(
-                &ship_data.ship_id,
+                &ship_automation.ship_id,
                 requests::JettisonCargo {
                     symbol: item.symbol.clone(),
                     units: item.units,
@@ -210,31 +239,31 @@ pub async fn sell_mining_cargo(ship_data: &ShipAutomation) {
 
 pub async fn sell_mining_item(
     ship_id: &str,
-    ship_data: &ShipAutomation,
+    ship_automation: &mut ShipAutomation,
     item: &schemas::ShipCargoItem,
     waypoint: &schemas::Waypoint,
 ) {
     trace!("Sell Mining Item");
 
-    let ship = ship_data
+    let ship = ship_automation
         .travel_waypoint(waypoint.symbol.waypoint.as_str())
         .await
         .unwrap();
 
     if ship.nav.status == enums::ShipNavStatus::InOrbit {
-        ship_data.dock_ship().await;
+        ship_automation.dock_ship().await;
     } else if ship.nav.status == enums::ShipNavStatus::InTransit {
-        ship_data.wait_flight_duration().await;
-        ship_data.dock_ship().await;
+        ship_automation.wait_flight_duration().await;
+        ship_automation.dock_ship().await;
     }
 
     info!("{} is selling {} {:?}", ship_id, item.units, item.symbol);
 
     {
-        let mut unlocked = ship_data.ship_automation.write().await;
+        let mut unlocked = ship_automation.shared_data.write().await;
 
-        let temp_ship_data = unlocked
-            .spacetraders
+        let temp_ship_automation = unlocked
+            .st_interface
             .sell_cargo(
                 ship_id,
                 requests::SellCargo {
@@ -243,14 +272,20 @@ pub async fn sell_mining_item(
                 },
             )
             .await;
-        if temp_ship_data.is_ok() {
-            let temp_ship_data = temp_ship_data.unwrap().data;
+        if temp_ship_automation.is_ok() {
+            let temp_ship_automation = temp_ship_automation.unwrap().data;
 
-            unlocked.ships.get_mut(ship_id).unwrap().cargo = temp_ship_data.cargo;
-            let (_agent, transaction) = (temp_ship_data.agent, temp_ship_data.transaction);
+            unlocked
+                .automation_data
+                .ships
+                .get_mut(ship_id)
+                .unwrap()
+                .cargo = temp_ship_automation.cargo;
+            let (_agent, transaction) =
+                (temp_ship_automation.agent, temp_ship_automation.transaction);
 
-            unlocked.credits += transaction.units;
-            ship_data.credits_generated += transaction.units
+            unlocked.automation_data.credits += transaction.units;
+            ship_automation.credits_generated += transaction.units
         }
     }
 }

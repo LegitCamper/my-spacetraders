@@ -12,22 +12,23 @@ use log::{error, info, trace, warn};
 use tokio::sync::mpsc;
 
 pub async fn admin_stuff(
-    ship_data: &ShipAutomation,
+    ship_automation: &ShipAutomation,
     _ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
     trace!("Look at contracts");
 
-    let contracts = match ship_data
-        .st_interface
+    let contracts = match ship_automation
+        .shared_data
         .read()
         .await
+        .st_interface
         .list_contracts(false)
         .await
     {
         Ok(contracts) => contracts,
         Err(_) => {
-            error!("{} Failed to get Contracts", ship_data.ship_id);
+            error!("{} Failed to get Contracts", ship_automation.ship_id);
             return;
         }
     };
@@ -48,7 +49,7 @@ pub async fn admin_stuff(
 
             let mut contractor_ship = false;
 
-            'inner: for (_, ship) in ship_data.clone_ships().await.into_iter() {
+            'inner: for (_, ship) in ship_automation.clone_ships().await.into_iter() {
                 if ship.registration.role == enums::ShipRole::Hauler {
                     contractor_ship = true;
                     break 'inner;
@@ -56,48 +57,46 @@ pub async fn admin_stuff(
             }
             if contractor_ship {
             } else {
-                buy_ship(ship_data, &needed_ship, channel.clone()).await
+                buy_ship(ship_automation, &needed_ship, channel.clone()).await
             }
         }
     }
 }
 
 pub async fn buy_ship(
-    ship_data: &ShipAutomation,
+    ship_automation: &ShipAutomation,
     ship_types: &[enums::ShipType],
     channel: mpsc::Sender<responses::schemas::Ship>,
 ) {
     trace!("Buy mining ship");
 
-    let ship = ship_data.clone_ship().await.unwrap();
+    let ship = ship_automation.clone_ship().await.unwrap();
 
-    let waypoints = ship_data.get_waypoints(&ship.nav.system_symbol).await;
+    let waypoints = ship_automation.get_waypoints(&ship.nav.system_symbol).await;
 
     'outer: for waypoint in waypoints.iter() {
         for r#trait in waypoint.traits.iter() {
             if r#trait.symbol == enums::WaypointTrait::Shipyard {
-                ship_data
+                ship_automation
                     .travel_waypoint(waypoint.symbol.waypoint.as_str())
                     .await;
 
-                let shipyard = ship_data
-                    .st_interface
+                let shipyard = ship_automation
+                    .shared_data
                     .read()
                     .await
+                    .st_interface
                     .get_shipyard(&waypoint.system_symbol, &waypoint.symbol)
                     .await;
 
                 for shipyard_ship in shipyard.unwrap().data.ships.iter() {
                     for ship_type in ship_types {
                         if shipyard_ship.r#type == *ship_type {
-                            if shipyard_ship.purchase_price < ship_data.get_credits().await {
-                                // locking both as write to prevent access while mutating data
-                                let (unlocked_interface, mut unlocked_ship) = (
-                                    ship_data.st_interface.write().await,
-                                    ship_data.ship_automation.write().await,
-                                );
+                            if shipyard_ship.purchase_price < ship_automation.get_credits().await {
+                                let mut unlocked = ship_automation.shared_data.write().await;
 
-                                let new_ship = unlocked_interface
+                                let new_ship = unlocked
+                                    .st_interface
                                     .purchase_ship(requests::PurchaseShip {
                                         ship_type: shipyard_ship.r#type.clone(),
                                         waypoint_symbol: waypoint.symbol.clone().waypoint,
@@ -107,9 +106,12 @@ pub async fn buy_ship(
 
                                 channel.send(new_ship.data.ship.clone()).await.unwrap();
 
-                                unlocked_ship.credits -= new_ship.data.transaction.price;
+                                unlocked.automation_data.credits -= new_ship.data.transaction.price;
 
-                                info!("buying ship, now at {} credits", unlocked_ship.credits);
+                                info!(
+                                    "buying ship, now at {} credits",
+                                    unlocked.automation_data.credits
+                                );
                                 return;
                             } else {
                                 warn!("Not enough money to buy ship");
