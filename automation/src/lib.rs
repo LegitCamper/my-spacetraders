@@ -16,13 +16,14 @@ use func::{SharedAutomationData, ShipAutomation};
 use log::{info, trace};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
+    runtime::Builder,
     sync::{mpsc, RwLock},
-    task,
+    task::JoinHandle,
 };
 
 #[derive(Debug)]
 pub struct Automation {
-    pub handles: Vec<task::JoinHandle<()>>,
+    pub handles: HashMap<String, JoinHandle<()>>,
     pub ships: HashMap<String, Ship>,
     pub contracts: HashMap<String, Contract>,
     pub surveys: HashMap<WaypointString, Vec<schemas::Survey>>,
@@ -32,18 +33,21 @@ pub struct Automation {
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }
 
-pub async fn start_ship_handler(st_interface: SpaceTraders, automation_data: Automation) {
+pub async fn ship_handler(st_interface: SpaceTraders, automation_data: Automation) {
     trace!("Start Ship Handler");
+    // this channel if for ships to send back
+    // newly purchased ships to be spawned
     let (tx, mut rx) = mpsc::channel(100);
+    let runtime = Builder::new_multi_thread()
+        .thread_name("SpaceTraders Ship Spawner")
+        .build()
+        .unwrap();
 
     let ships = st_interface.list_ships().await.unwrap().data;
     for ship in ships.into_iter() {
         tx.send(ship).await.unwrap();
     }
 
-    // mutable/sharable versions
-    // let st_interface = Arc::new(RwLock::new(st_interface));
-    // let automation_data = Arc::new(RwLock::new(automation_data));
     let shared_data = Arc::new(RwLock::new(SharedAutomationData::new(
         st_interface,
         automation_data,
@@ -62,7 +66,7 @@ pub async fn start_ship_handler(st_interface: SpaceTraders, automation_data: Aut
             .insert(msg.symbol.clone(), msg.clone());
 
         info!("Starting new task for ship: {}", &msg.symbol);
-        let join_handle: task::JoinHandle<()> = task::spawn({
+        let join_handle: JoinHandle<()> = runtime.spawn({
             let tx = tx.clone();
             async move { ship_duty(ship_automation, tx).await }
         });
@@ -71,8 +75,22 @@ pub async fn start_ship_handler(st_interface: SpaceTraders, automation_data: Aut
             .await
             .automation_data
             .handles
-            .push(join_handle);
+            .insert(msg.symbol, join_handle);
     }
+
+    // TODO: Decide when its time to start abandoing ships under producing
+    // This also might kill a task about to sell and make money
+    // Consider bariers/Task parking
+    // if ship is == trash {
+    //     task_to_kill = shared_data
+    //         .write()
+    //         .await
+    //         .automation_data
+    //         .handles
+    //         .get(ship_id)
+    //         .unwrap();
+    //     task_to_kill.abort()
+    // }
 }
 
 pub async fn ship_duty(ship_automation: ShipAutomation, channel: mpsc::Sender<Ship>) {
@@ -84,6 +102,8 @@ pub async fn ship_duty(ship_automation: ShipAutomation, channel: mpsc::Sender<Sh
         .unwrap()
         .registration
         .role;
+
+    // checks if ship is under producing and parks it
 
     match role {
         enums::ShipRole::Fabricator => todo!(),
