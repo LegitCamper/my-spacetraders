@@ -8,7 +8,7 @@ use chrono::{offset, DateTime, Local};
 use log::{error, info, trace};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
-    sync::RwLock, //RwLockReadGuard, RwLockWriteGuard
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
     time::{sleep, Duration},
 };
 
@@ -24,9 +24,6 @@ impl SharedAutomationData {
             automation_data,
         }
     }
-    // TODO: simply shared_data.read().await calls
-    // pub fn write(&self) -
-    // pub fn read(&self) -> RwLockReadGuard<'_, T>
 }
 #[derive(Debug)]
 pub struct ShipAutomation {
@@ -45,23 +42,29 @@ impl ShipAutomation {
         }
     }
 
+    pub async fn write(&self) -> RwLockWriteGuard<'_, SharedAutomationData> {
+        self.shared_data.write().await
+    }
+    pub async fn read(&self) -> RwLockReadGuard<'_, SharedAutomationData> {
+        self.shared_data.read().await
+    }
+
     pub async fn get_credits(&self) -> f64 {
         trace!("Get Credits");
-        self.shared_data.read().await.automation_data.credits
+        self.read().await.automation_data.credits
     }
     pub async fn add_credits(&self, credits: f64) {
         trace!("Add Credits");
-        self.shared_data.write().await.automation_data.credits += credits;
+        self.write().await.automation_data.credits += credits;
     }
     pub async fn sub_credits(self, credits: f64) {
         trace!("Sub Credits");
-        self.shared_data.write().await.automation_data.credits -= credits;
+        self.write().await.automation_data.credits -= credits;
     }
 
     pub async fn clone_ship(&self) -> Option<schemas::Ship> {
         trace!("Clone ship");
-        self.shared_data
-            .read()
+        self.read()
             .await
             .automation_data
             .ships
@@ -71,7 +74,7 @@ impl ShipAutomation {
 
     pub async fn clone_ships(&self) -> HashMap<String, schemas::Ship> {
         trace!("Clone ships");
-        self.shared_data.read().await.automation_data.ships.clone()
+        self.read().await.automation_data.ships.clone()
     }
 
     pub async fn system_distance(
@@ -80,14 +83,7 @@ impl ShipAutomation {
         system2: &SystemString,
     ) -> Option<u64> {
         trace!("System Distance");
-        for system in self
-            .shared_data
-            .read()
-            .await
-            .automation_data
-            .euclidean_distances
-            .iter()
-        {
+        for system in self.read().await.automation_data.euclidean_distances.iter() {
             if system1.system == system.name {
                 for distances in system.euclidean_distance.iter() {
                     if system2.system == distances.name {
@@ -101,8 +97,7 @@ impl ShipAutomation {
 
     pub async fn get_contract(&self, contract_id: &str) -> Option<schemas::Contract> {
         trace!("Get Contract");
-        self.shared_data
-            .read()
+        self.read()
             .await
             .automation_data
             .contracts
@@ -111,8 +106,7 @@ impl ShipAutomation {
     }
     pub async fn remove_contract(&self, contract_id: &str) -> Option<schemas::Contract> {
         trace!("Remove Contract");
-        self.shared_data
-            .write()
+        self.write()
             .await
             .automation_data
             .contracts
@@ -124,8 +118,7 @@ impl ShipAutomation {
         contract: schemas::Contract,
     ) -> Option<schemas::Contract> {
         trace!("Add Contract");
-        self.shared_data
-            .write()
+        self.write()
             .await
             .automation_data
             .contracts
@@ -134,8 +127,7 @@ impl ShipAutomation {
 
     pub async fn remove_survey(&self, waypoint: &WaypointString) -> Option<schemas::Survey> {
         trace!("Remove Survey");
-        self.shared_data
-            .write()
+        self.write()
             .await
             .automation_data
             .surveys
@@ -146,7 +138,7 @@ impl ShipAutomation {
         trace!("Create Survey");
 
         let ship = self.clone_ship().await.unwrap();
-        let mut unlocked = self.shared_data.write().await;
+        let mut unlocked = self.write().await;
         let survey = unlocked
             .automation_data
             .surveys
@@ -194,7 +186,6 @@ impl ShipAutomation {
     pub async fn orbit_ship(&self) {
         trace!("Orbit Ship");
         let ship = match self
-            .shared_data
             .read()
             .await
             .st_interface
@@ -209,8 +200,7 @@ impl ShipAutomation {
             Ok(ship) => ship,
         };
 
-        self.shared_data
-            .write()
+        self.write()
             .await
             .automation_data
             .ships
@@ -223,15 +213,13 @@ impl ShipAutomation {
     pub async fn dock_ship(&self) {
         trace!("Dock Ship");
         let ship = self
-            .shared_data
             .read()
             .await
             .st_interface
             .dock_ship(&self.ship_id)
             .await
             .unwrap();
-        self.shared_data
-            .write()
+        self.write()
             .await
             .automation_data
             .ships
@@ -243,7 +231,7 @@ impl ShipAutomation {
 
     pub async fn get_waypoint(&self, waypoint: &WaypointString) -> schemas::Waypoint {
         trace!("Get Waypoint");
-        let mut unlocked = self.shared_data.write().await;
+        let mut unlocked = self.write().await;
         match unlocked.automation_data.waypoints.get(waypoint) {
             Some(data) => data.clone(),
             None => {
@@ -267,7 +255,7 @@ impl ShipAutomation {
     }
     pub async fn get_waypoints(&self, system: &SystemString) -> Vec<schemas::Waypoint> {
         trace!("Get Waypoints");
-        let mut unlocked = self.shared_data.write().await;
+        let mut unlocked = self.write().await;
 
         let waypoints = unlocked
             .st_interface
@@ -300,7 +288,6 @@ impl ShipAutomation {
         trace!("Chart Waypoint");
 
         let ship_location = self
-            .shared_data
             .read()
             .await
             .automation_data
@@ -311,16 +298,9 @@ impl ShipAutomation {
             .waypoint_symbol
             .clone();
 
-        let ship = self
-            .shared_data
-            .read()
-            .await
-            .automation_data
-            .waypoints
-            .clone();
+        let ship = self.read().await.automation_data.waypoints.clone();
         if ship.get(&ship_location).is_none() {
             let waypoint = self
-                .shared_data
                 .read()
                 .await
                 .st_interface
@@ -330,7 +310,6 @@ impl ShipAutomation {
 
             if waypoint.data.chart.submitted_by.is_empty() {
                 let _ = self
-                    .shared_data
                     .read()
                     .await
                     .st_interface
@@ -343,7 +322,6 @@ impl ShipAutomation {
     pub async fn wait_flight_duration(&self) {
         trace!("Wait Durtation");
         let local_time_to_stop: DateTime<Local> = self
-            .shared_data
             .read()
             .await
             .automation_data
@@ -360,8 +338,7 @@ impl ShipAutomation {
         if duration.num_milliseconds() > 0 {
             info!(
                 "{} is going to sleep for {} seconds",
-                self.shared_data
-                    .read()
+                self.read()
                     .await
                     .automation_data
                     .ships
@@ -384,7 +361,6 @@ impl ShipAutomation {
         let ship_id = &self.ship_id;
 
         let ship = self
-            .shared_data
             .read()
             .await
             .automation_data
@@ -405,7 +381,6 @@ impl ShipAutomation {
             }
             //TODO: consider fuel types here - eg stealth, drift
             let temp_ship_data = self
-                .shared_data
                 .read()
                 .await
                 .st_interface
@@ -421,16 +396,14 @@ impl ShipAutomation {
                 let temp_ship_data = temp_ship_data.unwrap().data;
 
                 (
-                    self.shared_data
-                        .write()
+                    self.write()
                         .await
                         .automation_data
                         .ships
                         .get_mut(ship_id)
                         .unwrap()
                         .nav,
-                    self.shared_data
-                        .write()
+                    self.write()
                         .await
                         .automation_data
                         .ships
@@ -459,7 +432,6 @@ impl ShipAutomation {
         for r#trait in waypoint.traits.iter() {
             if r#trait.symbol == enums::WaypointTrait::Marketplace {
                 let market = self
-                    .shared_data
                     .read()
                     .await
                     .st_interface
@@ -474,7 +446,6 @@ impl ShipAutomation {
                         if ship.nav.status == enums::ShipNavStatus::Docked {
                             for _ in 0..((ship.fuel.capacity as f32 / 100_f32).ceil() as u32) {
                                 let _ = self
-                                    .shared_data
                                     .read()
                                     .await
                                     .st_interface
@@ -487,7 +458,6 @@ impl ShipAutomation {
                         } else if ship.nav.status == enums::ShipNavStatus::InOrbit {
                             self.dock_ship().await;
                             let _ = self
-                                .shared_data
                                 .read()
                                 .await
                                 .st_interface
@@ -517,7 +487,6 @@ impl ShipAutomation {
         trace!("travel");
 
         let ship = self
-            .shared_data
             .read()
             .await
             .automation_data
@@ -540,14 +509,14 @@ impl ShipAutomation {
             // let time_to_stop = st_interface_data
             //     .spacetraders
             //     .navigate_ship(
-            //         &ship_details.shared_data.symbol,
+            //         &ship_details.symbol,
             //         requests::NavigateShip {
             //             waypoint_symbol: waypoint.waypoint.clone(),
             //         },
             //     )
             //     .await;
 
-            // wait_duration(time_to_stop.shared_data.nav.route.arrival).await;
+            // wait_duration(time_to_stop.nav.route.arrival).await;
         }
     }
 
@@ -556,7 +525,6 @@ impl ShipAutomation {
     ) -> Option<(schemas::ShipCargo, schemas::Cooldown, schemas::Extraction)> {
         let survey = self.create_survey().await;
         let ship = match self
-            .shared_data
             .read()
             .await
             .st_interface
@@ -571,8 +539,7 @@ impl ShipAutomation {
         };
 
         if let Some(ship) = ship {
-            self.shared_data
-                .write()
+            self.write()
                 .await
                 .automation_data
                 .ships
