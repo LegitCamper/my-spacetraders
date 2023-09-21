@@ -6,36 +6,38 @@ use crate::{
         PurchaseCargo, PurchaseShip, RemoveMount, SellCargo, ShipRefine, TransferCargo, WarpShip,
     },
     responses::schemas::SurveyDeposit,
-    Method, SpaceTraders, SystemString, WaypointString,
     tests::log,
+    Method, SpaceTraders, SystemString, WaypointString,
 };
 
-use serial_test::serial;
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
 
 const TIMES_TO_RUN: i32 = 10;
 const STRING: &str = "X1-OE";
 
+static SPACETRADERS: Lazy<Mutex<SpaceTraders>> =
+    Lazy::new(|| Mutex::new(SpaceTraders::new_testing()));
+
 #[tokio::test]
-#[serial]
 async fn recieve_error() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
-            .interface
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .custom_endpoint(Method::Post, "/doesnotexist", None)
             .await;
     }
 }
 
 #[tokio::test]
-#[serial]
 async fn get_new_registration() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
-            .interface
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .custom_endpoint(
                 Method::Post,
                 "/register",
@@ -53,41 +55,40 @@ async fn get_new_registration() {
 }
 
 #[tokio::test]
-#[serial]
 async fn get_status() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_status().await.unwrap();
+        SPACETRADERS.lock().unwrap().get_status().await.unwrap();
     }
 }
 
 #[tokio::test]
-#[serial]
 async fn agent() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.agent().await.unwrap();
+        SPACETRADERS.lock().unwrap().agent().await.unwrap();
     }
 }
 
 #[tokio::test]
-#[serial]
 async fn list_systems() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_systems(true).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .list_systems(true)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_systems() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .get_system(&SystemString {
                 system: STRING.to_string(),
                 sector: STRING.to_string(),
@@ -97,12 +98,12 @@ async fn get_systems() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn list_waypoints() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .list_waypoints(
                 &SystemString {
                     system: STRING.to_string(),
@@ -115,12 +116,12 @@ async fn list_waypoints() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_waypoint() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .get_waypoint(
                 &SystemString {
                     system: STRING.to_string(),
@@ -137,12 +138,12 @@ async fn get_waypoint() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_market() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .get_market(
                 &SystemString {
                     system: STRING.to_string(),
@@ -159,12 +160,12 @@ async fn get_market() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_shipyard() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .get_shipyard(
                 &SystemString {
                     system: STRING.to_string(),
@@ -181,12 +182,12 @@ async fn get_shipyard() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_jump_gate() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .jump_gate(&WaypointString {
                 waypoint: STRING.to_string(),
                 system: STRING.to_string(),
@@ -198,39 +199,48 @@ async fn get_jump_gate() {
 }
 
 #[tokio::test]
-#[serial]
 async fn list_contracts() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_contracts(true).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .list_contracts(true)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_contract() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_contract(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .get_contract(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn accept_contracts() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.accept_contract(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .accept_contract(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn deliver_contract() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .deliver_contract(
                 STRING,
                 crate::requests::DeliverCargoToContract {
@@ -244,50 +254,52 @@ async fn deliver_contract() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn fulfill_contract() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.fulfill_contract(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .fulfill_contract(STRING)
+            .await
+            .unwrap();
     }
 }
 
 #[tokio::test]
-#[serial]
 async fn list_factions() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_factions().await.unwrap();
+        SPACETRADERS.lock().unwrap().list_factions().await.unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_faction() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_faction(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .get_faction(STRING)
+            .await
+            .unwrap();
     }
 }
 
 #[tokio::test]
-#[serial]
 async fn list_ships() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.list_ships().await.unwrap();
+        SPACETRADERS.lock().unwrap().list_ships().await.unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn purchase_ship() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .purchase_ship(PurchaseShip {
                 waypoint_symbol: STRING.to_string(),
                 ship_type: ShipType::ShipMiningDrone,
@@ -297,39 +309,43 @@ async fn purchase_ship() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_ship() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_ship(STRING).await.unwrap();
+        SPACETRADERS.lock().unwrap().get_ship(STRING).await.unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_ship_cargo() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_ship_cargo(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .get_ship_cargo(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn orbit_ship() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.orbit_ship(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .orbit_ship(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn ship_refine() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .ship_refine(
                 "fsd",
                 ShipRefine {
@@ -341,48 +357,60 @@ async fn ship_refine() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn create_chart() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.create_chart(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .create_chart(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_ship_cooldown() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_ship_cooldown(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .get_ship_cooldown(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn dock_ship() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.dock_ship(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .dock_ship(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn create_survey() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.create_survey(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .create_survey(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn extract_resources() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .extract_resources(
                 STRING,
                 Some(ExtractResources {
@@ -403,12 +431,12 @@ async fn extract_resources() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn jettison_cargo() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .jettison_cargo(
                 STRING,
                 JettisonCargo {
@@ -421,12 +449,12 @@ async fn jettison_cargo() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn jump_ship() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .jump_ship(
                 STRING,
                 JumpShip {
@@ -438,12 +466,12 @@ async fn jump_ship() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn navigate_ship() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .navigate_ship(
                 STRING,
                 NavigateShip {
@@ -455,12 +483,12 @@ async fn navigate_ship() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn patch_ship_nav() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .patch_ship_nav(
                 STRING,
                 PatchShipNav {
@@ -472,21 +500,24 @@ async fn patch_ship_nav() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_ship_nav() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_ship_nav(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .get_ship_nav(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn warp_ship() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .warp_ship(
                 STRING,
                 WarpShip {
@@ -498,12 +529,12 @@ async fn warp_ship() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn sell_cargo() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .sell_cargo(
                 STRING,
                 SellCargo {
@@ -516,39 +547,48 @@ async fn sell_cargo() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn scan_systems() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.scan_systems(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .scan_systems(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn scan_waypoints() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.scan_waypoints(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .scan_waypoints(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn scan_ships() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.scan_ships(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .scan_ships(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn purchase_cargo() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .purchase_cargo(
                 STRING,
                 PurchaseCargo {
@@ -561,12 +601,12 @@ async fn purchase_cargo() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn transfer_cargo() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .transfer_cargo(
                 STRING,
                 TransferCargo {
@@ -580,30 +620,36 @@ async fn transfer_cargo() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn negotiate_contract() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.negotiate_contract(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .negotiate_contract(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn get_mounts() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders.get_mounts(STRING).await.unwrap();
+        SPACETRADERS
+            .lock()
+            .unwrap()
+            .get_mounts(STRING)
+            .await
+            .unwrap();
     }
 }
 #[tokio::test]
-#[serial]
 async fn install_mount() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .install_mount(
                 STRING,
                 InstallMount {
@@ -615,12 +661,12 @@ async fn install_mount() {
     }
 }
 #[tokio::test]
-#[serial]
 async fn remove_mount() {
     log();
-    let spacetraders = SpaceTraders::testing().await;
     for _ in 0..TIMES_TO_RUN {
-        spacetraders
+        SPACETRADERS
+            .lock()
+            .unwrap()
             .remove_mount(
                 STRING,
                 RemoveMount {

@@ -10,14 +10,9 @@ async fn start_automation(token: Option<String>, email: Option<String>, _usernam
     trace!("Starting automation");
     let st_interface: SpaceTraders = match token {
         Some(token) => {
-            spacetraders::SpaceTraders::new(
-                &token,
-                email.as_deref(),
-                spacetraders::SpaceTradersEnv::Live,
-            )
-            .await
+            spacetraders::SpaceTraders::new(token, email, spacetraders::SpaceTradersEnv::Live)
         }
-        None => spacetraders::SpaceTraders::default().await,
+        None => spacetraders::SpaceTraders::new_random().await,
     };
 
     let _headquarters = st_interface.agent().await.unwrap().data.headquarters;

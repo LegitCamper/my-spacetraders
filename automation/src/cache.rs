@@ -89,7 +89,7 @@ pub async fn build_euclidean_distance(space_traders: &SpaceTraders) -> Vec<AllEu
         // let mut systems_handles: Vec<JoinHandle<()>> = Vec::new();
 
         // for task_numers in 1..(((num_systems / 20) + 1) / 100) {
-        let new_space_traders = SpaceTraders::default().await;
+        let new_space_traders = SpaceTraders::new_random().await;
         let systems = systems.clone();
         // systems_handles.push(task::spawn(async move {
         // for _ in 1..task_numers {

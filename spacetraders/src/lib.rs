@@ -13,6 +13,7 @@ use responses::{
 };
 
 use async_recursion::async_recursion;
+use chrono::{DateTime, Duration, Local};
 use core::panic;
 use log::error;
 use random_string::generate;
@@ -27,12 +28,6 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 use thiserror::Error;
-
-use tokio::{
-    sync::{mpsc, oneshot},
-    task,
-    time::interval,
-};
 use url::Url;
 
 const LIVEURL: &str = "https://api.spacetraders.io/v2";
@@ -51,17 +46,18 @@ pub enum SpaceTradersEnv {
     Mock,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
-pub struct SpaceTradersInterface {
+pub struct SpaceTraders {
     token: String,
-    pub email: Option<String>,
-    pub client: ClientWithMiddleware,
-    pub url: String,
-    pub enviroment: SpaceTradersEnv,
+    #[allow(dead_code)]
+    email: Option<String>,
+    client: ClientWithMiddleware,
+    last_request: DateTime<Local>,
+    url: String,
+    enviroment: SpaceTradersEnv,
 }
 
-impl SpaceTradersInterface {
+impl SpaceTraders {
     pub fn new(token: String, email: Option<String>, enviroment: SpaceTradersEnv) -> Self {
         let url = match enviroment {
             SpaceTradersEnv::Live => LIVEURL,
@@ -71,15 +67,51 @@ impl SpaceTradersInterface {
         let retry_policy = ExponentialBackoff::builder()
             .build_with_total_retry_duration(std::time::Duration::from_secs(60));
 
-        SpaceTradersInterface {
+        SpaceTraders {
             token,
             email,
             client: ClientBuilder::new(reqwest::Client::new())
                 .with(RetryTransientMiddleware::new_with_policy(retry_policy))
                 .build(),
+            last_request: Local::now()
+                .checked_sub_signed(Duration::seconds(1))
+                .expect("Failed to subtract 2 seconds from local time"),
             url: String::from(url),
             enviroment,
         }
+    }
+
+    // TODO: find most efficient starting faction
+    #[async_recursion]
+    pub async fn new_random() -> SpaceTraders {
+        let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
+        let post_message = RegisterNewAgent {
+            faction: enums::FactionSymbols::Cosmic,
+            symbol: username,
+            email: None,
+        };
+
+        match Client::new()
+            .post(&format!("{}/register", LIVEURL))
+            .json(&post_message)
+            .send()
+            .await
+            .unwrap()
+            .json::<responses::RegisterNewAgent>()
+            .await
+        {
+            Ok(registration) => {
+                SpaceTraders::new(registration.data.token, None, SpaceTradersEnv::Live)
+            }
+            Err(_) => {
+                error!("Transitive error occured creating new agent. Trying again");
+                SpaceTraders::new_random().await
+            }
+        }
+    }
+
+    pub fn new_testing() -> SpaceTraders {
+        SpaceTraders::new(String::from("undefined"), None, SpaceTradersEnv::Mock)
     }
 
     pub fn diagnose(&self) {
@@ -90,7 +122,25 @@ impl SpaceTradersInterface {
     }
 
     fn get_url(&self, endpoint: &str) -> Url {
-        Url::parse(format!("{}{}", self.url, endpoint).as_str()).unwrap()
+        Url::parse(&format!("{}{}", self.url, endpoint)).unwrap()
+    }
+
+    async fn ensure_request_limit(&self) {
+        let last_request = self.last_request;
+        let now = Local::now();
+        let duration = Duration::seconds(1);
+        if now > last_request && last_request + duration <= now {
+            return;
+        } else {
+            let time_to_sleep = now - (last_request + duration);
+            tokio::time::sleep(
+                time_to_sleep
+                    .to_std()
+                    .expect("Failed to convert chrono::Duration to std::time::Duration"),
+            )
+            .await;
+            return;
+        }
     }
 
     // #[async_recursion]
@@ -100,6 +150,8 @@ impl SpaceTradersInterface {
         url: &str,
         data: Option<Requests>,
     ) -> Option<String> {
+        self.ensure_request_limit().await;
+
         let mut client = match method {
             Method::Get => self.client.get(self.get_url(url)),
             Method::Post => self.client.post(self.get_url(url)),
@@ -177,132 +229,16 @@ impl SpaceTradersInterface {
     ) -> Option<String> {
         self.make_reqwest(method, endpoint, data).await
     }
-}
-
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct SpaceTraders {
-    interface: SpaceTradersInterface,
-    channel: mpsc::Sender<ChannelMessage>,
-    pub task: task::JoinHandle<()>,
-}
-
-impl SpaceTraders {
-    pub async fn new(token: &str, email: Option<&str>, enviroment: SpaceTradersEnv) -> Self {
-        let space_trader = match email {
-            Some(email) => {
-                SpaceTradersInterface::new(token.to_string(), Some(email.to_string()), enviroment)
-            }
-            None => SpaceTradersInterface::new(token.to_string(), None, enviroment),
-        };
-
-        let (channel_sender, mut channel_receiver) = mpsc::channel(120);
-
-        let mut interval = interval(tokio::time::Duration::from_millis(100));
-
-        SpaceTraders {
-            interface: space_trader.clone(),
-            channel: channel_sender,
-            task: task::spawn(async move {
-                interval.tick().await; // inits tick
-                while let Some(msg) = channel_receiver.recv().await {
-                    msg.oneshot
-                        .send(
-                            space_trader
-                                .make_reqwest(
-                                    msg.message.method,
-                                    msg.message.url.as_str(),
-                                    msg.message.data,
-                                )
-                                .await,
-                        )
-                        .unwrap();
-                    interval.tick().await; // avoids rate limiting - waits 500 millis
-                }
-            }),
-        }
-    }
-
-    // TODO: find most efficient starting faction
-    #[async_recursion]
-    pub async fn default() -> Self {
-        let username = generate(14, "abcdefghijklmnopqrstuvwxyz1234567890_");
-        let post_message = RegisterNewAgent {
-            faction: enums::FactionSymbols::Cosmic,
-            symbol: username,
-            email: None,
-        };
-
-        match Client::new()
-            .post(&format!("{}/register", LIVEURL))
-            .json(&post_message)
-            .send()
-            .await
-            .unwrap()
-            .json::<responses::RegisterNewAgent>()
-            .await
-        {
-            Ok(registration) => {
-                SpaceTraders::new(&registration.data.token, None, SpaceTradersEnv::Live).await
-            }
-            Err(_) => {
-                error!("Transitive error occured creating new agent. Trying again");
-                SpaceTraders::default().await
-            }
-        }
-    }
-
-    #[allow(dead_code)]
-    async fn testing() -> Self {
-        SpaceTraders::new("undefined", None, SpaceTradersEnv::Mock).await
-    }
-
-    pub fn diagnose(&self) -> String {
-        format!(
-            "\nurl: {}\nenviroment: {:#?}\ntoken: {}",
-            self.interface.url, self.interface.enviroment, self.interface.token,
-        )
-    }
-
-    async fn make_request(
-        &self,
-        method: Method,
-        url: String,
-        data: Option<Requests>,
-    ) -> Option<String> {
-        let (oneshot_sender, oneshot_receiver) = oneshot::channel();
-
-        // make request
-        self.channel
-            .send(ChannelMessage {
-                message: RequestMessage { method, url, data },
-                oneshot: oneshot_sender,
-            })
-            .await
-            .unwrap();
-
-        match oneshot_receiver.await {
-            Err(error) => {
-                error!("Error Request Channel: {}", error);
-                None
-            }
-            Ok(data) => Some(data?),
-        }
-    }
 
     // Status
     pub async fn get_status(&self) -> Result<GetStatus, SpacetradersError> {
-        handle_response(
-            self.make_request(Method::Get, "".to_string(), None)
-                .await
-                .as_deref(),
-        )
+        handle_response(self.make_reqwest(Method::Get, "", None).await.as_deref())
     }
 
     // Agents
     pub async fn agent(&self) -> Result<agents::Agent, SpacetradersError> {
         handle_response(
-            self.make_request(Method::Get, "/my/agent".to_string(), None)
+            self.make_reqwest(Method::Get, "/my/agent", None)
                 .await
                 .as_deref(),
         )
@@ -316,9 +252,9 @@ impl SpaceTraders {
     ) -> Result<systems::Systems, SpacetradersError> {
         let page_num = page.unwrap_or(1);
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!("/systems?limit=20&page={}", page_num),
+                &format!("/systems?limit=20&page={}", page_num),
                 None,
             )
             .await
@@ -345,9 +281,9 @@ impl SpaceTraders {
         system_symbol: &SystemString,
     ) -> Result<systems::System, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!("/systems/{}", system_symbol.system),
+                &format!("/systems/{}", system_symbol.system),
                 None,
             )
             .await
@@ -361,9 +297,9 @@ impl SpaceTraders {
     ) -> Result<systems::Waypoints, SpacetradersError> {
         let page_num = page.unwrap_or(1);
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!(
+                &format!(
                     "/systems/{}/waypoints?limit=20&page={}",
                     system_symbol.system, page_num
                 ),
@@ -401,9 +337,9 @@ impl SpaceTraders {
         waypoint_symbol: &WaypointString,
     ) -> Result<systems::Waypoint, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!(
+                &format!(
                     "/systems/{}/waypoints/{}",
                     system_symbol.system, waypoint_symbol.waypoint
                 ),
@@ -419,9 +355,9 @@ impl SpaceTraders {
         waypoint_symbol: &WaypointString,
     ) -> Result<systems::Market, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!(
+                &format!(
                     "/systems/{}/waypoints/{}/market",
                     system_symbol.system, waypoint_symbol.waypoint
                 ),
@@ -437,9 +373,9 @@ impl SpaceTraders {
         waypoint_symbol: &WaypointString,
     ) -> Result<systems::Shipyard, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!(
+                &format!(
                     "/systems/{}/waypoints/{}/shipyard",
                     system_symbol.system, waypoint_symbol.waypoint
                 ),
@@ -454,9 +390,9 @@ impl SpaceTraders {
         symbol: &WaypointString,
     ) -> Result<systems::JumpGate, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!(
+                &format!(
                     "/systems/{}/waypoints/{}/jump-gate",
                     symbol.system, symbol.waypoint
                 ),
@@ -474,9 +410,9 @@ impl SpaceTraders {
     ) -> Result<contracts::Contracts, SpacetradersError> {
         let page_num = page_num.unwrap_or(1);
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!("/my/contracts?limit=20&page={}", page_num),
+                &format!("/my/contracts?limit=20&page={}", page_num),
                 None,
             )
             .await
@@ -506,7 +442,7 @@ impl SpaceTraders {
         contract_id: &str,
     ) -> Result<contracts::Contract, SpacetradersError> {
         handle_response(
-            self.make_request(Method::Get, format!("/my/contracts/{}", contract_id), None)
+            self.make_reqwest(Method::Get, &format!("/my/contracts/{}", contract_id), None)
                 .await
                 .as_deref(),
         )
@@ -516,9 +452,9 @@ impl SpaceTraders {
         contract_id: &str,
     ) -> Result<contracts::AcceptContract, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/contracts/{}/accept", contract_id),
+                &format!("/my/contracts/{}/accept", contract_id),
                 None,
             )
             .await
@@ -531,9 +467,9 @@ impl SpaceTraders {
         data: DeliverCargoToContract,
     ) -> Result<contracts::DeliverContract, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/contracts/{}/deliver", contract_id),
+                &format!("/my/contracts/{}/deliver", contract_id),
                 Some(Requests::DeliverCargoToContract(data)),
             )
             .await
@@ -545,9 +481,9 @@ impl SpaceTraders {
         contract_id: &str,
     ) -> Result<contracts::FulfillContract, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/contracts/{}/fulfill", contract_id),
+                &format!("/my/contracts/{}/fulfill", contract_id),
                 None,
             )
             .await
@@ -558,7 +494,7 @@ impl SpaceTraders {
     // Fleet
     pub async fn list_ships(&self) -> Result<fleet::Ships, SpacetradersError> {
         handle_response(
-            self.make_request(Method::Get, String::from("/my/ships"), None)
+            self.make_reqwest(Method::Get, "/my/ships", None)
                 .await
                 .as_deref(),
         )
@@ -568,9 +504,9 @@ impl SpaceTraders {
         data: PurchaseShip,
     ) -> Result<fleet::PurchaseShip, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                String::from("/my/ships"),
+                "/my/ships",
                 Some(Requests::PurchaseShip(data)),
             )
             .await
@@ -579,7 +515,7 @@ impl SpaceTraders {
     }
     pub async fn get_ship(&self, ship_symbol: &str) -> Result<fleet::Ship, SpacetradersError> {
         handle_response(
-            self.make_request(Method::Get, format!("/my/ships/{}", ship_symbol), None)
+            self.make_reqwest(Method::Get, &format!("/my/ships/{}", ship_symbol), None)
                 .await
                 .as_deref(),
         )
@@ -589,9 +525,9 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::ShipCargo, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!("/my/ships/{}/cargo", ship_symbol),
+                &format!("/my/ships/{}/cargo", ship_symbol),
                 None,
             )
             .await
@@ -603,9 +539,9 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::OrbitShip, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/orbit", ship_symbol),
+                &format!("/my/ships/{}/orbit", ship_symbol),
                 None,
             )
             .await
@@ -618,9 +554,9 @@ impl SpaceTraders {
         data: ShipRefine,
     ) -> Result<fleet::ShipRefine, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/refine", ship_symbol),
+                &format!("/my/ships/{}/refine", ship_symbol),
                 Some(Requests::ShipRefine(data)),
             )
             .await
@@ -632,9 +568,9 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::CreateChart, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/chart", ship_symbol),
+                &format!("/my/ships/{}/chart", ship_symbol),
                 None,
             )
             .await
@@ -646,9 +582,9 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::GetShipCooldown, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!("/my/ships/{}/cooldown", ship_symbol),
+                &format!("/my/ships/{}/cooldown", ship_symbol),
                 None,
             )
             .await
@@ -657,9 +593,9 @@ impl SpaceTraders {
     }
     pub async fn dock_ship(&self, ship_symbol: &str) -> Result<fleet::DockShip, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/dock", ship_symbol),
+                &format!("/my/ships/{}/dock", ship_symbol),
                 None,
             )
             .await
@@ -671,9 +607,9 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::CreateSurvey, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/survey", ship_symbol),
+                &format!("/my/ships/{}/survey", ship_symbol),
                 None,
             )
             .await
@@ -687,18 +623,18 @@ impl SpaceTraders {
     ) -> Result<fleet::ExtractResources, SpacetradersError> {
         match data {
             Some(data) => handle_response(
-                self.make_request(
+                self.make_reqwest(
                     Method::Post,
-                    format!("/my/ships/{}/extract", ship_symbol),
+                    &format!("/my/ships/{}/extract", ship_symbol),
                     Some(Requests::ExtractResources(data)),
                 )
                 .await
                 .as_deref(),
             ),
             None => handle_response(
-                self.make_request(
+                self.make_reqwest(
                     Method::Post,
-                    format!("/my/ships/{}/extract", ship_symbol),
+                    &format!("/my/ships/{}/extract", ship_symbol),
                     None,
                 )
                 .await
@@ -712,9 +648,9 @@ impl SpaceTraders {
         data: JettisonCargo,
     ) -> Result<fleet::JettisonCargo, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/jettison", ship_symbol),
+                &format!("/my/ships/{}/jettison", ship_symbol),
                 Some(Requests::JettisonCargo(data)),
             )
             .await
@@ -727,9 +663,9 @@ impl SpaceTraders {
         data: JumpShip,
     ) -> Result<fleet::JumpShip, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/jump", ship_symbol),
+                &format!("/my/ships/{}/jump", ship_symbol),
                 Some(Requests::JumpShip(data)),
             )
             .await
@@ -742,9 +678,9 @@ impl SpaceTraders {
         data: NavigateShip,
     ) -> Result<fleet::NavigateShip, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/navigate", ship_symbol),
+                &format!("/my/ships/{}/navigate", ship_symbol),
                 Some(Requests::NavigateShip(data)),
             )
             .await
@@ -757,9 +693,9 @@ impl SpaceTraders {
         data: PatchShipNav,
     ) -> Result<fleet::PatchShipNav, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Patch,
-                format!("/my/ships/{}/nav", ship_symbol),
+                &format!("/my/ships/{}/nav", ship_symbol),
                 Some(Requests::PatchShipNav(data)),
             )
             .await
@@ -771,7 +707,7 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::GetShipNav, SpacetradersError> {
         handle_response(
-            self.make_request(Method::Get, format!("/my/ships/{}/nav", ship_symbol), None)
+            self.make_reqwest(Method::Get, &format!("/my/ships/{}/nav", ship_symbol), None)
                 .await
                 .as_deref(),
         )
@@ -782,9 +718,9 @@ impl SpaceTraders {
         data: WarpShip,
     ) -> Result<fleet::WarpShip, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/warp", ship_symbol),
+                &format!("/my/ships/{}/warp", ship_symbol),
                 Some(Requests::WarpShip(data)),
             )
             .await
@@ -797,9 +733,9 @@ impl SpaceTraders {
         data: SellCargo,
     ) -> Result<fleet::SellCargo, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/sell", ship_symbol),
+                &format!("/my/ships/{}/sell", ship_symbol),
                 Some(Requests::SellCargo(data)),
             )
             .await
@@ -811,9 +747,9 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::ScanSystems, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/scan/systems", ship_symbol),
+                &format!("/my/ships/{}/scan/systems", ship_symbol),
                 None,
             )
             .await
@@ -825,9 +761,9 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::ScanWaypoints, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/scan/waypoints", ship_symbol),
+                &format!("/my/ships/{}/scan/waypoints", ship_symbol),
                 None,
             )
             .await
@@ -839,9 +775,9 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::ScanShips, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/scan/ships", ship_symbol),
+                &format!("/my/ships/{}/scan/ships", ship_symbol),
                 None,
             )
             .await
@@ -855,9 +791,9 @@ impl SpaceTraders {
     ) -> Result<fleet::RefuelShip, SpacetradersError> {
         let fuel_amount = fuel_amount.unwrap_or(requests::RefuelShip { units: 1 });
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/refuel", ship_symbol),
+                &format!("/my/ships/{}/refuel", ship_symbol),
                 Some(Requests::RefuelShip(fuel_amount)),
             )
             .await
@@ -870,9 +806,9 @@ impl SpaceTraders {
         data: PurchaseCargo,
     ) -> Result<fleet::PurchaseCargo, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/purchase", ship_symbol),
+                &format!("/my/ships/{}/purchase", ship_symbol),
                 Some(Requests::PurchaseCargo(data)),
             )
             .await
@@ -885,9 +821,9 @@ impl SpaceTraders {
         data: TransferCargo,
     ) -> Result<fleet::TransferCargo, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/transfer", ship_symbol),
+                &format!("/my/ships/{}/transfer", ship_symbol),
                 Some(Requests::TransferCargo(data)),
             )
             .await
@@ -899,9 +835,9 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::NegotiateContract, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/negotiate/contract", ship_symbol),
+                &format!("/my/ships/{}/negotiate/contract", ship_symbol),
                 None,
             )
             .await
@@ -913,9 +849,9 @@ impl SpaceTraders {
         ship_symbol: &str,
     ) -> Result<fleet::GetMounts, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Get,
-                format!("/my/ships/{}/mounts", ship_symbol),
+                &format!("/my/ships/{}/mounts", ship_symbol),
                 None,
             )
             .await
@@ -928,9 +864,9 @@ impl SpaceTraders {
         data: InstallMount,
     ) -> Result<fleet::InstallMounts, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/mounts/install", ship_symbol),
+                &format!("/my/ships/{}/mounts/install", ship_symbol),
                 Some(Requests::InstallMount(data)),
             )
             .await
@@ -943,9 +879,9 @@ impl SpaceTraders {
         data: RemoveMount,
     ) -> Result<fleet::RemoveMounts, SpacetradersError> {
         handle_response(
-            self.make_request(
+            self.make_reqwest(
                 Method::Post,
-                format!("/my/ships/{}/mounts/remove", ship_symbol),
+                &format!("/my/ships/{}/mounts/remove", ship_symbol),
                 Some(Requests::RemoveMount(data)),
             )
             .await
@@ -956,7 +892,7 @@ impl SpaceTraders {
     // Factions
     pub async fn list_factions(&self) -> Result<factions::Factions, SpacetradersError> {
         handle_response(
-            self.make_request(Method::Get, String::from("/factions"), None)
+            self.make_reqwest(Method::Get, "/factions", None)
                 .await
                 .as_deref(),
         )
@@ -966,7 +902,7 @@ impl SpaceTraders {
         faction_symbol: &str,
     ) -> Result<factions::Faction, SpacetradersError> {
         handle_response(
-            self.make_request(Method::Get, format!("/factions/{}", faction_symbol), None)
+            self.make_reqwest(Method::Get, &format!("/factions/{}", faction_symbol), None)
                 .await
                 .as_deref(),
         )
@@ -1244,18 +1180,6 @@ fn parse_error(error_str: &str) -> Option<SpacetradersError> {
     }
 }
 
-#[derive(Debug)]
-pub struct RequestMessage {
-    method: Method,
-    url: String,
-    data: Option<Requests>,
-}
-#[derive(Debug)]
-pub struct ChannelMessage {
-    message: RequestMessage,
-    oneshot: oneshot::Sender<Option<String>>,
-}
-
 // Waypoint handlers //
 #[derive(Clone, Serialize, PartialEq, Eq, Hash, Debug)]
 pub struct WaypointString {
@@ -1266,13 +1190,13 @@ pub struct WaypointString {
 impl WaypointString {
     pub fn to_system(&self) -> SystemString {
         SystemString {
-            system: self.system.clone(),
-            sector: self.sector.clone(),
+            system: (*self.system).to_string(),
+            sector: (*self.sector).to_string(),
         }
     }
     pub fn to_sector(&self) -> SectorString {
         SectorString {
-            sector: self.sector.clone(),
+            sector: (*self.sector).to_string(),
         }
     }
 }
@@ -1313,7 +1237,7 @@ pub struct SystemString {
 impl SystemString {
     pub fn to_sector(&self) -> SectorString {
         SectorString {
-            sector: self.sector.clone(),
+            sector: (*self.sector).to_string(),
         }
     }
 }
