@@ -40,6 +40,7 @@ pub async fn ship_handler(st_interface: SpaceTraders, automation_data: Automatio
     let (tx, mut rx) = mpsc::channel(100);
     let runtime = Builder::new_multi_thread()
         .thread_name("SpaceTraders Ship Spawner")
+        .enable_time()
         .build()
         .unwrap();
 
