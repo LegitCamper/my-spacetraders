@@ -1,49 +1,59 @@
 use spacetraders::{
     //contracts
     // SpaceTraders,
-    enums,
+    enums::{self, ShipMount},
     requests,
     responses::schemas,
 };
 
-use super::func::ShipAutomation;
+use super::func::{sort_distances, ShipAutomation};
 
 use log::{error, info, trace, warn};
 use tokio::time::{sleep, Duration};
 
-// enum MinerTask {
-//     GasMiner,
-//     AstroidMiner,
-//     Contractor,
-// }
+#[derive(Debug, PartialEq)]
+enum MinerTask {
+    GasMiner,
+    AstroidMiner,
+    Contractor,
+}
 
-// pub async fn mine(automation_data: ShipWrapper, contractor: bool) {
-//     trace!("{} Mine", ship_automation.ship_id);
+pub async fn mine(ship_automation: &mut ShipAutomation, contractor: bool) {
+    trace!("{} Mine", ship_automation.ship_id);
 
-//     let mut miner_task: MinerTask;
+    let mut miner_task: MinerTask = MinerTask::AstroidMiner;
 
-//     if contractor {
-//         miner_task = MinerTask::Contractor;
-//     } else {
-//         for mount in ship_automation.clone_ship().await.unwrap().mounts.into_iter() {
-//             if mount.symbol == enums::ShipMount::MountGasSiphonI
-//                 || mount.symbol == enums::ShipMount::MountGasSiphonIi
-//                 || mount.symbol == enums::ShipMount::MountGasSiphonIii
-//             {
-//                 miner_task = MinerTask::GasMiner
-//             }
-//             if mount.symbol == enums::ShipMount::MountMiningLaserI
-//                 || mount.symbol == enums::ShipMount::MountMiningLaserIi
-//                 || mount.symbol == enums::ShipMount::MountMiningLaserIii
-//             {
-//                 miner_task = MinerTask::AstroidMiner
-//             }
-//         }
-//     }
-// }
+    if contractor {
+        miner_task = MinerTask::Contractor;
+    } else {
+        for mount in ship_automation
+            .clone_ship()
+            .await
+            .unwrap()
+            .mounts
+            .into_iter()
+        {
+            if mount.symbol == ShipMount::MountGasSiphonI
+                || mount.symbol == ShipMount::MountGasSiphonIi
+                || mount.symbol == ShipMount::MountGasSiphonIii
+            {
+                miner_task = MinerTask::GasMiner
+            }
+            if mount.symbol == ShipMount::MountMiningLaserI
+                || mount.symbol == ShipMount::MountMiningLaserIi
+                || mount.symbol == ShipMount::MountMiningLaserIii
+            {
+                miner_task = MinerTask::AstroidMiner
+            }
+        }
+    }
 
-pub async fn mine_astroid(ship_automation: &ShipAutomation) {
-    trace!("{} Mining Astroid", ship_automation.ship_id);
+    mine_specific(ship_automation, miner_task).await;
+    sell_mining_cargo(ship_automation).await;
+}
+
+async fn mine_specific(ship_automation: &ShipAutomation, miner_task: MinerTask) {
+    trace!("{} Mining Specific", ship_automation.ship_id);
 
     let ship = ship_automation.clone_ship().await.unwrap();
     let waypoints = ship_automation.get_waypoints(&ship.nav.system_symbol).await;
@@ -53,17 +63,30 @@ pub async fn mine_astroid(ship_automation: &ShipAutomation) {
 
     let mut mine_distances: Vec<(&schemas::Waypoint, u64)> = Vec::new();
     for waypoint in waypoints.iter() {
-        if waypoint.r#type == enums::WaypointType::AsteroidField
-            || waypoint.r#type == enums::WaypointType::DebrisField
-        // TODO: definatly look into other minable location
-        {
-            let distance = ship_automation.euclidean_distance(
-                waypoint.x,
-                waypoint.y,
-                ship_waypoint.x,
-                ship_waypoint.y,
-            );
-            mine_distances.push((waypoint, distance));
+        if miner_task == MinerTask::AstroidMiner {
+            if waypoint.r#type == enums::WaypointType::AsteroidField
+                || waypoint.r#type == enums::WaypointType::DebrisField
+            {
+                let distance = ship_automation.euclidean_distance(
+                    waypoint.x,
+                    waypoint.y,
+                    ship_waypoint.x,
+                    ship_waypoint.y,
+                );
+                mine_distances.push((waypoint, distance));
+            }
+        } else if miner_task == MinerTask::GasMiner {
+            if waypoint.r#type == enums::WaypointType::GasGiant
+                || waypoint.r#type == enums::WaypointType::Nebula
+            {
+                let distance = ship_automation.euclidean_distance(
+                    waypoint.x,
+                    waypoint.y,
+                    ship_waypoint.x,
+                    ship_waypoint.y,
+                );
+                mine_distances.push((waypoint, distance));
+            }
         }
     }
     if mine_distances.is_empty() {
@@ -73,7 +96,7 @@ pub async fn mine_astroid(ship_automation: &ShipAutomation) {
         );
         return;
     }
-    mine_distances = sort_distance(mine_distances);
+    mine_distances = sort_distances(mine_distances);
 
     for (waypoint, _distance) in mine_distances.iter() {
         let ship = ship_automation
@@ -88,7 +111,7 @@ pub async fn mine_astroid(ship_automation: &ShipAutomation) {
             ship_automation.orbit_ship().await;
         }
 
-        info!("{} Starting mining astroid", ship_automation.ship_id);
+        info!("{} Starting mining", ship_automation.ship_id);
 
         loop {
             if let Some((cargo, cooldown, _extraction)) = ship_automation.extract_resources().await
@@ -109,23 +132,6 @@ pub async fn mine_astroid(ship_automation: &ShipAutomation) {
             }
         }
     }
-}
-
-pub fn sort_distance(
-    mut mine_distances: Vec<(&schemas::Waypoint, u64)>,
-) -> Vec<(&schemas::Waypoint, u64)> {
-    let mut swapped = true;
-    while swapped {
-        // No swap means array is sorted.
-        swapped = false;
-        for i in 1..mine_distances.len() {
-            if mine_distances[i - 1].1 > mine_distances[i].1 {
-                mine_distances.swap(i - 1, i);
-                swapped = true
-            }
-        }
-    }
-    mine_distances
 }
 
 pub async fn sell_mining_cargo(ship_automation: &mut ShipAutomation) {
@@ -160,14 +166,13 @@ pub async fn sell_mining_cargo(ship_automation: &mut ShipAutomation) {
         );
         return;
     }
-    let mine_distances = sort_distance(mine_distances);
+    let mine_distances = sort_distances(mine_distances);
 
     // TODO: make sure not to sell goods used for contracts
     // TODO: consider demand and fuel to get to where prices are better
     for item in ship.cargo.inventory.clone().iter() {
         'inner: for (waypoint, _distance) in mine_distances.iter() {
             let market = ship_automation
-                .shared_data
                 .read()
                 .await
                 .st_interface
@@ -222,7 +227,6 @@ pub async fn sell_mining_cargo(ship_automation: &mut ShipAutomation) {
             ship_automation.ship_id, item.units, item.symbol
         );
         let _ = ship_automation
-            .shared_data
             .read()
             .await
             .st_interface
@@ -237,7 +241,7 @@ pub async fn sell_mining_cargo(ship_automation: &mut ShipAutomation) {
     }
 }
 
-pub async fn sell_mining_item(
+async fn sell_mining_item(
     ship_id: &str,
     ship_automation: &mut ShipAutomation,
     item: &schemas::ShipCargoItem,

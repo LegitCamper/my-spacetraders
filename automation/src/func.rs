@@ -574,3 +574,19 @@ impl ShipAutomation {
     // pub async fn get_market()
     // TODO: cache market data
 }
+
+pub fn sort_distances(
+    mut distances: Vec<(&schemas::Waypoint, u64)>,
+) -> Vec<(&schemas::Waypoint, u64)> {
+    let mut swapped = true;
+    while swapped {
+        swapped = false;
+        for i in 1..distances.len() {
+            if distances[i - 1].1 > distances[i].1 {
+                distances.swap(i - 1, i);
+                swapped = true
+            }
+        }
+    }
+    distances
+}

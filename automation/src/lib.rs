@@ -138,8 +138,7 @@ async fn contractor_loop(ship_automation: ShipAutomation, channel: mpsc::Sender<
 
 async fn miner_loop(mut ship_automation: ShipAutomation, _channel: mpsc::Sender<Ship>) {
     loop {
-        miner::mine_astroid(&ship_automation).await;
-        miner::sell_mining_cargo(&mut ship_automation).await;
+        miner::mine(&mut ship_automation, false).await;
     }
 }
 
