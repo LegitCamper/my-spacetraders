@@ -18,7 +18,7 @@ async fn start_automation(token: Option<String>, email: Option<String>, _usernam
     let _headquarters = st_interface.agent().await.unwrap().data.headquarters;
     let credits = st_interface.agent().await.unwrap().data.credits;
     // TODO: this should be ran in the background during startup
-    let euclidean_distances = automation::cache::build_euclidean_distance(&st_interface).await;
+    // let euclidean_distances = automation::cache::build_euclidean_distance(&st_interface).await;
     // let gate_nodes = automation::cache::get_gate_network(&space_traders, headquarters).await;
     // println!("{gate_nodes:?}");
     let automation_data = Automation {
@@ -28,7 +28,7 @@ async fn start_automation(token: Option<String>, email: Option<String>, _usernam
         surveys: HashMap::new(),
         waypoints: HashMap::new(),
         credits,
-        euclidean_distances,
+        euclidean_distances: Vec::new(),
     };
 
     ship_handler(st_interface, automation_data).await
