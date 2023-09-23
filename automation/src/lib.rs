@@ -55,28 +55,31 @@ pub async fn ship_handler(st_interface: SpaceTraders, automation_data: Automatio
     )));
 
     // listens for new ship purchases and spawns new task to deal with them
-    while let Some(msg) = rx.recv().await {
-        let ship_automation = ShipAutomation::new(shared_data.clone(), msg.symbol.as_str());
+    let mut last_print = chrono::Local::now();
+    loop {
+        if let Some(msg) = rx.recv().await {
+            let ship_automation = ShipAutomation::new(shared_data.clone(), msg.symbol.as_str());
 
-        ship_automation
-            .shared_data
-            .write()
-            .await
-            .automation_data
-            .ships
-            .insert(msg.symbol.clone(), msg.clone());
+            ship_automation
+                .shared_data
+                .write()
+                .await
+                .automation_data
+                .ships
+                .insert(msg.symbol.clone(), msg.clone());
 
-        info!("Starting new task for ship: {}", &msg.symbol);
-        let join_handle: JoinHandle<()> = runtime.spawn({
-            let tx = tx.clone();
-            async move { ship_duty(ship_automation, tx).await }
-        });
-        shared_data
-            .write()
-            .await
-            .automation_data
-            .handles
-            .insert(msg.symbol, join_handle);
+            info!("Starting new task for ship: {}", &msg.symbol);
+            let join_handle: JoinHandle<()> = runtime.spawn({
+                let tx = tx.clone();
+                async move { ship_duty(ship_automation, tx).await }
+            });
+            shared_data
+                .write()
+                .await
+                .automation_data
+                .handles
+                .insert(msg.symbol, join_handle);
+        }
     }
 
     // TODO: Decide when its time to start abandoing ships under producing
@@ -109,7 +112,7 @@ pub async fn ship_duty(ship_automation: ShipAutomation, channel: mpsc::Sender<Sh
     match role {
         enums::ShipRole::Fabricator => todo!(),
         enums::ShipRole::Harvester => todo!(),
-        enums::ShipRole::Hauler => contractor_loop(ship_automation, channel).await,
+        enums::ShipRole::Hauler => todo!(),
         enums::ShipRole::Interceptor => todo!(),
         enums::ShipRole::Excavator => miner_loop(ship_automation, channel).await,
         enums::ShipRole::Transport => todo!(),
