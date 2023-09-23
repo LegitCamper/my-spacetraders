@@ -7,7 +7,7 @@ pub mod systems;
 
 use crate::{spacetraders_date_format, spacetraders_datetime_format};
 
-use chrono::{offset::Utc, DateTime};
+use chrono::{DateTime, Local};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -16,7 +16,7 @@ pub struct GetStatus {
     pub version: String,
     #[serde(alias = "resetDate")]
     #[serde(with = "spacetraders_date_format")]
-    pub reset_date: DateTime<Utc>,
+    pub reset_date: DateTime<Local>,
     // pub description: String,
     pub stats: GetStatusStats,
     pub leaderboards: GetStatusLeaderboards,
@@ -55,7 +55,7 @@ pub struct GetStatusLeaderboardsMostSubmittedCharts {
 #[derive(Deserialize, Debug)]
 pub struct GetStatusServerResets {
     #[serde(with = "spacetraders_datetime_format")]
-    pub next: DateTime<Utc>,
+    pub next: DateTime<Local>,
     pub frequency: String,
 }
 #[allow(dead_code)]

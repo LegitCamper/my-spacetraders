@@ -13,12 +13,14 @@ mod miner;
 use cache::AllEuclideanDistances;
 use func::{SharedAutomationData, ShipAutomation};
 
+use chrono::{Duration, Local};
 use log::{info, trace};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
     runtime::Builder,
     sync::{mpsc, RwLock},
     task::JoinHandle,
+    time::{self, sleep},
 };
 
 #[derive(Debug)]
@@ -55,9 +57,10 @@ pub async fn ship_handler(st_interface: SpaceTraders, automation_data: Automatio
     )));
 
     // listens for new ship purchases and spawns new task to deal with them
-    let mut last_print = chrono::Local::now();
+    let duration = Duration::minutes(1);
+    let mut last_print = Local::now();
     loop {
-        if let Some(msg) = rx.recv().await {
+        if let Ok(msg) = rx.try_recv() {
             let ship_automation = ShipAutomation::new(shared_data.clone(), msg.symbol.as_str());
 
             ship_automation
@@ -80,21 +83,34 @@ pub async fn ship_handler(st_interface: SpaceTraders, automation_data: Automatio
                 .handles
                 .insert(msg.symbol, join_handle);
         }
-    }
 
-    // TODO: Decide when its time to start abandoing ships under producing
-    // This also might kill a task about to sell and make money
-    // Consider bariers/Task parking
-    // if ship is == trash {
-    //     task_to_kill = shared_data
-    //         .write()
-    //         .await
-    //         .automation_data
-    //         .handles
-    //         .get(ship_id)
-    //         .unwrap();
-    //     task_to_kill.abort()
-    // }
+        // TODO: Decide when its time to start abandoing ships under producing
+        // This also might kill a task about to sell and make money
+        // Consider bariers/Task parking
+        // if ship is == trash {
+        //     task_to_kill = shared_data
+        //         .write()
+        //         .await
+        //         .automation_data
+        //         .handles
+        //         .get(ship_id)
+        //         .unwrap();
+        //     task_to_kill.abort()
+        // }
+
+        let now = Local::now();
+        if now >= last_print + duration {
+            last_print = now;
+            println!("Current Ships:");
+            for (ship_id, ship) in shared_data.read().await.automation_data.ships.iter() {
+                println!("ID: {ship_id}, Role: {:?}", ship.registration.role);
+            }
+            println!(
+                "Current Credits: {}",
+                shared_data.read().await.automation_data.credits
+            );
+        }
+    }
 }
 
 pub async fn ship_duty(ship_automation: ShipAutomation, channel: mpsc::Sender<Ship>) {
@@ -107,7 +123,7 @@ pub async fn ship_duty(ship_automation: ShipAutomation, channel: mpsc::Sender<Sh
         .registration
         .role;
 
-    // checks if ship is under producing and parks it
+    // TODO: checks if ship is under producing and parks it
 
     match role {
         enums::ShipRole::Fabricator => todo!(),
@@ -159,7 +175,7 @@ async fn explorer_loop(ship_automation: ShipAutomation, channel: mpsc::Sender<Sh
             channel.clone(),
         )
         .await;
-        tokio::time::sleep(tokio::time::Duration::from_secs(120)).await;
+        sleep(time::Duration::from_secs(120)).await;
         // explorer::
     }
 }

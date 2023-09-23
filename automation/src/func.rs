@@ -4,7 +4,7 @@ use spacetraders::{
 };
 
 // use async_recursion::async_recursion;
-use chrono::{offset, DateTime, Local};
+use chrono::{DateTime, Local};
 use log::{error, info, trace};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
@@ -332,7 +332,7 @@ impl ShipAutomation {
             .route
             .arrival
             .into();
-        let local_time_now: DateTime<Local> = offset::Utc::now().into();
+        let local_time_now: DateTime<Local> = Local::now();
         let duration: chrono::Duration = local_time_to_stop - local_time_now;
 
         if duration.num_milliseconds() > 0 {

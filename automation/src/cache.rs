@@ -6,7 +6,7 @@ use spacetraders::{
 };
 
 use async_recursion::async_recursion;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local};
 use indextree::{Arena, NodeId};
 use log::{info, trace};
 use serde::{Deserialize, Serialize};
@@ -25,13 +25,13 @@ const GATESDB_FILE: &str = "gates.cbor";
 
 #[derive(Debug, Deserialize, Serialize)]
 struct CachedData<T> {
-    date: DateTime<Utc>,
+    date: DateTime<Local>,
     data: T,
 }
 pub fn cache_data<T: Serialize>(data: T, file_name: &str) {
     ciborium::into_writer(
         &CachedData {
-            date: chrono::offset::Utc::now(),
+            date: Local::now(),
             data,
         },
         &File::create(file_name).unwrap(),

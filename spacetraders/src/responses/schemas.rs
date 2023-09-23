@@ -1,6 +1,6 @@
 use crate::{enums, spacetraders_date_format, SectorString, SystemString, WaypointString};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Deserializer, Serialize};
 
 fn skip_trade_symbol<'de, D>(de: D) -> Result<Option<enums::TradeSymbol>, D::Error>
@@ -40,7 +40,7 @@ pub struct Chart {
     #[serde(alias = "submittedOn")]
     #[serde(default)]
     #[serde(with = "spacetraders_date_format")]
-    pub submitted_on: DateTime<Utc>,
+    pub submitted_on: DateTime<Local>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -72,7 +72,7 @@ pub struct Contract {
     #[serde(default)]
     #[serde(alias = "deadlineToAccept")]
     #[serde(with = "spacetraders_date_format")]
-    pub deadline_to_accept: DateTime<Utc>,
+    pub deadline_to_accept: DateTime<Local>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -99,7 +99,7 @@ pub struct ContractPayment {
 #[derive(Deserialize, Clone, Debug)]
 pub struct ContractTerms {
     #[serde(with = "spacetraders_date_format")]
-    pub deadline: DateTime<Utc>,
+    pub deadline: DateTime<Local>,
     pub payment: ContractPayment,
     #[serde(default)]
     pub deliver: Vec<ContractDeliverGood>,
@@ -115,7 +115,7 @@ pub struct Cooldown {
     pub remaining_seconds: u32,
     #[serde(default)]
     #[serde(with = "spacetraders_date_format")]
-    pub expiration: DateTime<Utc>,
+    pub expiration: DateTime<Local>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -223,7 +223,7 @@ pub struct MarketTransaction {
     #[serde(alias = "totalPrice")]
     pub total_price: f64,
     #[serde(with = "spacetraders_date_format")]
-    pub timestamp: DateTime<Utc>,
+    pub timestamp: DateTime<Local>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -384,7 +384,7 @@ pub struct ShipFuel {
 pub struct ShipFuelConsumed {
     pub amount: u32,
     #[serde(with = "spacetraders_date_format")]
-    pub timestamp: DateTime<Utc>,
+    pub timestamp: DateTime<Local>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -442,9 +442,9 @@ pub struct ShipNavRoute {
     pub departure: ShipNavRouteWaypoint,
     #[serde(alias = "departureTime")]
     #[serde(with = "spacetraders_date_format")]
-    pub departure_time: DateTime<Utc>,
+    pub departure_time: DateTime<Local>,
     #[serde(with = "spacetraders_date_format")]
-    pub arrival: DateTime<Utc>,
+    pub arrival: DateTime<Local>,
 }
 #[derive(Deserialize, Clone, Debug)]
 pub struct ShipNavRouteWaypoint {
@@ -532,7 +532,7 @@ pub struct Survey {
     pub symbol: String,
     pub deposits: Vec<SurveyDeposit>,
     #[serde(with = "spacetraders_date_format")]
-    pub expiration: DateTime<Utc>,
+    pub expiration: DateTime<Local>,
     pub size: enums::DepositSize,
 }
 

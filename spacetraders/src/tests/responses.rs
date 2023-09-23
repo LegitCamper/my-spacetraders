@@ -422,7 +422,7 @@ async fn extract_resources() {
                         }),
                     ],
                     // TODO: make into datatime
-                    expiration: chrono::offset::Utc::now(),
+                    expiration: chrono::Local::now(),
                     size: enums::DepositSize::Small,
                 }),
             )

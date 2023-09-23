@@ -53,6 +53,7 @@ struct Args {
 async fn main() {
     SimpleLogger::new()
         .with_level(log::LevelFilter::Info)
+        .without_timestamps()
         .with_colors(true)
         .init()
         .unwrap();

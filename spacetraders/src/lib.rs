@@ -28,6 +28,7 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 use thiserror::Error;
+use tokio::time::sleep;
 use url::Url;
 
 const LIVEURL: &str = "https://api.spacetraders.io/v2";
@@ -133,7 +134,7 @@ impl SpaceTraders {
             return;
         } else {
             let time_to_sleep = now - (last_request + duration);
-            tokio::time::sleep(
+            sleep(
                 time_to_sleep
                     .to_std()
                     .expect("Failed to convert chrono::Duration to std::time::Duration"),
@@ -1300,13 +1301,13 @@ impl<'de> Deserialize<'de> for SectorString {
 }
 
 pub mod spacetraders_datetime_format {
-    use chrono::{DateTime, TimeZone, Utc};
+    use chrono::{DateTime, Local, TimeZone};
     // use log::error;
     use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = "%+";
 
-    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(date: &DateTime<Local>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -1314,28 +1315,28 @@ pub mod spacetraders_datetime_format {
         serializer.serialize_str(&s)
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Local>, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        match Utc.datetime_from_str(&s, FORMAT) {
+        match Local.datetime_from_str(&s, FORMAT) {
             Ok(date) => Ok(date),
             Err(_) => {
                 // error!("Failed deserializing chrono - defaulting to now!");
-                Ok(chrono::offset::Utc::now())
+                Ok(chrono::offset::Local::now())
             }
         }
     }
 }
 pub mod spacetraders_date_format {
-    use chrono::{DateTime, TimeZone, Utc};
+    use chrono::{DateTime, Local, TimeZone};
     // use log::error;
     use serde::{self, Deserialize, Deserializer, Serializer};
 
     const FORMAT: &str = "%+";
 
-    pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(date: &DateTime<Local>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -1343,29 +1344,29 @@ pub mod spacetraders_date_format {
         serializer.serialize_str(&s)
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Local>, D::Error>
     where
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
         let s = format!("{}{}", s, "T01:00:00Z");
 
-        match Utc.datetime_from_str(&s, FORMAT) {
+        match Local.datetime_from_str(&s, FORMAT) {
             Ok(date) => Ok(date),
             Err(_) => {
                 // error!("Failed deserializing chrono - defaulting to now!");
-                Ok(chrono::offset::Utc::now())
+                Ok(Local::now())
             }
         }
     }
 }
 // pub mod spacetraders_time_format {
-//     use chrono::{DateTime, TimeZone, Utc};
+//     use chrono::{DateTime, TimeZone, Local};
 //     use serde::{self, Deserialize, Deserializer, Serializer};
 
 // const FORMAT: &'static str = "%Y-%m-%dT%I:%M:%S%.3fZ";
 
-//     pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+//     pub fn serialize<S>(date: &DateTime<Local>, serializer: S) -> Result<S::Ok, S::Error>
 //     where
 //         S: Serializer,
 //     {
@@ -1373,12 +1374,12 @@ pub mod spacetraders_date_format {
 //         serializer.serialize_str(&s)
 //     }
 
-//     pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
+//     pub fn deserialize<'de, D>(deserializer: D) -> Result<DateTime<Local>, D::Error>
 //     where
 //         D: Deserializer<'de>,
 //     {
 //         let s = String::deserialize(deserializer)?;
-//         Utc.datetime_from_str(&s, FORMAT)
+//         Local.datetime_from_str(&s, FORMAT)
 //             .map_err(serde::de::Error::custom)
 //     }
 // }
