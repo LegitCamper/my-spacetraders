@@ -57,7 +57,7 @@ pub async fn admin_stuff(
             }
             if contractor_ship {
             } else {
-                buy_ship(ship_automation, &needed_ship, channel.clone()).await
+                buy_ship(ship_automation, &needed_ship, &channel).await
             }
         }
     }
@@ -66,7 +66,7 @@ pub async fn admin_stuff(
 pub async fn buy_ship(
     ship_automation: &ShipAutomation,
     ship_types: &[enums::ShipType],
-    channel: mpsc::Sender<responses::schemas::Ship>,
+    channel: &mpsc::Sender<responses::schemas::Ship>,
 ) {
     trace!("Buy mining ship");
 

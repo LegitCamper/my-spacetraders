@@ -1,5 +1,5 @@
 use spacetraders::{
-    enums,
+    enums::{ShipRole::*, ShipType::*},
     responses::schemas::{self, Contract, Ship},
     SpaceTraders, WaypointString,
 };
@@ -35,7 +35,7 @@ pub struct Automation {
     pub euclidean_distances: Vec<AllEuclideanDistances>,
 }
 
-pub async fn ship_handler(st_interface: SpaceTraders, automation_data: Automation) {
+pub async fn ship_handler(st_interface: SpaceTraders, mut automation_data: Automation) {
     trace!("Start Ship Handler");
     // this channel if for ships to send back
     // newly purchased ships to be spawned
@@ -50,6 +50,9 @@ pub async fn ship_handler(st_interface: SpaceTraders, automation_data: Automatio
     for ship in ships.into_iter() {
         tx.send(ship).await.unwrap();
     }
+
+    // inits credits in automation_data
+    automation_data.credits = st_interface.agent().await.unwrap().data.credits;
 
     let shared_data = Arc::new(RwLock::new(SharedAutomationData::new(
         st_interface,
@@ -126,32 +129,26 @@ pub async fn ship_duty(ship_automation: ShipAutomation, channel: mpsc::Sender<Sh
     // TODO: checks if ship is under producing and parks it
 
     match role {
-        enums::ShipRole::Fabricator => todo!(),
-        enums::ShipRole::Harvester => todo!(),
-        enums::ShipRole::Hauler => todo!(),
-        enums::ShipRole::Interceptor => todo!(),
-        enums::ShipRole::Excavator => miner_loop(ship_automation, channel).await,
-        enums::ShipRole::Transport => todo!(),
-        enums::ShipRole::Repair => todo!(),
-        enums::ShipRole::Surveyor => todo!(),
-        enums::ShipRole::Command => explorer_loop(ship_automation, channel).await,
-        enums::ShipRole::Carrier => todo!(),
-        enums::ShipRole::Patrol => todo!(),
-        enums::ShipRole::Satellite => explorer_loop(ship_automation, channel).await,
-        enums::ShipRole::Explorer => explorer_loop(ship_automation, channel).await,
-        enums::ShipRole::Refinery => todo!(),
+        Fabricator => todo!(),
+        Harvester => todo!(),
+        Hauler => todo!(),
+        Interceptor => todo!(),
+        Excavator => miner_loop(ship_automation, channel).await,
+        Transport => todo!(),
+        Repair => todo!(),
+        Surveyor => todo!(),
+        Command => explorer_loop(ship_automation, channel).await,
+        Carrier => todo!(),
+        Patrol => todo!(),
+        Satellite => explorer_loop(ship_automation, channel).await,
+        Explorer => explorer_loop(ship_automation, channel).await,
+        Refinery => todo!(),
     };
 }
 
 async fn contractor_loop(ship_automation: ShipAutomation, channel: mpsc::Sender<Ship>) {
     loop {
-        admin::admin_stuff(
-            &ship_automation,
-            &[enums::ShipType::ShipMiningDrone],
-            channel.clone(),
-        )
-        .await;
-        // contractor::
+        admin::admin_stuff(&ship_automation, &[ShipMiningDrone], channel.clone()).await;
     }
 }
 
@@ -163,18 +160,7 @@ async fn miner_loop(mut ship_automation: ShipAutomation, _channel: mpsc::Sender<
 
 async fn explorer_loop(ship_automation: ShipAutomation, channel: mpsc::Sender<Ship>) {
     loop {
-        // admin::admin_stuff(
-        //     ship_automation.clone(),
-        //     &[enums::ShipType::ShipMiningDrone],
-        //     channel.clone(),
-        // )
-        // .await;
-        admin::buy_ship(
-            &ship_automation,
-            &[enums::ShipType::ShipMiningDrone],
-            channel.clone(),
-        )
-        .await;
+        admin::buy_ship(&ship_automation, &[ShipMiningDrone], &channel).await;
         sleep(time::Duration::from_secs(120)).await;
         // explorer::
     }
